@@ -4,13 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"ngevent/internal/handler"
+	"ngevent/internal/repository"
 	"ngevent/internal/server"
+	"ngevent/internal/service"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -43,7 +47,21 @@ func main() {
 
 	server := server.New()
 
+	// Create a new validator instance
+	validate := validator.New()
+
+	// Init repository
+	userRepo := repository.NewUsersRepository(server.DB)
+
+	// Init service
+	userService := service.NewUsersService(userRepo)
+
+	// Init handler
+	userHandler := handler.NewUserHandler(userService, validate)
+
+	// Register routes
 	server.RegisterFiberRoutes()
+	server.RegisterAuthRoutes(userHandler)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

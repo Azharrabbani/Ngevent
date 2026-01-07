@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 
 	"ngevent/internal/database"
 )
@@ -9,7 +10,7 @@ import (
 type FiberServer struct {
 	*fiber.App
 
-	db database.Service
+	DB *gorm.DB
 }
 
 func New() *FiberServer {
@@ -19,7 +20,7 @@ func New() *FiberServer {
 			AppName:      "ngevent",
 		}),
 
-		db: database.New(),
+		DB: database.ConnectDB(),
 	}
 
 	return server

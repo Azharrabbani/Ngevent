@@ -1,9 +1,13 @@
 package server
 
 import (
+	"ngevent/internal/handler"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
+
+var v1 fiber.Router
 
 func (s *FiberServer) RegisterFiberRoutes() {
 	// Apply CORS middleware
@@ -15,20 +19,10 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		MaxAge:           300,
 	}))
 
-	s.App.Get("/", s.HelloWorldHandler)
-
-	s.App.Get("/health", s.healthHandler)
+	v1 = s.App.Group("api/v1")
 
 }
 
-func (s *FiberServer) HelloWorldHandler(c *fiber.Ctx) error {
-	resp := fiber.Map{
-		"message": "Hello World",
-	}
-
-	return c.JSON(resp)
-}
-
-func (s *FiberServer) healthHandler(c *fiber.Ctx) error {
-	return c.JSON(s.db.Health())
+func (s *FiberServer) RegisterAuthRoutes(h *handler.UsersHandler) {
+	v1.Post("/register", h.Register)
 }
