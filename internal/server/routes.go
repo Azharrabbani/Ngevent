@@ -2,6 +2,7 @@ package server
 
 import (
 	"ngevent/internal/handler"
+	"ngevent/internal/utils/middleware"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -25,5 +26,12 @@ func (s *FiberServer) RegisterFiberRoutes() {
 
 func (s *FiberServer) RegisterAuthRoutes(h *handler.UsersHandler) {
 	v1.Post("/register", h.Register)
+
 	v1.Post("/login", h.Login)
+
+	logout := v1.Group("logout")
+	logout.Use(middleware.AuthMiddleware())
+	{
+		logout.Post("/", h.Logout)
+	}
 }

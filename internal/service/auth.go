@@ -102,5 +102,5 @@ func (s *UsersService) Login(client *model.Client, email, password string) (*mod
 }
 
 func (s *UsersService) Logout(id string) error {
-	return s.sessionRepo.Delete(id)
+	return s.sessionRepo.DeleteByUserID(id)
 }

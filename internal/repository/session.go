@@ -46,3 +46,9 @@ func (r *SessionRepository) Delete(id string) error {
 
 	return r.db.Where("id = ?", id).Delete(&session).Error
 }
+
+func (r *SessionRepository) DeleteByUserID(id string) error {
+	var session *model.Sessions
+
+	return r.db.Where("user_id = ?", id).Delete(&session).Error
+}

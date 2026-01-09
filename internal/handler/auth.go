@@ -126,10 +126,39 @@ func (h *UsersHandler) Login(c *fiber.Ctx) error {
 		LoginAt:     helper.ConvertDatetoUnix(user.UpdatedAt.Format(time.RFC3339)),
 	}
 
+	// Set cookie
+	c.Cookie(&fiber.Cookie{
+		Name:     "ngevent-cookie",
+		Value:    accessToken,
+		HTTPOnly: true,
+		MaxAge:   60 * 60 * 3,
+	})
+
 	return c.Status(fiber.StatusOK).JSON(dto.Success(
 		fiber.StatusOK,
 		"success",
 		"login-success",
 		userLogin,
+	))
+}
+
+func (h *UsersHandler) Logout(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+
+	if err := h.userService.Logout(userID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"error",
+			"invalid-request",
+			err.Error(),
+		))
+	}
+
+	c.ClearCookie()
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusAccepted,
+		"success",
+		"success",
+		"logout-success",
 	))
 }

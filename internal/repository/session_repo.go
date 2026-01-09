@@ -8,4 +8,5 @@ type SessionRepo interface {
 	FindByUserID(id string) (*model.Sessions, error)
 	Update(session *model.Sessions) (*model.Sessions, error)
 	Delete(id string) error
+	DeleteByUserID(id string) error
 }
