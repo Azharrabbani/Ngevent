@@ -52,9 +52,10 @@ func main() {
 
 	// Init repository
 	userRepo := repository.NewUsersRepository(server.DB)
+	sessionRepo := repository.NewSessionRepository(server.DB)
 
 	// Init service
-	userService := service.NewUsersService(userRepo)
+	userService := service.NewUsersService(userRepo, sessionRepo)
 
 	// Init handler
 	userHandler := handler.NewUserHandler(userService, validate)

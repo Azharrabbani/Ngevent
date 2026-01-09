@@ -14,7 +14,7 @@ func (s *FiberServer) RegisterFiberRoutes() {
 	s.App.Use(cors.New(cors.Config{
 		AllowOrigins:     "*",
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
-		AllowHeaders:     "Accept,Authorization,Content-Type",
+		AllowHeaders:     "Accept,Authorization,Content-Type,Origin,X-Requested-With",
 		AllowCredentials: false, // credentials require explicit origins
 		MaxAge:           300,
 	}))
@@ -25,4 +25,5 @@ func (s *FiberServer) RegisterFiberRoutes() {
 
 func (s *FiberServer) RegisterAuthRoutes(h *handler.UsersHandler) {
 	v1.Post("/register", h.Register)
+	v1.Post("/login", h.Login)
 }

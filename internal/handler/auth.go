@@ -2,9 +2,11 @@ package handler
 
 import (
 	"ngevent/internal/dto"
+	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -71,5 +73,63 @@ func (h *UsersHandler) Register(c *fiber.Ctx) error {
 		"success",
 		"register-success",
 		users,
+	))
+}
+
+func (h *UsersHandler) Login(c *fiber.Ctx) error {
+	// Validate the req
+	var req dto.LoginInput
+
+	// Get user client
+	ip := c.IP()
+	userAgent := Handler(c)
+
+	client := &model.Client{
+		IP:        ip,
+		UserAgent: userAgent,
+	}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"invalid-request",
+			err.Error(),
+		))
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"validation-error",
+			msg,
+		))
+	}
+
+	user, accessToken, err := h.userService.Login(client, req.Email, req.Password)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"login-failed",
+			err.Error(),
+		))
+	}
+
+	userLogin := &model.LoginResponse{
+		ID:          user.ID,
+		Email:       user.Email,
+		Role:        user.Role,
+		AccessToken: accessToken,
+		LoginAt:     helper.ConvertDatetoUnix(user.UpdatedAt.Format(time.RFC3339)),
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"login-success",
+		userLogin,
 	))
 }

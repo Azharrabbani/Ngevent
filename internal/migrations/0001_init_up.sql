@@ -19,8 +19,9 @@ CREATE TABLE "public"."sessions"(
 	"refresh_token" varchar(255) NOT NULL,
 	"ip_address" varchar(255) NOT NULL,
 	"user_agent" varchar(255) NOT NULL,
-	"created_at" timestamp DEFAULT NOW(),
-	"updated_at" timestamp DEFAULT NOW(),
+	"expired_at" timestamp(0) DEFAULT NOW(),
+	"created_at" timestamp(0) DEFAULT NOW(),
+	"updated_at" timestamp(0) DEFAULT NOW(),
 	CONSTRAINT "session_pkey" PRIMARY KEY ("id"),
 	CONSTRAINT "fk_sessions_user" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE
 );

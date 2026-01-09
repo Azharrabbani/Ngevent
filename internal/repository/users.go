@@ -85,4 +85,3 @@ func (r *UsersRepository) Delete(id string) error {
 
 	return r.db.Where("id = ?", id).Delete(&user).Error
 }
-
