@@ -68,12 +68,65 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		))
 	}
 
+	newUser := &model.RegisterResponse{
+		ID:         users.ID,
+		Email:      users.Email,
+		Password:   users.Password,
+		Role:       users.Role,
+		IsVerified: users.IsVerified,
+		CreatedAt:  helper.ConvertDatetoUnix(users.CreatedAt.Format(time.RFC3339)),
+		UpdatedAt:  helper.ConvertDatetoUnix(users.UpdatedAt.Format(time.RFC3339)),
+	}
+
 	return c.Status(fiber.StatusCreated).JSON(dto.Success(
 		fiber.StatusAccepted,
 		"success",
 		"register-success",
-		users,
+		newUser,
 	))
+}
+
+func (h *AuthHandler) VerififyEmail(c *fiber.Ctx) error {
+	otpID := c.Params("id")
+
+	var req dto.VerifyEmailInput
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"invalid-request",
+			err.Error(),
+		))
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"validation-error",
+			msg,
+		))
+	}
+
+	// Verify Email
+	status, err := h.userService.VerififyEmail(otpID, req.OTP)
+	if err != nil {
+		return c.Status(status).JSON(dto.Error(
+			status,
+			"failed",
+			"verify-error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		"success verified email",
+	))
+
 }
 
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
@@ -108,6 +161,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		))
 	}
 
+	// Login
 	user, status, accessToken, err := h.userService.Login(client, req.Email, req.Password)
 	if err != nil {
 		return c.Status(status).JSON(dto.Error(
@@ -164,6 +218,7 @@ func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 		))
 	}
 
+	// Forgot password
 	status, err := h.userService.ForgotPassword(req.Email)
 	if err != nil {
 		return c.Status(status).JSON(dto.Error(
@@ -205,6 +260,7 @@ func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 		))
 	}
 
+	// Reset password
 	status, err := h.userService.ResetPassword(otpID, req.NewPassword, req.ConfirmPassword)
 	if err != nil {
 		return c.Status(status).JSON(dto.Error(
@@ -226,6 +282,7 @@ func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
+	// Logout
 	if err := h.userService.Logout(userID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -235,7 +292,9 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 		))
 	}
 
+	// Clear cookie
 	c.ClearCookie()
+
 	return c.Status(fiber.StatusOK).JSON(dto.Success(
 		fiber.StatusAccepted,
 		"success",

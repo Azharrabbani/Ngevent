@@ -3,6 +3,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TYPE "public"."role" AS ENUM ('user', 'admin', 'event organizer');
 CREATE TYPE "public"."type_verification" AS ENUM ('verified_email', 'reset_password');
 
+SET TIME ZONE 'UTC';
+
 CREATE TABLE "public"."users"(
 	"id" uuid DEFAULT uuid_generate_v4() NOT NULL,
 	"email" varchar(255) NOT NULL UNIQUE,

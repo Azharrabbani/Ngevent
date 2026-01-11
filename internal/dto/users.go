@@ -19,3 +19,7 @@ type ResetPasswordInput struct {
 	NewPassword     string `json:"new_password" validate:"required"`
 	ConfirmPassword string `json:"confirm_password" validate:"required"`
 }
+
+type VerifyEmailInput struct {
+	OTP string `json:"otp" validate:"required"`
+}

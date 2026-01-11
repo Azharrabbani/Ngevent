@@ -33,11 +33,28 @@ func NewUsersService(
 }
 
 func (s *UsersService) CreateUser(email, password, role string) (*model.Users, error) {
+
+	if role == "admin" {
+		user := &model.Users{
+			Email:      email,
+			Password:   password,
+			Role:       role,
+			IsVerified: true,
+		}
+
+		newUser, err := s.userRepo.Create(user)
+		if err != nil {
+			return nil, errors.New("email already registred")
+		}
+
+		return newUser, nil
+	}
+
+	// User beside admin have to verified their email
 	user := &model.Users{
-		Email:      email,
-		Password:   password,
-		Role:       role,
-		IsVerified: true, // For now
+		Email:    email,
+		Password: password,
+		Role:     role,
 	}
 
 	newUser, err := s.userRepo.Create(user)
@@ -45,7 +62,95 @@ func (s *UsersService) CreateUser(email, password, role string) (*model.Users, e
 		return nil, errors.New("email already registred")
 	}
 
+	// Generate OTP
+	otpCode, err := helper.GenerateOTP()
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now().UTC()
+	otp := helper.NewOTP(
+		otpCode,
+		user.ID,
+		"reset_password",
+		now.Add(5*time.Minute),
+	)
+
+	// Save OTP
+	newOTP, err := s.otpRepo.Create(otp)
+	if err != nil {
+		return nil, err
+	}
+
+	urlHost := os.Getenv("APP_HOST")
+	urlPort := os.Getenv("APP_PORT")
+
+	// Send to email
+	m := gomail.NewMessage()
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", user.Email)
+	m.SetHeader("Subject", "Verifify Email")
+
+	verifyLink := fmt.Sprintf(
+		"%s:%s/api/v1/verify-email/%s",
+		urlHost,
+		urlPort,
+		newOTP.ID,
+	)
+
+	utils.VerifyEmailMail(m, verifyLink, newOTP.OTP)
+
+	// SMTP configuration
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+
+	go func() {
+		d := gomail.NewDialer(host, port, username, smtpPassword)
+		if err := d.DialAndSend(m); err != nil {
+			panic(err)
+		}
+	}()
+
 	return newUser, nil
+}
+
+func (s *UsersService) VerififyEmail(id, otpInput string) (int, error) {
+	// Check OTP
+	otp, err := s.otpRepo.FindByID(id)
+	if err != nil {
+		return fiber.StatusNotFound, errors.New("otp not found")
+	}
+
+	if otp.OTP != otpInput || otp.IsUsed {
+		return fiber.StatusBadRequest, errors.New("otp expired or not valid")
+	}
+
+	// Update OTP status
+	otp.IsUsed = true
+	otp.ExpiredAt = time.Now().UTC()
+
+	_, err = s.otpRepo.Update(otp)
+	if err != nil {
+		return fiber.StatusBadRequest, err
+	}
+
+	// Update user verification
+	user, err := s.userRepo.FindByID(otp.UserID)
+	if err != nil {
+		return fiber.StatusBadRequest, err
+	}
+
+	user.IsVerified = true
+	user.UpdatedAt = time.Now().UTC()
+
+	_, err = s.userRepo.Update(user)
+	if err != nil {
+		return fiber.StatusBadRequest, err
+	}
+
+	return 0, nil
 }
 
 func (s *UsersService) Login(client *model.Client, email, password string) (*model.Users, int, string, error) {
