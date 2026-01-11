@@ -24,10 +24,14 @@ func (s *FiberServer) RegisterFiberRoutes() {
 
 }
 
-func (s *FiberServer) RegisterAuthRoutes(h *handler.UsersHandler) {
+func (s *FiberServer) RegisterAuthRoutes(h *handler.AuthHandler) {
 	v1.Post("/register", h.Register)
 
 	v1.Post("/login", h.Login)
+
+	v1.Post("/forgot-password", h.ForgotPassword)
+
+	v1.Put("/reset-password/:id", h.ResetPassword)
 
 	logout := v1.Group("logout")
 	logout.Use(middleware.AuthMiddleware())

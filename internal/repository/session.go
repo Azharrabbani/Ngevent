@@ -2,6 +2,7 @@ package repository
 
 import (
 	"ngevent/internal/model"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -34,11 +35,14 @@ func (r *SessionRepository) FindByUserID(id string) (*model.Sessions, error) {
 	return session, nil
 }
 
-func (r *SessionRepository) Update(session *model.Sessions) (*model.Sessions, error) {
-	if err := r.db.Save(session).Error; err != nil {
-		return nil, err
-	}
-	return session, nil
+func (r *SessionRepository) Update(userId, token, userIP, userAgent string, expire time.Time, update time.Time) error {
+	return r.db.Where("user_id = ?", userId).Updates(&model.Sessions{
+		RefreshToken: token,
+		UserID:       userId,
+		IPAddress:    userIP,
+		UserAgent:    userAgent,
+		ExpiredAt:    expire,
+		UpdatedAt:    update}).Error
 }
 
 func (r *SessionRepository) Delete(id string) error {

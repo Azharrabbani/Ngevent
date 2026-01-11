@@ -72,6 +72,16 @@ func (r *UsersRepository) FindByRole(role string) ([]*model.Users, error) {
 	return users, nil
 }
 
+func (r *UsersRepository) FindByEmail(email string) (*model.Users, error) {
+	var user *model.Users
+
+	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 func (r *UsersRepository) Update(users *model.Users) (*model.Users, error) {
 	if err := r.db.Save(&users).Error; err != nil {
 		return nil, err

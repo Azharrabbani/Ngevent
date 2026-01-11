@@ -53,12 +53,13 @@ func main() {
 	// Init repository
 	userRepo := repository.NewUsersRepository(server.DB)
 	sessionRepo := repository.NewSessionRepository(server.DB)
+	OtpRepo := repository.NewOtpRepository(server.DB)
 
 	// Init service
-	userService := service.NewUsersService(userRepo, sessionRepo)
+	userService := service.NewUsersService(userRepo, sessionRepo, OtpRepo)
 
 	// Init handler
-	userHandler := handler.NewUserHandler(userService, validate)
+	userHandler := handler.NewAuthHandler(userService, validate)
 
 	// Register routes
 	server.RegisterFiberRoutes()
@@ -68,7 +69,7 @@ func main() {
 	done := make(chan bool, 1)
 
 	go func() {
-		port, _ := strconv.Atoi(os.Getenv("PORT"))
+		port, _ := strconv.Atoi(os.Getenv("APP_PORT"))
 		err := server.Listen(fmt.Sprintf(":%d", port))
 		if err != nil {
 			panic(fmt.Sprintf("http server error: %s", err))
