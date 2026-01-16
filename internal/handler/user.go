@@ -2,27 +2,29 @@ package handler
 
 import (
 	"ngevent/internal/dto"
+	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
-type UsersHandler struct {
-	userService *service.UsersService
-	validate    *validator.Validate
+type UserHandler struct {
+	UserService *service.UserService
+	Validate    *validator.Validate
 }
 
-func NewUserHandler(userService *service.UsersService, validate *validator.Validate) *UsersHandler {
-	return &UsersHandler{
-		userService: userService,
-		validate:    validate,
+func NewUserHandler(userService *service.UserService, validate *validator.Validate) *UserHandler {
+	return &UserHandler{
+		UserService: userService,
+		Validate:    validate,
 	}
 }
 
-func (h *UsersHandler) Register(c *fiber.Ctx) error {
+func (h *UserHandler) Register(c *fiber.Ctx) error {
 	var input dto.RegisterInput
 
 	if err := c.BodyParser(&input); err != nil {
@@ -34,7 +36,7 @@ func (h *UsersHandler) Register(c *fiber.Ctx) error {
 		))
 	}
 
-	if err := h.validate.Struct(input); err != nil {
+	if err := h.Validate.Struct(input); err != nil {
 		msg := utils.GetValidationError(err)
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -56,7 +58,7 @@ func (h *UsersHandler) Register(c *fiber.Ctx) error {
 	}
 
 	// Store new user
-	users, err := h.userService.CreateUser(input.Email, string(hashPassword), input.Role)
+	users, err := h.UserService.CreateUser(input.Email, string(hashPassword), input.Role)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -66,10 +68,20 @@ func (h *UsersHandler) Register(c *fiber.Ctx) error {
 		))
 	}
 
+	newUser := &model.RegisterResponse{
+		ID:         users.ID,
+		Email:      users.Email,
+		Password:   users.Password,
+		Role:       users.Role,
+		IsVerified: users.IsVerified,
+		CreatedAt:  helper.ConvertDatetoUnix(users.CreatedAt.Format(time.RFC3339)),
+		UpdatedAt:  helper.ConvertDatetoUnix(users.UpdatedAt.Format(time.RFC3339)),
+	}
+
 	return c.Status(fiber.StatusCreated).JSON(dto.Success(
 		fiber.StatusAccepted,
 		"success",
 		"register-success",
-		users,
+		newUser,
 	))
 }

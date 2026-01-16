@@ -8,6 +8,7 @@ import (
 	"ngevent/internal/repository"
 	"ngevent/internal/server"
 	"ngevent/internal/service"
+	"ngevent/internal/tasks"
 	"os"
 	"os/signal"
 	"strconv"
@@ -39,6 +40,8 @@ func gracefulShutdown(fiberServer *server.FiberServer, done chan bool) {
 
 	log.Println("Server exiting")
 
+	fiberServer.Close()
+
 	// Notify the main goroutine that the shutdown is complete
 	done <- true
 }
@@ -47,27 +50,43 @@ func main() {
 
 	server := server.New()
 
+	// ensure to close the worker inspector & client connection
+	defer server.InspectorWorker.Close()
+	defer server.ClientWoker.Close()
+
 	// Create a new validator instance
 	validate := validator.New()
 
+	// init Task Publisher Worker
+	unverifiedUserTaskPublisher := tasks.NewUserTaskPublisher(server.ClientWoker, server.InspectorWorker)
+	unusedOTPTaskPublisher := tasks.NewOTPTaskPublisher(server.ClientWoker, server.InspectorWorker)
+
 	// Init repository
 	userRepo := repository.NewUsersRepository(server.DB)
+	sessionRepo := repository.NewSessionRepository(server.DB)
+	otpRepo := repository.NewOtpRepository(server.DB)
 
 	// Init service
-	userService := service.NewUsersService(userRepo)
+	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher)
+	userService := service.NewUserService(userRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher)
+	otpService := service.NewOTPService(userRepo, otpRepo, unusedOTPTaskPublisher)
 
 	// Init handler
+	authHandler := handler.NewAuthHandler(authService, validate)
 	userHandler := handler.NewUserHandler(userService, validate)
+	otpHandler := handler.NewOTPHandler(otpService, validate)
 
 	// Register routes
 	server.RegisterFiberRoutes()
-	server.RegisterAuthRoutes(userHandler)
+	server.RegisterAuthRoutes(authHandler)
+	server.RegisterUserRoutes(userHandler)
+	server.RegisterOTPRoutes(otpHandler)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)
 
 	go func() {
-		port, _ := strconv.Atoi(os.Getenv("PORT"))
+		port, _ := strconv.Atoi(os.Getenv("APP_PORT"))
 		err := server.Listen(fmt.Sprintf(":%d", port))
 		if err != nil {
 			panic(fmt.Sprintf("http server error: %s", err))

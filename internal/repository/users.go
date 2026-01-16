@@ -16,6 +16,10 @@ func NewUsersRepository(db *gorm.DB) *UsersRepository {
 	return &UsersRepository{db: db}
 }
 
+func (r *UsersRepository) GetDB() *gorm.DB {
+	return r.db
+}
+
 func (r *UsersRepository) Create(users *model.Users) (*model.Users, error) {
 	if err := r.db.Create(&users).Error; err != nil {
 		return nil, err
@@ -72,6 +76,16 @@ func (r *UsersRepository) FindByRole(role string) ([]*model.Users, error) {
 	return users, nil
 }
 
+func (r *UsersRepository) FindByEmail(email string) (*model.Users, error) {
+	var user *model.Users
+
+	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 func (r *UsersRepository) Update(users *model.Users) (*model.Users, error) {
 	if err := r.db.Save(&users).Error; err != nil {
 		return nil, err
@@ -85,4 +99,3 @@ func (r *UsersRepository) Delete(id string) error {
 
 	return r.db.Where("id = ?", id).Delete(&user).Error
 }
-
