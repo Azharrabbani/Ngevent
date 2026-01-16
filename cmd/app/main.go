@@ -69,15 +69,18 @@ func main() {
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher)
 	userService := service.NewUserService(userRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher)
+	otpService := service.NewOTPService(userRepo, otpRepo, unusedOTPTaskPublisher)
 
 	// Init handler
 	authHandler := handler.NewAuthHandler(authService, validate)
-	userhandler := handler.NewUserHandler(userService, validate)
+	userHandler := handler.NewUserHandler(userService, validate)
+	otpHandler := handler.NewOTPHandler(otpService, validate)
 
 	// Register routes
 	server.RegisterFiberRoutes()
 	server.RegisterAuthRoutes(authHandler)
-	server.RegisterUserRoutes(userhandler)
+	server.RegisterUserRoutes(userHandler)
+	server.RegisterOTPRoutes(otpHandler)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

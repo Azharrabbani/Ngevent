@@ -40,8 +40,8 @@ func NewAuthService(
 }
 
 func (s *AuthService) VerififyEmail(id, otpInput string) (int, error) {
-	otpX := s.otpRepo.GetDB()
-	authX := s.userRepo.GetDB()
+	otpX := s.otpRepo.GetDB().Begin()
+	authX := s.userRepo.GetDB().Begin()
 
 	// Rollback if failed
 	defer func() {
@@ -112,7 +112,7 @@ func (s *AuthService) VerififyEmail(id, otpInput string) (int, error) {
 }
 
 func (s *AuthService) Login(client *model.Client, email, password string) (*model.Users, int, string, error) {
-	authX := s.userRepo.GetDB()
+	authX := s.userRepo.GetDB().Begin()
 
 	// Rollback if failed
 	defer func() {
@@ -195,7 +195,7 @@ func (s *AuthService) Login(client *model.Client, email, password string) (*mode
 }
 
 func (s *AuthService) ForgotPassword(email string) (int, error) {
-	otpX := s.otpRepo.GetDB()
+	otpX := s.otpRepo.GetDB().Begin()
 
 	// Rollback if failed
 	defer func() {
@@ -222,7 +222,7 @@ func (s *AuthService) ForgotPassword(email string) (int, error) {
 		otpCode,
 		user.ID,
 		"reset_password",
-		now.Add(5*time.Minute),
+		now.Add(3*time.Minute),
 	)
 
 	newOTP, err := s.otpRepo.Create(otp)
@@ -250,7 +250,7 @@ func (s *AuthService) ForgotPassword(email string) (int, error) {
 }
 
 func (s *AuthService) ResetPassword(id, newPassword, confirmPassword string) (int, error) {
-	otpX := s.otpRepo.GetDB()
+	otpX := s.otpRepo.GetDB().Begin()
 
 	// Rollback if failed
 	defer func() {

@@ -35,8 +35,8 @@ func NewUserService(
 }
 
 func (s *UserService) CreateUser(email, password, role string) (*model.Users, error) {
-	userX := s.UserRepo.GetDB()
-	otpX := s.OtpRepo.GetDB()
+	userX := s.UserRepo.GetDB().Begin()
+	otpX := s.OtpRepo.GetDB().Begin()
 
 	// Rollback if failed
 	defer func() {
@@ -92,8 +92,8 @@ func (s *UserService) CreateUser(email, password, role string) (*model.Users, er
 	otp := helper.NewOTP(
 		otpCode,
 		user.ID,
-		"reset_password",
-		now.Add(5*time.Minute),
+		"verified_email",
+		now.Add(3*time.Minute),
 	)
 
 	// Save OTP
@@ -104,7 +104,7 @@ func (s *UserService) CreateUser(email, password, role string) (*model.Users, er
 	}
 
 	// Create otp task
-	// This task function is to delete unused user
+	// This task function is to delete unused otp
 	otpPayload := &model.OTPPayload{OTPID: newOTP.ID}
 	if err := s.OtpTaskPublisher.EnqueueOTPVerification(model.TypeVerifiedOTP, otpPayload); err != nil {
 		userX.Rollback()

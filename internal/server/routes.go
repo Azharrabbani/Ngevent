@@ -43,3 +43,7 @@ func (s *FiberServer) RegisterAuthRoutes(h *handler.AuthHandler) {
 func (s *FiberServer) RegisterUserRoutes(h *handler.UserHandler) {
 	v1.Post("/register", h.Register)
 }
+
+func (s *FiberServer) RegisterOTPRoutes(h *handler.OTPHandler) {
+	v1.Post("/resend-otp", h.ResendOTP)
+}

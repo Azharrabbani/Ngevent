@@ -93,7 +93,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		msg := utils.GetValidationError(err)
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
-			"failed",
+			"error",
 			"validation-error",
 			msg,
 		))

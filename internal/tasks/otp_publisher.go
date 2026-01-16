@@ -29,7 +29,7 @@ func (t *OtpTaskPublisher) EnqueueOTPVerification(taskType string, payload *mode
 
 	task := asynq.NewTask(taskType, p)
 
-	_, err = t.Client.Enqueue(task, asynq.ProcessIn(6*time.Minute), asynq.TaskID(payload.OTPID))
+	_, err = t.Client.Enqueue(task, asynq.ProcessIn(4*time.Minute), asynq.TaskID(payload.OTPID))
 	if err != nil {
 		return err
 	}

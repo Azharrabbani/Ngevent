@@ -23,3 +23,7 @@ type ResetPasswordInput struct {
 type VerifyEmailInput struct {
 	OTP string `json:"otp" validate:"required"`
 }
+
+type ResentOTPInput struct {
+	Email string `json:"email" validate:"required"`
+}
