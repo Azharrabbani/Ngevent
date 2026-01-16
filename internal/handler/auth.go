@@ -13,77 +13,15 @@ import (
 )
 
 type AuthHandler struct {
-	userService *service.UsersService
+	AuthService *service.AuthService
 	validate    *validator.Validate
 }
 
-func NewAuthHandler(userService *service.UsersService, validate *validator.Validate) *AuthHandler {
+func NewAuthHandler(authService *service.AuthService, validate *validator.Validate) *AuthHandler {
 	return &AuthHandler{
-		userService: userService,
+		AuthService: authService,
 		validate:    validate,
 	}
-}
-
-func (h *AuthHandler) Register(c *fiber.Ctx) error {
-	var input dto.RegisterInput
-
-	if err := c.BodyParser(&input); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"invalid-request",
-			err.Error(),
-		))
-	}
-
-	if err := h.validate.Struct(input); err != nil {
-		msg := utils.GetValidationError(err)
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"validation-error",
-			msg,
-		))
-	}
-
-	// Hashing password
-	hashPassword, err := helper.HashPassword(input.Password)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"invalid-request",
-			err.Error(),
-		))
-	}
-
-	// Store new user
-	users, err := h.userService.CreateUser(input.Email, string(hashPassword), input.Role)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
-		))
-	}
-
-	newUser := &model.RegisterResponse{
-		ID:         users.ID,
-		Email:      users.Email,
-		Password:   users.Password,
-		Role:       users.Role,
-		IsVerified: users.IsVerified,
-		CreatedAt:  helper.ConvertDatetoUnix(users.CreatedAt.Format(time.RFC3339)),
-		UpdatedAt:  helper.ConvertDatetoUnix(users.UpdatedAt.Format(time.RFC3339)),
-	}
-
-	return c.Status(fiber.StatusCreated).JSON(dto.Success(
-		fiber.StatusAccepted,
-		"success",
-		"register-success",
-		newUser,
-	))
 }
 
 func (h *AuthHandler) VerififyEmail(c *fiber.Ctx) error {
@@ -110,7 +48,7 @@ func (h *AuthHandler) VerififyEmail(c *fiber.Ctx) error {
 	}
 
 	// Verify Email
-	status, err := h.userService.VerififyEmail(otpID, req.OTP)
+	status, err := h.AuthService.VerififyEmail(otpID, req.OTP)
 	if err != nil {
 		return c.Status(status).JSON(dto.Error(
 			status,
@@ -162,7 +100,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	// Login
-	user, status, accessToken, err := h.userService.Login(client, req.Email, req.Password)
+	user, status, accessToken, err := h.AuthService.Login(client, req.Email, req.Password)
 	if err != nil {
 		return c.Status(status).JSON(dto.Error(
 			status,
@@ -219,7 +157,7 @@ func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 	}
 
 	// Forgot password
-	status, err := h.userService.ForgotPassword(req.Email)
+	status, err := h.AuthService.ForgotPassword(req.Email)
 	if err != nil {
 		return c.Status(status).JSON(dto.Error(
 			status,
@@ -261,7 +199,7 @@ func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 	}
 
 	// Reset password
-	status, err := h.userService.ResetPassword(otpID, req.NewPassword, req.ConfirmPassword)
+	status, err := h.AuthService.ResetPassword(otpID, req.NewPassword, req.ConfirmPassword)
 	if err != nil {
 		return c.Status(status).JSON(dto.Error(
 			status,
@@ -283,7 +221,7 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
 	// Logout
-	if err := h.userService.Logout(userID); err != nil {
+	if err := h.AuthService.Logout(userID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"error",

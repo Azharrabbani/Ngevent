@@ -1,4 +1,4 @@
-package database
+package config
 
 import (
 	"fmt"
@@ -36,7 +36,7 @@ func dsn() string {
 	}
 
 	return fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Jakarta",
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		host, user, pass, db_name, port,
 	)
 }

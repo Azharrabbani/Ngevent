@@ -2,12 +2,31 @@ package utils
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 
 	"gopkg.in/gomail.v2"
 )
 
 // Forgot password email
-func ForgotPasswordMail(m *gomail.Message, url string) {
+func ForgotPasswordMail(email, otpID string) {
+
+	urlHost := os.Getenv("APP_HOST")
+	urlPort := os.Getenv("APP_PORT")
+
+	// Send to email
+	m := gomail.NewMessage()
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", "Reset Password")
+
+	resetLink := fmt.Sprintf(
+		"%s:%s/api/v1/reset-password/%s",
+		urlHost,
+		urlPort,
+		otpID,
+	)
+
 	m.SetBody("text/html", fmt.Sprintf(`
 		<!DOCTYPE html>
 		<html>
@@ -65,11 +84,40 @@ func ForgotPasswordMail(m *gomail.Message, url string) {
 			</table>
 		</body>
 		</html>
-`, url))
+`, resetLink))
+
+	// SMTP configuration
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+
+	go func() {
+		d := gomail.NewDialer(host, port, username, smtpPassword)
+		if err := d.DialAndSend(m); err != nil {
+			panic(err)
+		}
+	}()
 }
 
 // Verify email
-func VerifyEmailMail(m *gomail.Message, url, otp string) {
+func VerifyEmailMail(otp, email, otpID string) {
+	urlHost := os.Getenv("APP_HOST")
+	urlPort := os.Getenv("APP_PORT")
+
+	// Send to email
+	m := gomail.NewMessage()
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", "Verifify Email")
+
+	verifyLink := fmt.Sprintf(
+		"%s:%s/api/v1/verify-email/%s",
+		urlHost,
+		urlPort,
+		otpID,
+	)
+
 	m.SetBody("text/html", fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -149,5 +197,18 @@ func VerifyEmailMail(m *gomail.Message, url, otp string) {
 	</table>
 </body>
 </html>
-`, otp, url))
+`, otp, verifyLink))
+
+	// SMTP configuration
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+
+	go func() {
+		d := gomail.NewDialer(host, port, username, smtpPassword)
+		if err := d.DialAndSend(m); err != nil {
+			panic(err)
+		}
+	}()
 }

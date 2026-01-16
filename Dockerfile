@@ -1,22 +1,41 @@
-FROM golang:1.24.4-alpine AS build
+# Backend
+FROM golang:1.25-alpine AS builder
 
+# Set working directory
 WORKDIR /app
 
+# Copy go mod files
 COPY go.mod go.sum ./
+
+# Download go mod download
 RUN go mod download
 
+# Install asynq CLI
+RUN go install github.com/hibiken/asynq/tools/asynq@latest
+
+# Copy source code
 COPY . .
 
-RUN go build -o main cmd/api/main.go
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -o app ./cmd/app
+RUN CGO_ENABLED=0 GOOS=linux go build -o worker ./cmd/worker
 
-FROM alpine:3.20.1 AS prod
+
+# Final stage backend
+FROM alpine:latest AS prod
+
+# Workdir App
 WORKDIR /app
-COPY --from=build /app/main /app/main
-EXPOSE ${PORT}
-CMD ["./main"]
+COPY --from=builder /app/app . 
+COPY --from=builder /app/worker .
+COPY --from=builder /go/bin/asynq /usr/local/bin/asynq
+COPY .env .env
 
+EXPOSE 8080
+CMD ["./app"]
 
-FROM node:20 AS frontend_builder
+# Frontend
+FROM node:25-alpine AS frontend_builder
 WORKDIR /frontend
 
 COPY frontend/package*.json ./
@@ -24,7 +43,8 @@ RUN npm install
 COPY frontend/. .
 RUN npm run build
 
-FROM node:23-slim AS frontend
+# Final stage frontend
+FROM node:25-slim AS frontend
 RUN npm install -g serve
 COPY --from=frontend_builder /frontend/dist /app/dist
 EXPOSE 5173

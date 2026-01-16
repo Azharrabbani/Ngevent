@@ -8,6 +8,7 @@ import (
 	"ngevent/internal/repository"
 	"ngevent/internal/server"
 	"ngevent/internal/service"
+	"ngevent/internal/tasks"
 	"os"
 	"os/signal"
 	"strconv"
@@ -39,6 +40,8 @@ func gracefulShutdown(fiberServer *server.FiberServer, done chan bool) {
 
 	log.Println("Server exiting")
 
+	fiberServer.Close()
+
 	// Notify the main goroutine that the shutdown is complete
 	done <- true
 }
@@ -47,23 +50,34 @@ func main() {
 
 	server := server.New()
 
+	// ensure to close the worker inspector & client connection
+	defer server.InspectorWorker.Close()
+	defer server.ClientWoker.Close()
+
 	// Create a new validator instance
 	validate := validator.New()
+
+	// init Task Publisher Worker
+	unverifiedUserTaskPublisher := tasks.NewUserTaskPublisher(server.ClientWoker, server.InspectorWorker)
+	unusedOTPTaskPublisher := tasks.NewOTPTaskPublisher(server.ClientWoker, server.InspectorWorker)
 
 	// Init repository
 	userRepo := repository.NewUsersRepository(server.DB)
 	sessionRepo := repository.NewSessionRepository(server.DB)
-	OtpRepo := repository.NewOtpRepository(server.DB)
+	otpRepo := repository.NewOtpRepository(server.DB)
 
 	// Init service
-	userService := service.NewUsersService(userRepo, sessionRepo, OtpRepo)
+	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher)
+	userService := service.NewUserService(userRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher)
 
 	// Init handler
-	userHandler := handler.NewAuthHandler(userService, validate)
+	authHandler := handler.NewAuthHandler(authService, validate)
+	userhandler := handler.NewUserHandler(userService, validate)
 
 	// Register routes
 	server.RegisterFiberRoutes()
-	server.RegisterAuthRoutes(userHandler)
+	server.RegisterAuthRoutes(authHandler)
+	server.RegisterUserRoutes(userhandler)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

@@ -14,6 +14,10 @@ func NewOtpRepository(db *gorm.DB) *OtpRepository {
 	return &OtpRepository{db: db}
 }
 
+func (r *OtpRepository) GetDB() *gorm.DB {
+	return r.db
+}
+
 func (r *OtpRepository) Create(otp *model.OtpVerifications) (*model.OtpVerifications, error) {
 	if err := r.db.Create(otp).Error; err != nil {
 		return nil, err

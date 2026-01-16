@@ -16,6 +16,10 @@ func NewUsersRepository(db *gorm.DB) *UsersRepository {
 	return &UsersRepository{db: db}
 }
 
+func (r *UsersRepository) GetDB() *gorm.DB {
+	return r.db
+}
+
 func (r *UsersRepository) Create(users *model.Users) (*model.Users, error) {
 	if err := r.db.Create(&users).Error; err != nil {
 		return nil, err

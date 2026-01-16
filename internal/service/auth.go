@@ -2,143 +2,84 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
 	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"gopkg.in/gomail.v2"
 )
 
-type UsersService struct {
-	userRepo    repository.UsersRepo
-	sessionRepo repository.SessionRepo
-	otpRepo     repository.OtpRepo
+type NewTaskOTP interface {
+	EnqueueOTPVerification(taskType string, payload *model.OTPPayload) error
+	CancelOTPVerification(id string) error
 }
 
-func NewUsersService(
+type AuthService struct {
+	userRepo          repository.UsersRepo
+	sessionRepo       repository.SessionRepo
+	otpRepo           repository.OtpRepo
+	UserTaskPublisher NewTaskUnverifiedUser
+	OtpTaskPublisher  NewTaskOTP
+}
+
+func NewAuthService(
 	userRepo repository.UsersRepo,
 	sessionRepo repository.SessionRepo,
-	otpRepo repository.OtpRepo) *UsersService {
-	return &UsersService{
-		userRepo:    userRepo,
-		sessionRepo: sessionRepo,
-		otpRepo:     otpRepo,
+	otpRepo repository.OtpRepo,
+	userTaskPublisher NewTaskUnverifiedUser,
+	otpTaskPublisher NewTaskOTP) *AuthService {
+	return &AuthService{
+		userRepo:          userRepo,
+		sessionRepo:       sessionRepo,
+		otpRepo:           otpRepo,
+		UserTaskPublisher: userTaskPublisher,
+		OtpTaskPublisher:  otpTaskPublisher,
 	}
 }
 
-func (s *UsersService) CreateUser(email, password, role string) (*model.Users, error) {
+func (s *AuthService) VerififyEmail(id, otpInput string) (int, error) {
+	otpX := s.otpRepo.GetDB()
+	authX := s.userRepo.GetDB()
 
-	if role == "admin" {
-		user := &model.Users{
-			Email:      email,
-			Password:   password,
-			Role:       role,
-			IsVerified: true,
-		}
-
-		newUser, err := s.userRepo.Create(user)
-		if err != nil {
-			return nil, errors.New("email already registred")
-		}
-
-		return newUser, nil
-	}
-
-	// User beside admin have to verified their email
-	user := &model.Users{
-		Email:    email,
-		Password: password,
-		Role:     role,
-	}
-
-	newUser, err := s.userRepo.Create(user)
-	if err != nil {
-		return nil, errors.New("email already registred")
-	}
-
-	// Generate OTP
-	otpCode, err := helper.GenerateOTP()
-	if err != nil {
-		return nil, err
-	}
-
-	now := time.Now().UTC()
-	otp := helper.NewOTP(
-		otpCode,
-		user.ID,
-		"reset_password",
-		now.Add(5*time.Minute),
-	)
-
-	// Save OTP
-	newOTP, err := s.otpRepo.Create(otp)
-	if err != nil {
-		return nil, err
-	}
-
-	urlHost := os.Getenv("APP_HOST")
-	urlPort := os.Getenv("APP_PORT")
-
-	// Send to email
-	m := gomail.NewMessage()
-	m.SetHeader("From", "ngevent@gmail.com")
-	m.SetHeader("To", user.Email)
-	m.SetHeader("Subject", "Verifify Email")
-
-	verifyLink := fmt.Sprintf(
-		"%s:%s/api/v1/verify-email/%s",
-		urlHost,
-		urlPort,
-		newOTP.ID,
-	)
-
-	utils.VerifyEmailMail(m, verifyLink, newOTP.OTP)
-
-	// SMTP configuration
-	host := os.Getenv("SMTP_HOST")
-	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
-	username := os.Getenv("SMTP_USERNAME")
-	smtpPassword := os.Getenv("SMTP_PASSWORD")
-
-	go func() {
-		d := gomail.NewDialer(host, port, username, smtpPassword)
-		if err := d.DialAndSend(m); err != nil {
-			panic(err)
+	// Rollback if failed
+	defer func() {
+		if r := recover(); r != nil {
+			otpX.Rollback()
+			authX.Rollback()
 		}
 	}()
 
-	return newUser, nil
-}
-
-func (s *UsersService) VerififyEmail(id, otpInput string) (int, error) {
 	// Check OTP
 	otp, err := s.otpRepo.FindByID(id)
 	if err != nil {
 		return fiber.StatusNotFound, errors.New("otp not found")
 	}
 
-	if otp.OTP != otpInput || otp.IsUsed {
+	if otp.OTP != otpInput || otp.IsUsed || time.Now().UTC().After(otp.ExpiredAt) {
 		return fiber.StatusBadRequest, errors.New("otp expired or not valid")
 	}
 
 	// Update OTP status
 	otp.IsUsed = true
-	otp.ExpiredAt = time.Now().UTC()
+	// otp.ExpiredAt = time.Now().UTC()
 
 	_, err = s.otpRepo.Update(otp)
 	if err != nil {
 		return fiber.StatusBadRequest, err
 	}
 
+	// Cancel unused otp task
+	if err := s.OtpTaskPublisher.CancelOTPVerification(otp.ID); err != nil {
+		otpX.Rollback()
+		return fiber.StatusBadGateway, err
+	}
+
 	// Update user verification
 	user, err := s.userRepo.FindByID(otp.UserID)
 	if err != nil {
+		otpX.Rollback()
 		return fiber.StatusBadRequest, err
 	}
 
@@ -147,13 +88,39 @@ func (s *UsersService) VerififyEmail(id, otpInput string) (int, error) {
 
 	_, err = s.userRepo.Update(user)
 	if err != nil {
+		otpX.Rollback()
 		return fiber.StatusBadRequest, err
+	}
+
+	// Cancel unverified user task
+	if err := s.UserTaskPublisher.CancelUnverifiedUser(user.ID); err != nil {
+		otpX.Rollback()
+		authX.Rollback()
+		return fiber.StatusBadGateway, err
+	}
+
+	// Commit all changes
+	if err := otpX.Commit().Error; err != nil {
+		return fiber.StatusBadGateway, err
+	}
+
+	if err := authX.Commit().Error; err != nil {
+		return fiber.StatusBadGateway, err
 	}
 
 	return 0, nil
 }
 
-func (s *UsersService) Login(client *model.Client, email, password string) (*model.Users, int, string, error) {
+func (s *AuthService) Login(client *model.Client, email, password string) (*model.Users, int, string, error) {
+	authX := s.userRepo.GetDB()
+
+	// Rollback if failed
+	defer func() {
+		if r := recover(); r != nil {
+			authX.Rollback()
+		}
+	}()
+
 	// Login by checking user account
 	user, err := s.userRepo.Login(email, password)
 	if err != nil {
@@ -184,6 +151,7 @@ func (s *UsersService) Login(client *model.Client, email, password string) (*mod
 
 		// Save the session
 		if err := s.sessionRepo.Create(newSession); err != nil {
+			authX.Rollback()
 			return nil, fiber.StatusBadRequest, "", err
 		}
 
@@ -202,6 +170,7 @@ func (s *UsersService) Login(client *model.Client, email, password string) (*mod
 	// Session valid -> update token
 	accessToken, refreshToken, err := helper.GenerateToken(user)
 	if err != nil {
+		authX.Rollback()
 		return nil, fiber.StatusBadRequest, "", err
 	}
 
@@ -212,12 +181,29 @@ func (s *UsersService) Login(client *model.Client, email, password string) (*mod
 	userAgent := client.UserAgent
 
 	// Update session
-	s.sessionRepo.Update(user.ID, refreshToken, userIP, userAgent, expiredAt, updateAt)
+	if err := s.sessionRepo.Update(user.ID, refreshToken, userIP, userAgent, expiredAt, updateAt); err != nil {
+		authX.Rollback()
+		return nil, fiber.StatusBadRequest, "", err
+	}
+
+	// Commit all changes
+	if err := authX.Commit().Error; err != nil {
+		return nil, fiber.StatusBadGateway, "", err
+	}
 
 	return user, 0, accessToken, nil
 }
 
-func (s *UsersService) ForgotPassword(email string) (int, error) {
+func (s *AuthService) ForgotPassword(email string) (int, error) {
+	otpX := s.otpRepo.GetDB()
+
+	// Rollback if failed
+	defer func() {
+		if r := recover(); r != nil {
+			otpX.Rollback()
+		}
+	}()
+
 	// Search the user
 	user, err := s.userRepo.FindByEmail(email)
 	if err != nil {
@@ -244,45 +230,39 @@ func (s *UsersService) ForgotPassword(email string) (int, error) {
 		return fiber.StatusBadRequest, err
 	}
 
-	urlHost := os.Getenv("APP_HOST")
-	urlPort := os.Getenv("APP_PORT")
+	// Create otp task
+	// This task function is to delete unused user
+	payload := &model.OTPPayload{OTPID: newOTP.ID}
+	if err := s.OtpTaskPublisher.EnqueueOTPVerification(model.TypeVerifiedOTP, payload); err != nil {
+		otpX.Rollback()
+		return fiber.StatusBadGateway, err
+	}
 
 	// Send to email
-	m := gomail.NewMessage()
-	m.SetHeader("From", "ngevent@gmail.com")
-	m.SetHeader("To", user.Email)
-	m.SetHeader("Subject", "Reset Password")
+	utils.ForgotPasswordMail(user.Email, newOTP.ID)
 
-	resetLink := fmt.Sprintf(
-		"%s:%s/api/v1/reset-password/%s",
-		urlHost,
-		urlPort,
-		newOTP.ID,
-	)
-
-	utils.ForgotPasswordMail(m, resetLink)
-
-	// SMTP configuration
-	host := os.Getenv("SMTP_HOST")
-	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
-	username := os.Getenv("SMTP_USERNAME")
-	smtpPassword := os.Getenv("SMTP_PASSWORD")
-
-	go func() {
-		d := gomail.NewDialer(host, port, username, smtpPassword)
-		if err := d.DialAndSend(m); err != nil {
-			panic(err)
-		}
-	}()
+	// Commit all changes
+	if err := otpX.Commit().Error; err != nil {
+		return fiber.StatusBadGateway, err
+	}
 
 	return 0, nil
 }
 
-func (s *UsersService) ResetPassword(id, newPassword, confirmPassword string) (int, error) {
+func (s *AuthService) ResetPassword(id, newPassword, confirmPassword string) (int, error) {
+	otpX := s.otpRepo.GetDB()
+
+	// Rollback if failed
+	defer func() {
+		if r := recover(); r != nil {
+			otpX.Rollback()
+		}
+	}()
+
 	// Check the OTP
 	userOTP, err := s.otpRepo.FindByID(id)
 	if err != nil {
-		return fiber.StatusNotFound, errors.New("otp not found")
+		return fiber.StatusNotFound, errors.New("otp expired or not found")
 	}
 
 	user, err := s.userRepo.FindByID(userOTP.UserID)
@@ -292,7 +272,7 @@ func (s *UsersService) ResetPassword(id, newPassword, confirmPassword string) (i
 
 	// Check if otp expired
 	if time.Now().UTC().After(userOTP.ExpiredAt) || userOTP.IsUsed {
-		return fiber.StatusBadRequest, errors.New("otp expired")
+		return fiber.StatusBadRequest, errors.New("otp expired or invalid")
 	}
 
 	if newPassword != confirmPassword {
@@ -313,18 +293,34 @@ func (s *UsersService) ResetPassword(id, newPassword, confirmPassword string) (i
 		return fiber.StatusBadRequest, err
 	}
 
+	// Cancel unused otp task
+	if err := s.OtpTaskPublisher.CancelOTPVerification(userOTP.ID); err != nil {
+		otpX.Rollback()
+		return fiber.StatusBadGateway, err
+	}
+
 	// Update user password
 	user.Password = newHashPassword
 	user.UpdatedAt = time.Now().UTC()
 
 	_, err = s.userRepo.Update(user)
 	if err != nil {
+		otpX.Rollback()
 		return fiber.StatusBadRequest, errors.New("failed to reset password")
+	}
+
+	// Commit all changes
+	if err := otpX.Commit().Error; err != nil {
+		return fiber.StatusBadGateway, err
 	}
 
 	return 0, nil
 }
 
-func (s *UsersService) Logout(id string) error {
+func (s *AuthService) Logout(id string) error {
 	return s.sessionRepo.DeleteByUserID(id)
+}
+
+func (s *AuthService) DeleteUnusedOTP(id string) error {
+	return s.otpRepo.Delete(id)
 }

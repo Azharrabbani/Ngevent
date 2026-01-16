@@ -25,8 +25,6 @@ func (s *FiberServer) RegisterFiberRoutes() {
 }
 
 func (s *FiberServer) RegisterAuthRoutes(h *handler.AuthHandler) {
-	v1.Post("/register", h.Register)
-
 	v1.Put("/verify-email/:id", h.VerififyEmail)
 
 	v1.Post("/login", h.Login)
@@ -40,4 +38,8 @@ func (s *FiberServer) RegisterAuthRoutes(h *handler.AuthHandler) {
 	{
 		logout.Post("/", h.Logout)
 	}
+}
+
+func (s *FiberServer) RegisterUserRoutes(h *handler.UserHandler) {
+	v1.Post("/register", h.Register)
 }
