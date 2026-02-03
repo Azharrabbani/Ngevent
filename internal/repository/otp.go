@@ -10,7 +10,7 @@ type OtpRepository struct {
 	db *gorm.DB
 }
 
-func NewOtpRepository(db *gorm.DB) *OtpRepository {
+func NewOtpRepository(db *gorm.DB) OtpRepo {
 	return &OtpRepository{db: db}
 }
 

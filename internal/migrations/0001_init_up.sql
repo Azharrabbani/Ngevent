@@ -42,3 +42,22 @@ CREATE TABLE "public"."otp_verifications"(
 	CONSTRAINT "fk_otp_users" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE
 );
 
+CREATE TABLE "public"."attendee_profiles"(
+	"id" uuid DEFAULT uuid_generate_v4() NOT NULL,
+	"user_id" uuid NOT NULL UNIQUE,
+	"name" VARCHAR(255) NOT NULL,
+	"username" VARCHAR(255),
+	"photo_profile" TEXT,
+	"phone_number" VARCHAR(100) NOT NULL,
+	"country" VARCHAR(120) NOT NULL,
+	"address" TEXT,
+	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	CONSTRAINT "attendee_profiles_pk" PRIMARY KEY("id"),
+	CONSTRAINT "fk_users_attendee_profiles" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE
+);
+
+
+CREATE INDEX "idx_users_role" ON "public"."users"("role");
+CREATE INDEX "idx_sessions_user_id" ON "public"."sessions"("user_id");
+CREATE INDEX "idx_otp_user_id" ON "public"."otp_verifications"("user_id");
