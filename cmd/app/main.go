@@ -70,7 +70,7 @@ func main() {
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
 	userService := service.NewUserService(userRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
-	otpService := service.NewOTPService(userRepo, otpRepo, unusedOTPTaskPublisher)
+	otpService := service.NewOTPService(userRepo, otpRepo, unusedOTPTaskPublisher, emailTaskPublisher)
 
 	// Init handler
 	authHandler := handler.NewAuthHandler(authService, validate)
