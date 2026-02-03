@@ -9,7 +9,7 @@ import (
 )
 
 // Forgot password email
-func ForgotPasswordMail(email, otpID string) {
+func ForgotPasswordMail(email, otpID string) error {
 
 	urlHost := os.Getenv("APP_HOST")
 	urlPort := os.Getenv("APP_PORT")
@@ -92,16 +92,12 @@ func ForgotPasswordMail(email, otpID string) {
 	username := os.Getenv("SMTP_USERNAME")
 	smtpPassword := os.Getenv("SMTP_PASSWORD")
 
-	go func() {
-		d := gomail.NewDialer(host, port, username, smtpPassword)
-		if err := d.DialAndSend(m); err != nil {
-			panic(err)
-		}
-	}()
+	d := gomail.NewDialer(host, port, username, smtpPassword)
+	return d.DialAndSend(m)
 }
 
 // Verify email
-func VerifyEmailMail(otp, email, otpID string) {
+func VerifyEmailMail(otp, email, otpID string) error {
 	urlHost := os.Getenv("APP_HOST")
 	urlPort := os.Getenv("APP_PORT")
 
@@ -205,10 +201,8 @@ func VerifyEmailMail(otp, email, otpID string) {
 	username := os.Getenv("SMTP_USERNAME")
 	smtpPassword := os.Getenv("SMTP_PASSWORD")
 
-	go func() {
-		d := gomail.NewDialer(host, port, username, smtpPassword)
-		if err := d.DialAndSend(m); err != nil {
-			panic(err)
-		}
-	}()
+	d := gomail.NewDialer(host, port, username, smtpPassword)
+
+	return d.DialAndSend(m)
+
 }

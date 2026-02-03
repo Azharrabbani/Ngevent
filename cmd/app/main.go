@@ -60,6 +60,7 @@ func main() {
 	// init Task Publisher Worker
 	unverifiedUserTaskPublisher := tasks.NewUserTaskPublisher(server.ClientWoker, server.InspectorWorker)
 	unusedOTPTaskPublisher := tasks.NewOTPTaskPublisher(server.ClientWoker, server.InspectorWorker)
+	emailTaskPublisher := tasks.NewEmailTaskPublisher(server.ClientWoker, server.InspectorWorker)
 
 	// Init repository
 	userRepo := repository.NewUsersRepository(server.DB)
@@ -67,8 +68,8 @@ func main() {
 	otpRepo := repository.NewOtpRepository(server.DB)
 
 	// Init service
-	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher)
-	userService := service.NewUserService(userRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher)
+	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
+	userService := service.NewUserService(userRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
 	otpService := service.NewOTPService(userRepo, otpRepo, unusedOTPTaskPublisher)
 
 	// Init handler

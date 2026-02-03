@@ -67,6 +67,7 @@ func GetAsynqServer() *asynq.Server {
 	cfg := asynq.Config{
 		Concurrency: 10,
 		Queues: map[string]int{
+			"emails":   10,
 			"critical": 6,
 			"default":  3,
 			"low":      1,

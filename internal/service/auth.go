@@ -4,7 +4,6 @@ import (
 	"errors"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
-	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
 	"time"
 
@@ -16,12 +15,17 @@ type NewTaskOTP interface {
 	CancelOTPVerification(id string) error
 }
 
+type NewTaskEmail interface {
+	Enqueue(taskType string, payload *model.EmailPayload) error
+}
+
 type AuthService struct {
-	userRepo          repository.UsersRepo
-	sessionRepo       repository.SessionRepo
-	otpRepo           repository.OtpRepo
-	UserTaskPublisher NewTaskUnverifiedUser
-	OtpTaskPublisher  NewTaskOTP
+	userRepo           repository.UsersRepo
+	sessionRepo        repository.SessionRepo
+	otpRepo            repository.OtpRepo
+	UserTaskPublisher  NewTaskUnverifiedUser
+	OtpTaskPublisher   NewTaskOTP
+	EmailTaskPublisher NewTaskEmail
 }
 
 func NewAuthService(
@@ -29,13 +33,16 @@ func NewAuthService(
 	sessionRepo repository.SessionRepo,
 	otpRepo repository.OtpRepo,
 	userTaskPublisher NewTaskUnverifiedUser,
-	otpTaskPublisher NewTaskOTP) *AuthService {
+	otpTaskPublisher NewTaskOTP,
+	emailTaskPublisher NewTaskEmail,
+) *AuthService {
 	return &AuthService{
-		userRepo:          userRepo,
-		sessionRepo:       sessionRepo,
-		otpRepo:           otpRepo,
-		UserTaskPublisher: userTaskPublisher,
-		OtpTaskPublisher:  otpTaskPublisher,
+		userRepo:           userRepo,
+		sessionRepo:        sessionRepo,
+		otpRepo:            otpRepo,
+		UserTaskPublisher:  userTaskPublisher,
+		OtpTaskPublisher:   otpTaskPublisher,
+		EmailTaskPublisher: emailTaskPublisher,
 	}
 }
 
@@ -238,13 +245,18 @@ func (s *AuthService) ForgotPassword(email string) (int, error) {
 		return fiber.StatusBadGateway, err
 	}
 
-	// Send to email
-	utils.ForgotPasswordMail(user.Email, newOTP.ID)
-
 	// Commit all changes
 	if err := otpX.Commit().Error; err != nil {
 		return fiber.StatusBadGateway, err
 	}
+
+	emailPayload := &model.EmailPayload{
+		To:    user.Email,
+		OTPID: newOTP.ID,
+	}
+
+	// Send to email
+	s.EmailTaskPublisher.Enqueue(model.TypeEmailForgetPassword, emailPayload)
 
 	return 0, nil
 }
