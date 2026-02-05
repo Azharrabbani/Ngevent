@@ -6,6 +6,7 @@ import (
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
+	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -22,6 +23,20 @@ func NewAuthHandler(authService *service.AuthService, validate *validator.Valida
 		AuthService: authService,
 		validate:    validate,
 	}
+}
+
+func (h *AuthHandler) ListPhoneCodes(c *fiber.Ctx) error {
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+
+	phoneCodes := utils.ListAllPhoneCodes(page, limit)
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		phoneCodes,
+	))
 }
 
 func (h *AuthHandler) VerififyEmail(c *fiber.Ctx) error {

@@ -40,6 +40,7 @@ require (
 	github.com/nyaruka/phonenumbers v1.6.8 // indirect
 	github.com/redis/go-redis/v9 v9.17.2 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
+	github.com/ryanbekhen/go-webp v1.0.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.68.0 // indirect

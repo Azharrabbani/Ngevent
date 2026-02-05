@@ -1,6 +1,9 @@
 # Backend
 FROM golang:1.25-alpine AS builder
 
+# Install build dependencies
+RUN apk add --no-cache gcc g++ make libwebp-dev
+
 # Set working directory
 WORKDIR /app
 

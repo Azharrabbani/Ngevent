@@ -33,6 +33,8 @@ func (s *FiberServer) RegisterAuthRoutes(h *handler.AuthHandler) {
 
 	v1.Put("/reset-password/:id", h.ResetPassword)
 
+	v1.Get("/phone-codes", h.ListPhoneCodes)
+
 	logout := v1.Group("logout")
 	logout.Use(middleware.AuthMiddleware())
 	{
