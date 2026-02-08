@@ -20,12 +20,14 @@ RUN go install github.com/hibiken/asynq/tools/asynq@latest
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o app ./cmd/app
-RUN CGO_ENABLED=0 GOOS=linux go build -o worker ./cmd/worker
+RUN CGO_ENABLED=1 GOOS=linux go build -o app ./cmd/app
+RUN CGO_ENABLED=1 GOOS=linux go build -o worker ./cmd/worker
 
 
 # Final stage backend
 FROM alpine:latest AS prod
+
+RUN apk add --no-cache libwebp
 
 # Workdir App
 WORKDIR /app
@@ -33,6 +35,8 @@ COPY --from=builder /app/app .
 COPY --from=builder /app/worker .
 COPY --from=builder /go/bin/asynq /usr/local/bin/asynq
 COPY .env .env
+
+RUN mkdir -p /app/storage/profiles
 
 EXPOSE 8080
 CMD ["./app"]

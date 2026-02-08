@@ -3,16 +3,25 @@ package handler
 import (
 	"ngevent/internal/dto"
 	"ngevent/internal/service"
+	"ngevent/internal/utils"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
 type AttendeeProfileHandler struct {
 	AttendeeProfileService *service.AttendeeProfileService
+	Validate               *validator.Validate
 }
 
-func NewAttendeeProfileService(attendeeProfileService *service.AttendeeProfileService) *AttendeeProfileHandler {
-	return &AttendeeProfileHandler{AttendeeProfileService: attendeeProfileService}
+func NewAttendeeProfileService(
+	attendeeProfileService *service.AttendeeProfileService,
+	validate *validator.Validate,
+) *AttendeeProfileHandler {
+	return &AttendeeProfileHandler{
+		AttendeeProfileService: attendeeProfileService,
+		Validate:               validate,
+	}
 }
 
 func (h *AttendeeProfileHandler) CreateProfile(c *fiber.Ctx) error {
@@ -35,15 +44,16 @@ func (h *AttendeeProfileHandler) CreateProfile(c *fiber.Ctx) error {
 	address := c.FormValue("address")
 
 	req := &dto.CreateProfileReq{
-		UserID:      userID,
-		Name:        name,
-		Username:    &username,
-		PhoneNumber: phoneNumber,
-		ISO:         iso,
-		Address:     &address,
+		UserID:       userID,
+		PhotoProfile: photo,
+		Name:         name,
+		Username:     &username,
+		PhoneNumber:  phoneNumber,
+		ISO:          iso,
+		Address:      &address,
 	}
 
-	if err := h.AttendeeProfileService.Create(photo, req); err != nil {
+	if err := h.AttendeeProfileService.Create(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"failed",
@@ -103,20 +113,7 @@ func (h *AttendeeProfileHandler) GetProfileByUserID(c *fiber.Ctx) error {
 }
 
 func (h *AttendeeProfileHandler) UpdateProfilePhoto(c *fiber.Ctx) error {
-	profileID := c.Params("id")
 	userID := c.Locals("user_id").(string)
-
-	if profileID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			"missing profile id",
-		))
-	}
-
-	// Validate user
-
 
 	photo, err := c.FormFile("photo")
 	if err != nil {
@@ -146,6 +143,44 @@ func (h *AttendeeProfileHandler) UpdateProfilePhoto(c *fiber.Ctx) error {
 	))
 }
 
-// func (h *AttendeeProfileHandler) UpdateProfile(c *fiber.Ctx) error {
+func (h *AttendeeProfileHandler) UpdateProfile(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
 
-// }
+	var req *dto.UpdateProfileReq
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			msg,
+		))
+	}
+
+	status, err := h.AttendeeProfileService.UpdateProfile(userID, req)
+	if err != nil {
+		return c.Status(status).JSON(dto.Error(
+			status,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		"update success",
+	))
+}

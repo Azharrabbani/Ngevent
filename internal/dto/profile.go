@@ -1,20 +1,22 @@
 package dto
 
+import "mime/multipart"
+
 type CreateProfileReq struct {
-	UserID      string
-	Name        string
-	Username    *string
-	PhoneNumber string
-	ISO         string
-	Address     *string
+	UserID       string
+	PhotoProfile *multipart.FileHeader
+	Name         string
+	Username     *string
+	PhoneNumber  string
+	ISO          string
+	Address      *string
 }
 
 type UpdateProfileReq struct {
-	UserID      string  `json:"user_id"`
-	Name        string  `json:"name"`
+	Name        string  `json:"name" validate:"required"`
 	Username    *string `json:"username"`
-	PhoneNumber string  `json:"phone_number"`
-	ISO         string  `json:"iso"`
+	PhoneNumber string  `json:"phone_number" validate:"required"`
+	ISO         string  `json:"iso" validate:"required"`
 	Address     *string `json:"address"`
 }
 

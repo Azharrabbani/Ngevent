@@ -14,6 +14,7 @@ import (
 
 	"github.com/dongri/phonenumber"
 	"github.com/gofiber/fiber/v2"
+	"github.com/nyaruka/phonenumbers"
 )
 
 type AttendeeProfileService struct {
@@ -25,12 +26,12 @@ func NewAttendeeProfileService(attendeeRepo repository.AttendeeProfilesRepo) *At
 }
 
 var (
-	profileUploadPath = "./storage/profile"
+	profileUploadPath = "./storage/profiles"
 )
 
-func (s *AttendeeProfileService) Create(file *multipart.FileHeader, profile *dto.CreateProfileReq) error {
+func (s *AttendeeProfileService) Create(profile *dto.CreateProfileReq) error {
 	// Validate image
-	if err := helper.ValidateImage(file); err != nil {
+	if err := helper.ValidateImage(profile.PhotoProfile); err != nil {
 		return err
 	}
 
@@ -38,6 +39,22 @@ func (s *AttendeeProfileService) Create(file *multipart.FileHeader, profile *dto
 	phoneNumber := phonenumber.ParseWithLandLine(profile.PhoneNumber, profile.ISO)
 	if phoneNumber == "" {
 		return errors.New("invalid phone number")
+	}
+
+	// Validate the phone number
+	num, err := phonenumbers.Parse(profile.PhoneNumber, profile.ISO)
+	if err != nil {
+		return errors.New("invalid phone number format")
+	}
+
+	if !phonenumbers.IsValidNumber(num) {
+		return errors.New("invalid phone number")
+	}
+
+	// Make sure the phone number is mobile phone number
+	numberType := phonenumbers.GetNumberType(num)
+	if numberType != phonenumbers.MOBILE && numberType != phonenumbers.FIXED_LINE_OR_MOBILE {
+		return errors.New("phone number must be a mobile number")
 	}
 
 	country := phonenumber.GetISO3166ByNumber(phoneNumber, true)
@@ -52,13 +69,15 @@ func (s *AttendeeProfileService) Create(file *multipart.FileHeader, profile *dto
 	}
 
 	// Save photo profile to local storage
-	if file != nil {
-		photoPath, _, err := helper.SaveToLocal(file, profileUploadPath)
+	if profile.PhotoProfile != nil {
+		_, fileName, err := helper.SaveToLocal(profile.PhotoProfile, profileUploadPath)
 		if err != nil {
 			return err
 		}
 
-		newProfile.PhotoProfile = &photoPath
+		newProfile.PhotoProfile = &fileName
+
+		return s.AttendeeRepo.Create(newProfile)
 	}
 
 	// Save Profile
@@ -68,7 +87,7 @@ func (s *AttendeeProfileService) Create(file *multipart.FileHeader, profile *dto
 func (s *AttendeeProfileService) FindByID(id string) (*dto.AttendeeProfilesResponse, error) {
 	profile, err := s.AttendeeRepo.FindByID(id)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("profile not found")
 	}
 
 	attendee := toProfileResponse(profile)
@@ -79,7 +98,7 @@ func (s *AttendeeProfileService) FindByID(id string) (*dto.AttendeeProfilesRespo
 func (s *AttendeeProfileService) FindByUserID(id string) (*dto.AttendeeProfilesResponse, error) {
 	profile, err := s.AttendeeRepo.FindByUserID(id)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("profile not found")
 	}
 
 	attendee := toProfileResponse(profile)
@@ -94,7 +113,14 @@ func (s *AttendeeProfileService) UpdatePhotoProfile(file *multipart.FileHeader, 
 		return fiber.StatusNotFound, errors.New("profile not found")
 	}
 
-	oldPhoto := profile.PhotoProfile
+	// Only validate user can update
+	if userID != profile.UserID {
+		return fiber.StatusUnauthorized, errors.New("unauthorized action")
+	}
+
+	oldPhoto := fmt.Sprintf("%s/%s", profileUploadPath, *profile.PhotoProfile)
+
+	fmt.Println("old photo", oldPhoto)
 
 	// Validate image
 	if err := helper.ValidateImage(file); err != nil {
@@ -102,35 +128,52 @@ func (s *AttendeeProfileService) UpdatePhotoProfile(file *multipart.FileHeader, 
 	}
 
 	// Save to local
-	newPath, _, err := helper.SaveToLocal(file, profileUploadPath)
+	_, fileName, err := helper.SaveToLocal(file, profileUploadPath)
 	if err != nil {
 		return fiber.StatusBadRequest, err
 	}
 
 	// Remove old photo
-	if err := os.Remove(*oldPhoto); err != nil {
+	if err := os.Remove(oldPhoto); err != nil {
 		log.Printf("failed to remove file from local %v\n", err)
 	}
 
-	if err := s.AttendeeRepo.UpdatePhotoProfile(userID, newPath); err != nil {
+	if err := s.AttendeeRepo.UpdatePhotoProfile(userID, fileName); err != nil {
 		return fiber.StatusBadRequest, err
 	}
 
 	return 0, nil
 }
 
-func (s *AttendeeProfileService) UpdateProfile(req *dto.UpdateProfileReq) (int, error) {
+func (s *AttendeeProfileService) UpdateProfile(userID string, req *dto.UpdateProfileReq) (int, error) {
 	// Validate user
-	profile, err := s.AttendeeRepo.FindByUserID(req.UserID)
+	profile, err := s.AttendeeRepo.FindByUserID(userID)
 	if err != nil {
 		return fiber.StatusNotFound, errors.New("profile not found")
 	}
 
-	// Validate phone number
+	// Only validate user can update
+	if userID != profile.UserID {
+		return fiber.StatusUnauthorized, errors.New("unauthorized action")
+	}
+
 	// Parse the phone code
 	phoneNumber := phonenumber.ParseWithLandLine(req.PhoneNumber, req.ISO)
-	if phoneNumber == "" {
+
+	// Validate the phone number
+	num, err := phonenumbers.Parse(req.PhoneNumber, req.ISO)
+	if err != nil {
+		return fiber.StatusBadRequest, errors.New("invalid phone number format")
+	}
+
+	if !phonenumbers.IsValidNumber(num) {
 		return fiber.StatusBadRequest, errors.New("invalid phone number")
+	}
+
+	// Make sure the phone number is mobile phone number
+	numberType := phonenumbers.GetNumberType(num)
+	if numberType != phonenumbers.MOBILE && numberType != phonenumbers.FIXED_LINE_OR_MOBILE {
+		return fiber.StatusBadRequest, errors.New("phone number must be a mobile number")
 	}
 
 	country := phonenumber.GetISO3166ByNumber(phoneNumber, true)

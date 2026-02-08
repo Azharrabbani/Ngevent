@@ -49,3 +49,16 @@ func (s *FiberServer) RegisterUserRoutes(h *handler.UserHandler) {
 func (s *FiberServer) RegisterOTPRoutes(h *handler.OTPHandler) {
 	v1.Post("/resend-otp", h.ResendOTP)
 }
+
+func (s *FiberServer) RegisterAttendeeProfileRoutes(h *handler.AttendeeProfileHandler) {
+	profile := v1.Group("/attendee")
+	profile.Static("/photo", "./storage/profiles")
+	profile.Use(middleware.AuthMiddleware())
+	{
+		profile.Post("/", h.CreateProfile)
+		profile.Get("/:id", h.GetProfileByID)
+		profile.Get("/", h.GetProfileByUserID)
+		profile.Put("/photo", h.UpdateProfilePhoto)
+		profile.Put("/", h.UpdateProfile)
+	}
+}

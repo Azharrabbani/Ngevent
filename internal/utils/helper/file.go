@@ -3,6 +3,8 @@ package helper
 import (
 	"errors"
 	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -48,7 +50,7 @@ func SaveToLocal(file *multipart.FileHeader, filePath string) (string, string, e
 		}
 
 		newFileName = baseName + ".webp"
-		path := filepath.Join(path, newFileName)
+		path = filepath.Join(filePath, newFileName)
 
 		out, err := os.Create(path)
 		if err != nil {
