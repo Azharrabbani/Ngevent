@@ -43,7 +43,7 @@ func (h *AttendeeProfileHandler) CreateProfile(c *fiber.Ctx) error {
 	iso := c.FormValue("iso")
 	address := c.FormValue("address")
 
-	req := &dto.CreateProfileReq{
+	req := &dto.CreateAttendeeProfileReq{
 		UserID:       userID,
 		PhotoProfile: photo,
 		Name:         name,
@@ -146,7 +146,7 @@ func (h *AttendeeProfileHandler) UpdateProfilePhoto(c *fiber.Ctx) error {
 func (h *AttendeeProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
-	var req *dto.UpdateProfileReq
+	var req *dto.UpdateAttendeeProfileReq
 
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(

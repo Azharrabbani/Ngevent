@@ -57,6 +57,25 @@ CREATE TABLE "public"."attendee_profiles"(
 	CONSTRAINT "fk_users_attendee_profiles" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE
 );
 
+CREATE TABLE "public"."organizer_profiles"(
+	"id" uuid DEFAULT uuid_generate_v4() NOT NULL,
+	"user_id" uuid NOT NULL UNIQUE,
+	"name" VARCHAR(255) NOT NULL,
+	"photo_profile" TEXT,
+	"email" VARCHAR(255),
+	"instagram" VARCHAR(255),
+	"phone_number" VARCHAR(100) NOT NULL,
+	"country" VARCHAR(120) NOT NULL,
+	"address" TEXT,
+	"description" TEXT,
+	"npwp" VARCHAR(100) NOT NULL UNIQUE,
+	"nib" VARCHAR(100) NOT NULL UNIQUE,
+	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	CONSTRAINT "organizer_profiles_pk" PRIMARY KEY("id"),
+	CONSTRAINT "fk_users_organizer_profiles" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE
+);
+
 
 CREATE INDEX "idx_users_role" ON "public"."users"("role");
 CREATE INDEX "idx_sessions_user_id" ON "public"."sessions"("user_id");

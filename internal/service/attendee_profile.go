@@ -29,7 +29,7 @@ var (
 	profileUploadPath = "./storage/profiles"
 )
 
-func (s *AttendeeProfileService) Create(profile *dto.CreateProfileReq) error {
+func (s *AttendeeProfileService) Create(profile *dto.CreateAttendeeProfileReq) error {
 	// Validate image
 	if err := helper.ValidateImage(profile.PhotoProfile); err != nil {
 		return err
@@ -90,7 +90,7 @@ func (s *AttendeeProfileService) FindByID(id string) (*dto.AttendeeProfilesRespo
 		return nil, errors.New("profile not found")
 	}
 
-	attendee := toProfileResponse(profile)
+	attendee := toAttendeeProfileResponse(profile)
 
 	return attendee, nil
 }
@@ -101,7 +101,7 @@ func (s *AttendeeProfileService) FindByUserID(id string) (*dto.AttendeeProfilesR
 		return nil, errors.New("profile not found")
 	}
 
-	attendee := toProfileResponse(profile)
+	attendee := toAttendeeProfileResponse(profile)
 
 	return attendee, nil
 }
@@ -119,8 +119,6 @@ func (s *AttendeeProfileService) UpdatePhotoProfile(file *multipart.FileHeader, 
 	}
 
 	oldPhoto := fmt.Sprintf("%s/%s", profileUploadPath, *profile.PhotoProfile)
-
-	fmt.Println("old photo", oldPhoto)
 
 	// Validate image
 	if err := helper.ValidateImage(file); err != nil {
@@ -145,7 +143,7 @@ func (s *AttendeeProfileService) UpdatePhotoProfile(file *multipart.FileHeader, 
 	return 0, nil
 }
 
-func (s *AttendeeProfileService) UpdateProfile(userID string, req *dto.UpdateProfileReq) (int, error) {
+func (s *AttendeeProfileService) UpdateProfile(userID string, req *dto.UpdateAttendeeProfileReq) (int, error) {
 	// Validate user
 	profile, err := s.AttendeeRepo.FindByUserID(userID)
 	if err != nil {
@@ -192,7 +190,7 @@ func (s *AttendeeProfileService) UpdateProfile(userID string, req *dto.UpdatePro
 	return 0, nil
 }
 
-func toProfileResponse(profile *model.AttendeeProfiles) *dto.AttendeeProfilesResponse {
+func toAttendeeProfileResponse(profile *model.AttendeeProfiles) *dto.AttendeeProfilesResponse {
 	return &dto.AttendeeProfilesResponse{
 		ID:           profile.ID,
 		UserID:       profile.UserID,

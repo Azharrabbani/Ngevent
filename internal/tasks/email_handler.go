@@ -35,3 +35,32 @@ func (h *EmailTaskHandler) HandlerUserForgetPassword(ctx context.Context, t *asy
 	return utils.ForgotPasswordMail(p.To, p.OTPID)
 }
 
+// Organize's profile register
+func (h *EmailTaskHandler) HandlerOrganizerProfileNotif(ctx context.Context, t *asynq.Task) error {
+	var p *model.EmailPayload
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return err
+	}
+
+	return utils.OrganizerProfileVerificationEmail(p.To, p.Name)
+}
+
+// Organizer's profile verified
+func (h *EmailTaskHandler) HandlerOrganizerProfileVerified(ctx context.Context, t *asynq.Task) error {
+	var p *model.EmailPayload
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return err
+	}
+
+	return utils.OrganizerProfileVerifiedEmail(p.To, p.Name)
+}
+
+// Organizer's rejected profile
+func (h *EmailTaskHandler) HandlerOrganizerProfileRejected(ctx context.Context, t *asynq.Task) error {
+	var p *model.EmailPayload
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return err
+	}
+
+	return utils.OrganizerProfileRejectedEmail(p.To, p.Name)
+}

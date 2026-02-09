@@ -7,8 +7,11 @@ const (
 	TypeVerifiedOTP  = "otp:verified"
 
 	// Email payload
-	TypeEmailForgetPassword = "email:user:forgetPassword"
-	TypeEMailVerify         = "email:user:verify"
+	TypeEmailForgetPassword           = "email:user:forgetPassword"
+	TypeEMailVerify                   = "email:user:verify"
+	TypeEmailOrganizerProfile         = "email:organizer:profile"
+	TypeEmailOrganizerProfileVerified = "email:organizer:profile:verified"
+	TypeEmailOrganizerProfileRejected = "email:organizer:profile:rejected"
 )
 
 // Task payload for any unverified user related tasks.
@@ -24,6 +27,7 @@ type OTPPayload struct {
 // Task payload for email
 type EmailPayload struct {
 	To    string
+	Name  string
 	OTP   string
 	OTPID string
 }
