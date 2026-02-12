@@ -39,9 +39,11 @@ type OrganizerSocialMediaReq struct {
 }
 
 type OrganizerCompDetailReq struct {
-	Description *string `json:"description,omitempty"`
-	NPWP        string  `json:"npwp" validate:"required"`
-	NIB         string  `json:"nib" validate:"required"`
+	Description *string              `json:"description,omitempty"`
+	NPWP        string               `json:"npwp" validate:"required"`
+	NPWPFile    multipart.FileHeader `json:"npwp_file" validate:"required"`
+	NIB         string               `json:"nib" validate:"required"`
+	NIBFile     multipart.FileHeader `json:"nib_file" validate:"required"`
 }
 
 type UpdateOrganizerProfileReq struct {
@@ -51,6 +53,32 @@ type UpdateOrganizerProfileReq struct {
 	Address       *string                 `json:"address"`
 	SocialMedia   OrganizerSocialMediaReq `json:"social_media"`
 	CompanyDetail OrganizerCompDetailReq  `json:"company_detail"`
+}
+
+type SaveNPWPAndNIBFileReq struct {
+	NPWP *multipart.FileHeader
+	NIB  *multipart.FileHeader
+}
+
+type ValidateFileReq struct {
+	Photo *multipart.FileHeader
+	NPWP  multipart.FileHeader
+	NIB   multipart.FileHeader
+}
+
+type OrganizerCompDetailRes struct {
+	Description *string `json:"description,omitempty"`
+	NPWP        string  `json:"npwp"`
+	NPWPFile    string  `json:"npwp_file"`
+	NIB         string  `json:"nib"`
+	NIBFile     string  `json:"nib_file"`
+}
+
+type OrganizerStatusResp struct {
+	Status         string  `json:"status"`
+	RejectedReason *string `json:"rejected_reason,omitempty"`
+	ReviewedBy     *string `json:"reviewed_by,omitempty"`
+	ReviewedAt     *int64  `json:"reviewed_at,omitempty"`
 }
 
 // =========== Attendee profile response ==============
@@ -70,6 +98,7 @@ type AttendeeProfilesResponse struct {
 type OrganizerProfilesResponse struct {
 	ID            string                  `json:"id"`
 	UserID        string                  `json:"user_id"`
+	Status        OrganizerStatusResp     `json:"status,omitempty"`
 	IsVerified    bool                    `json:"is_verified"`
 	Email         string                  `json:"email"`
 	Name          string                  `json:"name"`
@@ -78,5 +107,5 @@ type OrganizerProfilesResponse struct {
 	Country       string                  `json:"country"`
 	Address       *string                 `json:"address,omitempty"`
 	SocialMedia   OrganizerSocialMediaReq `json:"social_media"`
-	CompanyDetail OrganizerCompDetailReq  `json:"company_detail"`
+	CompanyDetail OrganizerCompDetailRes  `json:"company_detail"`
 }

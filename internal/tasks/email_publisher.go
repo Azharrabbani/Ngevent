@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"encoding/json"
-	"ngevent/internal/model"
 	"time"
 
 	"github.com/hibiken/asynq"
@@ -20,7 +19,7 @@ func NewEmailTaskPublisher(client *asynq.Client, inspector *asynq.Inspector) *Em
 	}
 }
 
-func (t *EmailTaskPublisher) Enqueue(taskType string, payload *model.EmailPayload) error {
+func (t *EmailTaskPublisher) Enqueue(taskType string, payload interface{}) error {
 	p, err := json.Marshal(payload)
 	if err != nil {
 		return err

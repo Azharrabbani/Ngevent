@@ -36,6 +36,10 @@ func main() {
 	// Email handlers
 	worker.Mux.HandleFunc(model.TypeEMailVerify, tasks.NewEmailTaskHandler().HandlerUserVerification)
 	worker.Mux.HandleFunc(model.TypeEmailForgetPassword, tasks.NewEmailTaskHandler().HandlerUserForgetPassword)
+	worker.Mux.HandleFunc(model.TypeEmailAdminVerification, tasks.NewEmailTaskHandler().HandlerAdminVerifyProfile)
+	worker.Mux.HandleFunc(model.TypeEmailOrganizerProfile, tasks.NewEmailTaskHandler().HandlerOrganizerProfileNotif)
+	worker.Mux.HandleFunc(model.TypeEmailOrganizerProfileVerified, tasks.NewEmailTaskHandler().HandlerOrganizerProfileVerified)
+	worker.Mux.HandleFunc(model.TypeEmailOrganizerProfileRejected, tasks.NewEmailTaskHandler().HandlerOrganizerProfileRejected)
 
 	// Start Worker Server
 	if err := worker.Srv.Run(worker.Mux); err != nil {

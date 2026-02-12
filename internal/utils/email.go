@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"html"
 	"os"
 	"strconv"
 
@@ -207,6 +208,101 @@ func VerifyEmailMail(otp, email, otpID string) error {
 
 }
 
+// Email to admin for verify the organizer's profile
+func OrganizerProfileAdminNotificationEmail(
+	adminEmail string,
+	organizerName string,
+	userEmail string,
+	actionType string, // "registered" or "updated"
+) error {
+
+	m := gomail.NewMessage()
+
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", adminEmail)
+	m.SetHeader("Subject", "Organizer Profile Requires Approval")
+
+	m.SetBody("text/html", fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Organizer Profile Approval Needed</title>
+	</head>
+	<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+		<table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
+			<tr>
+				<td align="center">
+					<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+						
+						<tr>
+							<td style="background:#F59E0B; padding:20px; text-align:center;">
+								<h1 style="color:#ffffff; margin:0;">Approval Required ⚠️</h1>
+							</td>
+						</tr>
+
+						<tr>
+							<td style="padding:30px; color:#333333;">
+								<p style="font-size:16px;">
+									Hello Admin,
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									An organizer has <strong>%s</strong> their profile and is waiting for approval.
+								</p>
+
+								<div style="background:#FEF3C7; padding:15px; border-radius:6px; margin:20px 0;">
+									<p style="margin:0; font-size:14px;">
+										<strong>Organizer Name:</strong> %s<br>
+										<strong>User Email:</strong> %s
+									</p>
+								</div>
+
+								<div style="text-align:center; margin:30px 0;">
+									<a href="https://ngevent.id/admin/organizers"
+										style="
+											background:#F59E0B;
+											color:#ffffff;
+											text-decoration:none;
+											padding:12px 24px;
+											border-radius:6px;
+											font-size:16px;
+											display:inline-block;
+										">
+										Review Organizer Profile
+									</a>
+								</div>
+
+								<p style="font-size:14px; color:#777777;">
+									Please review and take the appropriate action.
+								</p>
+
+								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
+
+								<p style="font-size:14px; color:#777777;">
+									Ngevent System Notification
+								</p>
+							</td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+	</html>
+	`, actionType, organizerName, userEmail))
+
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	d := gomail.NewDialer(host, port, username, password)
+
+	return d.DialAndSend(m)
+}
+
 // Organizer profile register
 func OrganizerProfileVerificationEmail(email string, organizerName string) error {
 	m := gomail.NewMessage()
@@ -385,13 +481,16 @@ func OrganizerProfileVerifiedEmail(email string, organizerName string) error {
 	return d.DialAndSend(m)
 }
 
-// Organizer profile denied
-func OrganizerProfileRejectedEmail(email string, organizerName string) error {
+// Organizer profile rejected
+func OrganizerProfileRejectedEmail(email, organizerName, rejectedReason string) error {
 	m := gomail.NewMessage()
 
 	m.SetHeader("From", "ngevent@gmail.com")
 	m.SetHeader("To", email)
-	m.SetHeader("Subject", "Your Organizer Profile Rejected")
+	m.SetHeader("Subject", "Your Organizer Profile Needs Revision")
+
+	// Escape reason to prevent HTML injection
+	safeReason := html.EscapeString(rejectedReason)
 
 	m.SetBody("text/html", fmt.Sprintf(`
 	<!DOCTYPE html>
@@ -408,14 +507,14 @@ func OrganizerProfileRejectedEmail(email string, organizerName string) error {
 						
 						<tr>
 							<td style="background:#EF4444; padding:20px; text-align:center;">
-								<h1 style="color:#ffffff; margin:0;">Profile Not Approved ❌</h1>
+								<h1 style="color:#ffffff; margin:0;">Profile Requires Revision</h1>
 							</td>
 						</tr>
 
 						<tr>
 							<td style="padding:30px; color:#333333;">
 								<p style="font-size:16px; line-height:1.6;">
-									Hello <strong>%s</strong> 👋,
+									Hello <strong>%s</strong>,
 								</p>
 
 								<p style="font-size:16px; line-height:1.6;">
@@ -423,22 +522,24 @@ func OrganizerProfileRejectedEmail(email string, organizerName string) error {
 								</p>
 
 								<p style="font-size:16px; line-height:1.6;">
-									After reviewing your application, we would like to inform you that
-									<strong>we are unable to verify your organizer profile</strong>.
+									After reviewing your application, we found that your organizer profile
+									<strong>cannot be approved at this time</strong>.
 								</p>
 
-								<p style="font-size:16px; line-height:1.6;">
-									This is usually caused by incomplete, incorrect data,
-                                    or the data is not meet the organizer's verification requirements.
-								</p>
+								<div style="background:#FEE2E2; padding:15px; border-radius:6px; margin:20px 0;">
+									<p style="margin:0; font-size:14px; color:#991B1B;">
+										<strong>Reason:</strong><br>
+										%s
+									</p>
+								</div>
 
 								<p style="font-size:16px; line-height:1.6;">
-									To continue, please <strong>re-register</strong> and ensure that all
-                                    the data you have entered is correct and valid.
+									Please update your organizer profile and ensure that all submitted
+									information is accurate and complete.
 								</p>
 
 								<div style="text-align:center; margin:30px 0;">
-									<a href="https://ngevent.id/register-organizer"
+									<a href="https://ngevent.id/organizer/profile"
 										style="
 											background:#EF4444;
 											color:#ffffff;
@@ -448,20 +549,19 @@ func OrganizerProfileRejectedEmail(email string, organizerName string) error {
 											font-size:16px;
 											display:inline-block;
 										">
-										Re-Register Organizer
+										Update Organizer Profile
 									</a>
 								</div>
 
 								<p style="font-size:14px; color:#555555;">
-									If you need assistance or further information,
-                                    please contact our support team.
+									If you need assistance, please contact our support team.
 								</p>
 
 								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
 
 								<p style="font-size:14px; color:#777777;">
 									Thank you for your understanding,<br>
-									<strong>Ngevent team</strong>
+									<strong>Ngevent Team</strong>
 								</p>
 							</td>
 						</tr>
@@ -472,9 +572,8 @@ func OrganizerProfileRejectedEmail(email string, organizerName string) error {
 		</table>
 	</body>
 	</html>
-	`, organizerName))
+	`, organizerName, safeReason))
 
-	// SMTP configuration
 	host := os.Getenv("SMTP_HOST")
 	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
 	username := os.Getenv("SMTP_USERNAME")

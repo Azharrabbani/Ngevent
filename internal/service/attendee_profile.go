@@ -8,13 +8,12 @@ import (
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
+	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
 	"os"
 	"time"
 
-	"github.com/dongri/phonenumber"
 	"github.com/gofiber/fiber/v2"
-	"github.com/nyaruka/phonenumbers"
 )
 
 type AttendeeProfileService struct {
@@ -35,37 +34,19 @@ func (s *AttendeeProfileService) Create(profile *dto.CreateAttendeeProfileReq) e
 		return err
 	}
 
-	// Parse the phone code
-	phoneNumber := phonenumber.ParseWithLandLine(profile.PhoneNumber, profile.ISO)
-	if phoneNumber == "" {
-		return errors.New("invalid phone number")
-	}
-
 	// Validate the phone number
-	num, err := phonenumbers.Parse(profile.PhoneNumber, profile.ISO)
+	phonenumber, country, err := utils.ValidatePhoneCode(profile.PhoneNumber, profile.ISO)
 	if err != nil {
-		return errors.New("invalid phone number format")
+		return err
 	}
-
-	if !phonenumbers.IsValidNumber(num) {
-		return errors.New("invalid phone number")
-	}
-
-	// Make sure the phone number is mobile phone number
-	numberType := phonenumbers.GetNumberType(num)
-	if numberType != phonenumbers.MOBILE && numberType != phonenumbers.FIXED_LINE_OR_MOBILE {
-		return errors.New("phone number must be a mobile number")
-	}
-
-	country := phonenumber.GetISO3166ByNumber(phoneNumber, true)
 
 	newProfile := &model.AttendeeProfiles{
 		UserID:      profile.UserID,
 		Name:        profile.Name,
 		Username:    profile.Username,
 		Address:     profile.Address,
-		PhoneNumber: fmt.Sprintf("+%s", phoneNumber),
-		Country:     country.CountryName,
+		PhoneNumber: fmt.Sprintf("+%s", phonenumber),
+		Country:     country,
 	}
 
 	// Save photo profile to local storage
@@ -155,31 +136,16 @@ func (s *AttendeeProfileService) UpdateProfile(userID string, req *dto.UpdateAtt
 		return fiber.StatusUnauthorized, errors.New("unauthorized action")
 	}
 
-	// Parse the phone code
-	phoneNumber := phonenumber.ParseWithLandLine(req.PhoneNumber, req.ISO)
-
 	// Validate the phone number
-	num, err := phonenumbers.Parse(req.PhoneNumber, req.ISO)
+	phonenumber, country, err := utils.ValidatePhoneCode(req.PhoneNumber, req.ISO)
 	if err != nil {
-		return fiber.StatusBadRequest, errors.New("invalid phone number format")
+		return fiber.StatusBadRequest, err
 	}
-
-	if !phonenumbers.IsValidNumber(num) {
-		return fiber.StatusBadRequest, errors.New("invalid phone number")
-	}
-
-	// Make sure the phone number is mobile phone number
-	numberType := phonenumbers.GetNumberType(num)
-	if numberType != phonenumbers.MOBILE && numberType != phonenumbers.FIXED_LINE_OR_MOBILE {
-		return fiber.StatusBadRequest, errors.New("phone number must be a mobile number")
-	}
-
-	country := phonenumber.GetISO3166ByNumber(phoneNumber, true)
 
 	profile.Name = req.Name
 	profile.Username = req.Username
-	profile.PhoneNumber = req.PhoneNumber
-	profile.Country = country.CountryName
+	profile.PhoneNumber = fmt.Sprintf("+%s", phonenumber)
+	profile.Country = country
 	profile.Address = req.Address
 	profile.UpdatedAt = time.Now().UTC()
 

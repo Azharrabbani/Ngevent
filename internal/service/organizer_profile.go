@@ -8,13 +8,14 @@ import (
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
+	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
-	"github.com/dongri/phonenumber"
 	"github.com/gofiber/fiber/v2"
-	"github.com/nyaruka/phonenumbers"
 )
 
 type OrganizerProfileService struct {
@@ -35,45 +36,49 @@ func NewOrganizerProfileService(
 	}
 }
 
+var (
+	nibFilePath  = "./storage/nib"
+	npwpFilePath = "./storage/npwp"
+)
+
 func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProfileReq) error {
-	// Validate image
-	if err := helper.ValidateImage(profile.PhotoProfile); err != nil {
+	validateReq := &dto.ValidateFileReq{
+		Photo: profile.PhotoProfile,
+		NPWP:  profile.CompanyDetail.NPWPFile,
+		NIB:   profile.CompanyDetail.NIBFile,
+	}
+
+	// Validate files
+	if err := validateFile(validateReq); err != nil {
 		return err
 	}
 
-	// Parse the phone code
-	phoneNumber := phonenumber.ParseWithLandLine(profile.PhoneNumber, profile.ISO)
-	if phoneNumber == "" {
-		return errors.New("invalid phone number")
-	}
-
-	// Validate the phone number
-	num, err := phonenumbers.Parse(profile.PhoneNumber, profile.ISO)
+	// Validate phone code
+	phonenumber, country, err := utils.ValidatePhoneCode(profile.PhoneNumber, profile.ISO)
 	if err != nil {
-		return errors.New("invalid phone number format")
+		return err
 	}
-
-	if !phonenumbers.IsValidNumber(num) {
-		return errors.New("invalid phone number")
-	}
-
-	country := phonenumber.GetISO3166ByNumber(phoneNumber, true)
 
 	newProfile := &model.OrganizerProfiles{
 		UserID:      profile.UserID,
 		Name:        profile.Name,
 		Address:     profile.Address,
-		PhoneNumber: fmt.Sprintf("+%s", phoneNumber),
-		Country:     country.CountryName,
+		PhoneNumber: fmt.Sprintf("+%s", phonenumber),
+		Country:     country,
 		SocialMedias: model.OrganizerSocialMedia{
 			Email:     profile.SocialMedia.Email,
 			Instagram: profile.SocialMedia.Instagram,
 		},
 		CompanyDetail: model.OrganizerCompDetail{
 			Description: profile.CompanyDetail.Description,
-			NPWP:        profile.CompanyDetail.NPWP,
-			NIB:         profile.CompanyDetail.NIB,
+			NPWPNumber:  profile.CompanyDetail.NPWP,
+			NIBNumber:   profile.CompanyDetail.NIB,
 		},
+	}
+
+	admins, err := s.UserRepo.FindByRole("admin")
+	if err != nil {
+		return err
 	}
 
 	// Save photo profile to local storage
@@ -84,34 +89,46 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 		}
 
 		newProfile.PhotoProfile = &fileName
-
-		if err := s.OrganizerRepo.Create(newProfile); err != nil {
-			return err
-		}
-
-		payload := &model.EmailPayload{
-			To:   newProfile.User.Email,
-			Name: newProfile.Name,
-		}
-
-		// Send email to organizer
-		s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, payload)
-
-		return nil
 	}
+
+	// Save npwp & nib file
+	fileReq := &dto.SaveNPWPAndNIBFileReq{
+		NPWP: &profile.CompanyDetail.NPWPFile,
+		NIB:  &profile.CompanyDetail.NIBFile,
+	}
+
+	npwpFile, nibFile, err := saveNPWPAndNIBFile(fileReq)
+	if err != nil {
+		return err
+	}
+
+	newProfile.CompanyDetail.NPWPDocument = npwpFile
+	newProfile.CompanyDetail.NIBDocument = nibFile
 
 	// Save Profile
 	if err := s.OrganizerRepo.Create(newProfile); err != nil {
 		return err
 	}
 
-	payload := &model.EmailPayload{
+	// Send email to organizer
+	organizerpayload := &model.EmailPayload{
 		To:   newProfile.User.Email,
 		Name: newProfile.Name,
 	}
 
-	// Send email to organizer
-	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, payload)
+	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerpayload)
+
+	// Send email to admin
+	for _, admin := range admins {
+		adminPayload := &model.EmailPayload{
+			To:        admin.Email,
+			Name:      newProfile.Name,
+			UserEmail: newProfile.User.Email,
+			Action:    "registered",
+		}
+
+		s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
+	}
 
 	return nil
 }
@@ -157,8 +174,8 @@ func (s *OrganizerProfileService) VerifiedProfile(id string) error {
 		return errors.New("profile not found")
 	}
 
-	if profile.IsVerified {
-		return errors.New("profile already verified")
+	if profile.Status.Status == "approved" {
+		return errors.New("profile already approved")
 	}
 
 	if err := s.OrganizerRepo.VerifiedProfile(id); err != nil {
@@ -182,16 +199,21 @@ func (s *OrganizerProfileService) RejectProfile(id string) error {
 		return errors.New("profile not found")
 	}
 
-	if err := s.OrganizerRepo.VerifiedProfile(id); err != nil {
-		return errors.New("failed to verified profile")
+	if profile.Status.Status == "rejected" {
+		return errors.New("profile already rejected")
+	}
+
+	if err := s.OrganizerRepo.RejectProfile(id); err != nil {
+		return errors.New("failed to reject profile")
 	}
 
 	// Send email
-	payload := &model.EmailPayload{
-		To:   profile.User.Email,
-		Name: profile.Name,
+	payload := &model.RejectedEmailPayload{
+		To:     profile.User.Email,
+		Name:   profile.Name,
+		Reason: *profile.Status.RejectedReason,
 	}
-	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileVerified, payload)
+	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileRejected, payload)
 
 	return nil
 }
@@ -234,54 +256,199 @@ func (s *OrganizerProfileService) UpdatePhotoProfile(file *multipart.FileHeader,
 }
 
 func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOrganizerProfileReq) (int, error) {
-	// Validate user
+
 	profile, err := s.OrganizerRepo.FindByUserID(userID)
 	if err != nil {
 		return fiber.StatusNotFound, errors.New("profile not found")
 	}
 
-	// Only validate user can update
+	admins, err := s.UserRepo.FindByRole("admin")
+	if err != nil {
+		return fiber.StatusBadRequest, err
+	}
+
 	if userID != profile.UserID {
 		return fiber.StatusUnauthorized, errors.New("unauthorized action")
 	}
 
-	// Parse the phone code
-	phoneNumber := phonenumber.ParseWithLandLine(req.PhoneNumber, req.ISO)
-
-	// Validate the phone number
-	num, err := phonenumbers.Parse(req.PhoneNumber, req.ISO)
+	// Validate phone number
+	phonenumber, country, err := utils.ValidatePhoneCode(req.PhoneNumber, req.ISO)
 	if err != nil {
-		return fiber.StatusBadRequest, errors.New("invalid phone number format")
+		return fiber.StatusBadRequest, err
 	}
 
-	if !phonenumbers.IsValidNumber(num) {
-		return fiber.StatusBadRequest, errors.New("invalid phone number")
+	// Track whether critical field changed
+	criticalChanged := false
+
+	// Only check critical fields if currently approved
+	if profile.Status.Status == "approved" {
+
+		if profile.Name != req.Name {
+			criticalChanged = true
+		}
+
+		if profile.Country != country {
+			criticalChanged = true
+		}
+
+		if criticalChanged {
+			profile.Status.Status = "pending"
+		}
 	}
 
-	country := phonenumber.GetISO3166ByNumber(phoneNumber, true)
-
+	// Update allowed fields
 	profile.Name = req.Name
-	profile.PhoneNumber = req.PhoneNumber
-	profile.Country = country.CountryName
+	profile.PhoneNumber = fmt.Sprintf("+%s", phonenumber)
+	profile.Country = country
 	profile.Address = req.Address
 	profile.SocialMedias.Email = req.SocialMedia.Email
 	profile.SocialMedias.Instagram = req.SocialMedia.Instagram
 	profile.CompanyDetail.Description = req.CompanyDetail.Description
-	profile.CompanyDetail.NPWP = req.CompanyDetail.NPWP
-	profile.CompanyDetail.NIB = req.CompanyDetail.NIB
+
+	// Only allow NPWP & NIB change if not approved
+	if profile.Status.Status != "approved" {
+		profile.CompanyDetail.NPWPNumber = req.CompanyDetail.NPWP
+		profile.CompanyDetail.NIBNumber = req.CompanyDetail.NIB
+
+		oldNPWP := fmt.Sprintf("%s/%s", npwpFilePath, profile.CompanyDetail.NPWPDocument)
+		oldNIB := fmt.Sprintf("%s/%s", nibFilePath, profile.CompanyDetail.NIBDocument)
+
+		// Save new NPWP & NIB file
+		fileReq := &dto.SaveNPWPAndNIBFileReq{
+			NPWP: &req.CompanyDetail.NPWPFile,
+			NIB:  &req.CompanyDetail.NIBFile,
+		}
+
+		npwpFile, nibFile, err := saveNPWPAndNIBFile(fileReq)
+		if err != nil {
+			return fiber.StatusBadRequest, err
+		}
+
+		profile.CompanyDetail.NPWPDocument = npwpFile
+		profile.CompanyDetail.NIBDocument = nibFile
+
+		// Remove old files
+		if err := os.Remove(oldNPWP); err != nil {
+			fmt.Errorf("failed to remove file: %v", err)
+		}
+
+		if err := os.Remove(oldNIB); err != nil {
+			fmt.Errorf("failed to remove file: %v", err)
+		}
+	}
+
 	profile.UpdatedAt = time.Now().UTC()
 
 	if err := s.OrganizerRepo.Update(profile); err != nil {
-		return fiber.StatusBadRequest, nil
+		return fiber.StatusBadRequest, err
 	}
 
-	return 0, nil
+	if criticalChanged {
+		// Send email to organizer
+		organizerpayload := &model.EmailPayload{
+			To:   profile.User.Email,
+			Name: profile.Name,
+		}
+
+		s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerpayload)
+
+		// Send email to admin
+		for _, admin := range admins {
+			adminPayload := &model.EmailPayload{
+				To:        admin.Email,
+				Name:      profile.Name,
+				UserEmail: profile.User.Email,
+				Action:    "updated",
+			}
+
+			s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
+		}
+	}
+
+	return fiber.StatusOK, nil
+}
+
+func validateFile(req *dto.ValidateFileReq) error {
+	// Validate image
+	if err := helper.ValidateImage(req.Photo); err != nil {
+		return err
+	}
+
+	// Validate npwp file
+	if err := helper.ValidatePDF(req.NPWP); err != nil {
+		return err
+	}
+
+	// Validate nib file
+	if err := helper.ValidatePDF(req.NIB); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func saveNPWPAndNIBFile(req *dto.SaveNPWPAndNIBFileReq) (string, string, error) {
+	npwpPath, npwpFile, err := helper.SaveToLocal(req.NPWP, npwpFilePath)
+	if err != nil {
+		return "", "", err
+	}
+
+	nipPath, nibFile, err := helper.SaveToLocal(req.NIB, nibFilePath)
+	if err != nil {
+		return "", "", err
+	}
+
+	// temp compressed file
+	extNPWP := filepath.Ext(npwpPath)
+	baseNPWP := strings.TrimSuffix(npwpPath, extNPWP)
+	tempPathNPWP := baseNPWP + "_tmp" + extNPWP
+
+	extNIB := filepath.Ext(nipPath)
+	baseNIB := strings.TrimSuffix(nipPath, extNIB)
+	tempPathNIB := baseNIB + "_tmp" + extNIB
+
+	// Compress the PDF file
+	if err := helper.CompressPDF(npwpPath, tempPathNPWP); err != nil {
+		return "", "", err
+	}
+
+	if err := helper.CompressPDF(nipPath, tempPathNIB); err != nil {
+		return "", "", err
+	}
+
+	// Optimize the file
+	if err := helper.OptimizePDF(tempPathNPWP); err != nil {
+		return "", "", err
+	}
+
+	if err := helper.OptimizePDF(tempPathNIB); err != nil {
+		return "", "", err
+	}
+
+	// replace original
+	if err := os.Rename(tempPathNPWP, npwpPath); err != nil {
+		return "", "", err
+	}
+
+	if err := os.Rename(tempPathNIB, nipPath); err != nil {
+		return "", "", err
+	}
+
+	// return final path
+	return npwpFile, nibFile, nil
 }
 
 func toOrganizerProfileResponse(profile *model.OrganizerProfiles) *dto.OrganizerProfilesResponse {
+	reviewedAt := helper.ConvertDatetoUnix(profile.Status.ReviewedAt.Format(time.RFC3339))
 	return &dto.OrganizerProfilesResponse{
-		ID:           profile.ID,
-		UserID:       profile.UserID,
+		ID:     profile.ID,
+		UserID: profile.UserID,
+		Status: dto.OrganizerStatusResp{
+			Status:         profile.Status.Status,
+			RejectedReason: profile.Status.RejectedReason,
+			ReviewedBy:     profile.Status.ReviewedBy,
+			ReviewedAt:     &reviewedAt,
+		},
 		Email:        profile.User.Email,
 		Name:         profile.Name,
 		PhotoProfile: profile.PhotoProfile,
@@ -292,10 +459,12 @@ func toOrganizerProfileResponse(profile *model.OrganizerProfiles) *dto.Organizer
 			Email:     profile.SocialMedias.Email,
 			Instagram: profile.SocialMedias.Instagram,
 		},
-		CompanyDetail: dto.OrganizerCompDetailReq{
+		CompanyDetail: dto.OrganizerCompDetailRes{
 			Description: profile.CompanyDetail.Description,
-			NPWP:        profile.CompanyDetail.NPWP,
-			NIB:         profile.CompanyDetail.NIB,
+			NPWP:        profile.CompanyDetail.NPWPNumber,
+			NPWPFile:    profile.CompanyDetail.NPWPDocument,
+			NIB:         profile.CompanyDetail.NIBNumber,
+			NIBFile:     profile.CompanyDetail.NIBDocument,
 		},
 	}
 }

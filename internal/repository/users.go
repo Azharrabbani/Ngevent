@@ -31,7 +31,7 @@ func (r *UsersRepository) Create(users *model.Users) (*model.Users, error) {
 func (r *UsersRepository) Login(email, password string) (*model.Users, error) {
 	var user *model.Users
 
-	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := r.db.Where("email = ? AND deleted_at IS NULL", email).First(&user).Error; err != nil {
 		return nil, err
 	}
 

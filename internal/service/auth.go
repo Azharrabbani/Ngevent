@@ -16,7 +16,7 @@ type NewTaskOTP interface {
 }
 
 type NewTaskEmail interface {
-	Enqueue(taskType string, payload *model.EmailPayload) error
+	Enqueue(taskType string, payload interface{}) error
 }
 
 type AuthService struct {

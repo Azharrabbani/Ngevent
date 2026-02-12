@@ -46,6 +46,8 @@ services:
         condition: service_healthy
     volumes:
       - ./storage/profiles:/app/storage/profiles
+      - ./storage/npwp:/app/storage/npwp
+      - ./storage/nib:/app/storage/nib
   
   worker:
     build: 

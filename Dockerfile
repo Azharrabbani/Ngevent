@@ -27,7 +27,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o worker ./cmd/worker
 # Final stage backend
 FROM alpine:latest AS prod
 
-RUN apk add --no-cache libwebp
+RUN apk add --no-cache libwebp tzdata ghostscript
 
 # Workdir App
 WORKDIR /app
@@ -36,7 +36,7 @@ COPY --from=builder /app/worker .
 COPY --from=builder /go/bin/asynq /usr/local/bin/asynq
 COPY .env .env
 
-RUN mkdir -p /app/storage/profiles
+RUN mkdir -p /app/storage/profiles /app/storage/npwp /app/storage/nib
 
 EXPOSE 8080
 CMD ["./app"]

@@ -51,7 +51,7 @@ func (t *OtpTaskPublisher) CancelOTPVerification(id string) error {
 
 		for _, task := range scheduledTask {
 			if id == task.ID {
-				t.Inspector.DeleteTask(q, id)
+				return t.Inspector.DeleteTask(q, id)
 			}
 		}
 	}

@@ -1,11 +1,13 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"ngevent/internal/dto"
 	"sort"
 
+	"github.com/dongri/phonenumber"
 	"github.com/nyaruka/phonenumbers"
 )
 
@@ -60,4 +62,25 @@ func ListAllPhoneCodes(page, limit int) *dto.PaginationResponse[dto.PhoneCodeRes
 		TotalData:  totalData,
 		TotalPages: totalPages,
 	}
+}
+
+func ValidatePhoneCode(phoneNumberinp, iso string) (string, string, error) {
+	phoneNumber := phonenumber.ParseWithLandLine(phoneNumberinp, iso)
+	if phoneNumber == "" {
+		return "", "", errors.New("invalid phone number")
+	}
+
+	// Validate the phone number
+	num, err := phonenumbers.Parse(phoneNumberinp, iso)
+	if err != nil {
+		return "", "", errors.New("invalid phone number format")
+	}
+
+	if !phonenumbers.IsValidNumber(num) {
+		return "", "", errors.New("invalid phone number")
+	}
+
+	country := phonenumber.GetISO3166ByNumber(phoneNumber, true)
+
+	return phoneNumber, country.CountryName, nil
 }

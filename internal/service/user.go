@@ -77,14 +77,6 @@ func (s *UserService) CreateUser(email, password, role string) (*model.Users, er
 		return nil, errors.New("email already registred")
 	}
 
-	// Create unverified user task
-	// This task function is to delete unverified user
-	userPayload := &model.UnverifiedUserPayload{UserID: newUser.ID}
-	if err := s.UserTaskPublisher.EnqueueUnverifiedUser(model.TypeVerifiedUser, userPayload); err != nil {
-		userX.Rollback()
-		return nil, err
-	}
-
 	// Generate OTP
 	otpCode, err := helper.GenerateOTP()
 	if err != nil {
@@ -102,6 +94,14 @@ func (s *UserService) CreateUser(email, password, role string) (*model.Users, er
 	// Save OTP
 	newOTP, err := s.OtpRepo.Create(otp)
 	if err != nil {
+		userX.Rollback()
+		return nil, err
+	}
+
+	// Create unverified user task
+	// This task function is to delete unverified user
+	userPayload := &model.UnverifiedUserPayload{UserID: newUser.ID}
+	if err := s.UserTaskPublisher.EnqueueUnverifiedUser(model.TypeVerifiedUser, userPayload); err != nil {
 		userX.Rollback()
 		return nil, err
 	}

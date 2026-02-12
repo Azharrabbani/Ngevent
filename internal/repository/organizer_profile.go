@@ -3,6 +3,7 @@ package repository
 import (
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
+	"ngevent/internal/utils/helper"
 	"time"
 
 	"gorm.io/gorm"
@@ -75,7 +76,12 @@ func (r *OrganizerRepository) FindByUserID(userID string) (*model.OrganizerProfi
 
 // VerifiedProfile implements OrganizerProfileRepo.
 func (r *OrganizerRepository) VerifiedProfile(id string) error {
-	return r.db.Where("id = ?", id).Update("is_verified", true).Error
+	return r.db.Where("id = ?", id).Update("status", "approved").Error
+}
+
+// RejectProfile implements OrganizerProfileRepo.
+func (r *OrganizerRepository) RejectProfile(id string) error {
+	return r.db.Where("id = ?", id).Update("status", "rejected").Error
 }
 
 // Update implements OrganizerProfileRepo.
@@ -96,8 +102,15 @@ func toOrganizerResponse(profiles []*model.OrganizerProfiles) []*dto.OrganizerPr
 	var organizers []*dto.OrganizerProfilesResponse
 
 	for _, profile := range profiles {
+		reviewedAt := helper.ConvertDatetoUnix(profile.Status.ReviewedAt.Format(time.RFC3339))
 		organizers = append(organizers, &dto.OrganizerProfilesResponse{
-			ID:           profile.ID,
+			ID: profile.ID,
+			Status: dto.OrganizerStatusResp{
+				Status:         profile.Status.Status,
+				RejectedReason: profile.Status.RejectedReason,
+				ReviewedBy:     profile.Status.ReviewedBy,
+				ReviewedAt:     &reviewedAt,
+			},
 			Name:         profile.Name,
 			Email:        profile.User.Email,
 			PhotoProfile: profile.PhotoProfile,
@@ -108,10 +121,11 @@ func toOrganizerResponse(profiles []*model.OrganizerProfiles) []*dto.OrganizerPr
 				Email:     profile.SocialMedias.Email,
 				Instagram: profile.SocialMedias.Instagram,
 			},
-			CompanyDetail: dto.OrganizerCompDetailReq{
+			CompanyDetail: dto.OrganizerCompDetailRes{
 				Description: profile.CompanyDetail.Description,
-				NPWP:        profile.CompanyDetail.NPWP,
-				NIB:         profile.CompanyDetail.NIB,
+				NPWP:        profile.CompanyDetail.NPWPNumber,
+				NPWPFile:    profile.CompanyDetail.NPWPDocument,
+				NIB:         profile.CompanyDetail.NIBDocument,
 			},
 		})
 	}

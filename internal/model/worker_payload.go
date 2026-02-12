@@ -9,6 +9,7 @@ const (
 	// Email payload
 	TypeEmailForgetPassword           = "email:user:forgetPassword"
 	TypeEMailVerify                   = "email:user:verify"
+	TypeEmailAdminVerification        = "email:admin:verify"
 	TypeEmailOrganizerProfile         = "email:organizer:profile"
 	TypeEmailOrganizerProfileVerified = "email:organizer:profile:verified"
 	TypeEmailOrganizerProfileRejected = "email:organizer:profile:rejected"
@@ -26,8 +27,16 @@ type OTPPayload struct {
 
 // Task payload for email
 type EmailPayload struct {
-	To    string
-	Name  string
-	OTP   string
-	OTPID string
+	To        string
+	Name      string
+	UserEmail string
+	Action    string
+	OTP       string
+	OTPID     string
+}
+
+type RejectedEmailPayload struct {
+	To     string
+	Name   string
+	Reason string
 }

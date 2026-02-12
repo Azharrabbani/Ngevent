@@ -67,18 +67,21 @@ func main() {
 	sessionRepo := repository.NewSessionRepository(server.DB)
 	otpRepo := repository.NewOtpRepository(server.DB)
 	attendeeProfileRepo := repository.NewAttendeeProfileRepository(server.DB)
+	organizerProfileRepo := repository.NewOrganizerRepository(server.DB)
 
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
 	userService := service.NewUserService(userRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
 	otpService := service.NewOTPService(userRepo, otpRepo, unusedOTPTaskPublisher, emailTaskPublisher)
 	attendeeProfileService := service.NewAttendeeProfileService(attendeeProfileRepo)
+	organizerProfileService := service.NewOrganizerProfileService(organizerProfileRepo, userRepo, emailTaskPublisher)
 
 	// Init handler
 	authHandler := handler.NewAuthHandler(authService, validate)
 	userHandler := handler.NewUserHandler(userService, validate)
 	otpHandler := handler.NewOTPHandler(otpService, validate)
 	attendeeProfileHandler := handler.NewAttendeeProfileService(attendeeProfileService, validate)
+	organizerProfileHandler := handler.NewOrganizerProfileHandler(organizerProfileService, validate)
 
 	// Register routes
 	server.RegisterFiberRoutes()
@@ -86,6 +89,7 @@ func main() {
 	server.RegisterUserRoutes(userHandler)
 	server.RegisterOTPRoutes(otpHandler)
 	server.RegisterAttendeeProfileRoutes(attendeeProfileHandler)
+	server.RegisterOrganizerProfileRoutes(organizerProfileHandler)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

@@ -62,3 +62,15 @@ func (s *FiberServer) RegisterAttendeeProfileRoutes(h *handler.AttendeeProfileHa
 		profile.Put("/", h.UpdateProfile)
 	}
 }
+
+func (s *FiberServer) RegisterOrganizerProfileRoutes(h *handler.OrganizerProfileHandler) {
+	profile := v1.Group("/organizer")
+	profile.Use(middleware.AuthMiddleware())
+	{
+		profile.Post("/", h.CreateProfile)
+		profile.Get("/:id", h.GetProfileByID)
+		profile.Get("/", h.GetProfileByUserID)
+		profile.Put("/photo", h.UpdatePhotoProfile)
+		profile.Put("/", h.UpdateProfile)
+	}
+}
