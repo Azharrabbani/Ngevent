@@ -81,8 +81,8 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 		return err
 	}
 
-	// Save photo profile to local storage
 	if profile.PhotoProfile != nil {
+		// Save photo profile to local storage
 		_, fileName, err := helper.SaveToLocal(profile.PhotoProfile, profileUploadPath)
 		if err != nil {
 			return err
@@ -91,12 +91,12 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 		newProfile.PhotoProfile = &fileName
 	}
 
-	// Save npwp & nib file
 	fileReq := &dto.SaveNPWPAndNIBFileReq{
 		NPWP: &profile.CompanyDetail.NPWPFile,
 		NIB:  &profile.CompanyDetail.NIBFile,
 	}
-
+	
+	// Save npwp & nib file
 	npwpFile, nibFile, err := saveNPWPAndNIBFile(fileReq)
 	if err != nil {
 		return err
@@ -110,15 +110,14 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 		return err
 	}
 
-	// Send email to organizer
 	organizerpayload := &model.EmailPayload{
 		To:   newProfile.User.Email,
 		Name: newProfile.Name,
 	}
-
+	
+	// Send email to organizer
 	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerpayload)
 
-	// Send email to admin
 	for _, admin := range admins {
 		adminPayload := &model.EmailPayload{
 			To:        admin.Email,
@@ -126,7 +125,8 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 			UserEmail: newProfile.User.Email,
 			Action:    "registered",
 		}
-
+		
+		// Send email to admin
 		s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
 	}
 
@@ -167,7 +167,7 @@ func (s *OrganizerProfileService) FindByCountry(
 	return profiles, nil
 }
 
-func (s *OrganizerProfileService) VerifiedProfile(id string) error {
+func (s *OrganizerProfileService) VerifiedProfile(id string, req *dto.ApprovedReq) error {
 	// Check user is exist
 	profile, err := s.OrganizerRepo.FindByID(id)
 	if err != nil {
@@ -178,7 +178,7 @@ func (s *OrganizerProfileService) VerifiedProfile(id string) error {
 		return errors.New("profile already approved")
 	}
 
-	if err := s.OrganizerRepo.VerifiedProfile(id); err != nil {
+	if err := s.OrganizerRepo.VerifiedProfile(id, req); err != nil {
 		return errors.New("failed to verified profile")
 	}
 
@@ -192,7 +192,7 @@ func (s *OrganizerProfileService) VerifiedProfile(id string) error {
 	return nil
 }
 
-func (s *OrganizerProfileService) RejectProfile(id string) error {
+func (s *OrganizerProfileService) RejectProfile(id string, req *dto.RejectedReq) error {
 	// Check user is exist
 	profile, err := s.OrganizerRepo.FindByID(id)
 	if err != nil {
@@ -203,7 +203,7 @@ func (s *OrganizerProfileService) RejectProfile(id string) error {
 		return errors.New("profile already rejected")
 	}
 
-	if err := s.OrganizerRepo.RejectProfile(id); err != nil {
+	if err := s.OrganizerRepo.RejectProfile(id, req); err != nil {
 		return errors.New("failed to reject profile")
 	}
 
@@ -211,7 +211,7 @@ func (s *OrganizerProfileService) RejectProfile(id string) error {
 	payload := &model.RejectedEmailPayload{
 		To:     profile.User.Email,
 		Name:   profile.Name,
-		Reason: *profile.Status.RejectedReason,
+		Reason: req.Reason,
 	}
 	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileRejected, payload)
 

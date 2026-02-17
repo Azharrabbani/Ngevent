@@ -84,6 +84,31 @@ CREATE TABLE "public"."organizer_profiles"(
 	CONSTRAINT "fk_users_organizer_profiles" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE
 );
 
+CREATE TABLE "public"."organizer_profiles_updates"(
+	"id" uuid DEFAULT uuid_generate_v4() NOT NULL,
+	"profile_id" uuid NOT NULL,
+	"status" organizer_profile_status NOT NULL DEFAULT 'pending',
+	"rejected_reason" TEXT,
+	"reviewed_by" uuid,
+	"reviewed_at" TIMESTAMPTZ,
+	"name" VARCHAR(255) NOT NULL,
+	"photo_profile" TEXT,
+	"email" VARCHAR(255),
+	"instagram" VARCHAR(255),
+	"phone_number" VARCHAR(100) NOT NULL,
+	"country" VARCHAR(120) NOT NULL,
+	"address" TEXT,
+	"description" TEXT,
+	"npwp_number" VARCHAR(100) NOT NULL,
+	"npwp_document" TEXT NOT NULL,
+	"nib_number" VARCHAR(100) NOT NULL,
+	"nib_document" TEXT NOT NULL,
+	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	CONSTRAINT "organizer_profiles_pk" PRIMARY KEY("id"),
+	CONSTRAINT "fk_organizer_profiles_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE
+);
+
 -- Create Unique Index
 CREATE UNIQUE INDEX "unique_approved_npwp"
 ON "public"."organizer_profiles"("npwp_number")
@@ -92,6 +117,10 @@ WHERE status = 'approved';
 CREATE UNIQUE INDEX "unique_approved_nib"
 ON "public"."organizer_profiles"("nib_number")
 WHERE status = 'approved';
+
+CREATE UNIQUE INDEX unique_pending_update
+ON organizer_profile_updates (organizer_profile_id)
+WHERE status = 'pending';
 
 
 -- Crete index

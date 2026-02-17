@@ -19,8 +19,8 @@ type OrganizerProfileRepo interface {
 	FindByID(id string) (*model.OrganizerProfiles, error)
 	FindByUserID(userID string) (*model.OrganizerProfiles, error)
 	FindByCountry(country string, pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error)
-	VerifiedProfile(id string) error
-	RejectProfile(id string) error
+	VerifiedProfile(id string, req *dto.ApprovedReq) error
+	RejectProfile(id string, req *dto.RejectedReq) error
 	Update(profile *model.OrganizerProfiles) error
 	UpdatePhotoProfile(userID, photo string) error
 	Delete(id string) error

@@ -75,13 +75,28 @@ func (r *OrganizerRepository) FindByUserID(userID string) (*model.OrganizerProfi
 }
 
 // VerifiedProfile implements OrganizerProfileRepo.
-func (r *OrganizerRepository) VerifiedProfile(id string) error {
-	return r.db.Where("id = ?", id).Update("status", "approved").Error
+func (r *OrganizerRepository) VerifiedProfile(id string, req *dto.ApprovedReq) error {
+	return r.db.
+		Model(&model.OrganizerProfiles{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"status":      "approved",
+			"reviewed_by": req.ReviewedBy,
+			"reviewed_at": req.ReviewedAt,
+		}).Error
 }
 
 // RejectProfile implements OrganizerProfileRepo.
-func (r *OrganizerRepository) RejectProfile(id string) error {
-	return r.db.Where("id = ?", id).Update("status", "rejected").Error
+func (r *OrganizerRepository) RejectProfile(id string, req *dto.RejectedReq) error {
+	return r.db.
+		Model(&model.OrganizerProfiles{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"status":          "rejected",
+			"rejected_reason": req.Reason,
+			"reviewed_by":     req.ReviewedBy,
+			"reviewed_at":     req.ReviewedAt,
+		}).Error
 }
 
 // Update implements OrganizerProfileRepo.

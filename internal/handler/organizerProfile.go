@@ -4,6 +4,7 @@ import (
 	"ngevent/internal/dto"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -226,5 +227,79 @@ func (h *OrganizerProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 		"success",
 		"success",
 		"update success",
+	))
+}
+
+func (h *OrganizerProfileHandler) ApprovedProfile(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+	profileID := c.Params("id")
+
+	approvedReq := &dto.ApprovedReq{
+		ReviewedBy: userID,
+		ReviewedAt: time.Now().UTC(),
+	}
+
+	if err := h.OrganizerService.VerifiedProfile(profileID, approvedReq); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		"approved success",
+	))
+}
+
+func (h *OrganizerProfileHandler) RejectProfile(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+	profileID := c.Params("id")
+
+	var req *dto.RejectedReq
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			msg,
+		))
+	}
+
+	rejectedReq := &dto.RejectedReq{
+		Reason:     req.Reason,
+		ReviewedBy: userID,
+		ReviewedAt: time.Now().UTC(),
+	}
+
+	if err := h.OrganizerService.RejectProfile(profileID, rejectedReq); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		"rejected success",
 	))
 }

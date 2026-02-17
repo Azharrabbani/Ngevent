@@ -1,6 +1,9 @@
 package dto
 
-import "mime/multipart"
+import (
+	"mime/multipart"
+	"time"
+)
 
 // =========== Attendee profile req ================
 type CreateAttendeeProfileReq struct {
@@ -64,6 +67,17 @@ type ValidateFileReq struct {
 	Photo *multipart.FileHeader
 	NPWP  multipart.FileHeader
 	NIB   multipart.FileHeader
+}
+
+type ApprovedReq struct {
+	ReviewedBy string
+	ReviewedAt time.Time
+}
+
+type RejectedReq struct {
+	Reason     string `json:"reason" validate:"required"`
+	ReviewedBy string
+	ReviewedAt time.Time
 }
 
 type OrganizerCompDetailRes struct {
