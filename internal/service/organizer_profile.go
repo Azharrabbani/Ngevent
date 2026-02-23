@@ -19,20 +19,23 @@ import (
 )
 
 type OrganizerProfileService struct {
-	OrganizerRepo      repository.OrganizerProfileRepo
-	UserRepo           repository.UsersRepo
-	EmailTaskPublisher NewTaskEmail
+	OrganizerRepo       repository.OrganizerProfileRepo
+	UserRepo            repository.UsersRepo
+	OrganizerUpdateRepo repository.OrganizerProfileUpdateRepo
+	EmailTaskPublisher  NewTaskEmail
 }
 
 func NewOrganizerProfileService(
 	organizerRepo repository.OrganizerProfileRepo,
 	userRepo repository.UsersRepo,
+	organizerUpdateRepo repository.OrganizerProfileUpdateRepo,
 	emailTaskPublisher NewTaskEmail,
 ) *OrganizerProfileService {
 	return &OrganizerProfileService{
-		OrganizerRepo:      organizerRepo,
-		UserRepo:           userRepo,
-		EmailTaskPublisher: emailTaskPublisher,
+		OrganizerRepo:       organizerRepo,
+		UserRepo:            userRepo,
+		OrganizerUpdateRepo: organizerUpdateRepo,
+		EmailTaskPublisher:  emailTaskPublisher,
 	}
 }
 
@@ -76,6 +79,13 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 		},
 	}
 
+	// Get corresponded user
+	user, err := s.UserRepo.FindByID(newProfile.UserID)
+	if err != nil {
+		return err
+	}
+
+	// Get admins
 	admins, err := s.UserRepo.FindByRole("admin")
 	if err != nil {
 		return err
@@ -91,12 +101,14 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 		newProfile.PhotoProfile = &fileName
 	}
 
-	fileReq := &dto.SaveNPWPAndNIBFileReq{
-		NPWP: &profile.CompanyDetail.NPWPFile,
-		NIB:  &profile.CompanyDetail.NIBFile,
-	}
-	
 	// Save npwp & nib file
+	fileReq := &dto.SaveNPWPAndNIBFileReq{
+		NPWP:     &profile.CompanyDetail.NPWPFile,
+		NIB:      &profile.CompanyDetail.NIBFile,
+		NPWPPath: npwpFilePath,
+		NIBPath:  nibFilePath,
+	}
+
 	npwpFile, nibFile, err := saveNPWPAndNIBFile(fileReq)
 	if err != nil {
 		return err
@@ -110,24 +122,28 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 		return err
 	}
 
+	// Send email to organizer
 	organizerpayload := &model.EmailPayload{
-		To:   newProfile.User.Email,
+		To:   user.Email,
 		Name: newProfile.Name,
 	}
-	
-	// Send email to organizer
-	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerpayload)
 
+	if err := s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerpayload); err != nil {
+		log.Printf("[email] failed to send email: %v\n", err)
+	}
+
+	// Send email to admin
 	for _, admin := range admins {
 		adminPayload := &model.EmailPayload{
 			To:        admin.Email,
 			Name:      newProfile.Name,
-			UserEmail: newProfile.User.Email,
+			UserEmail: user.Email,
 			Action:    "registered",
 		}
-		
-		// Send email to admin
-		s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
+
+		if err := s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload); err != nil {
+			log.Printf("[email] failed to send email: %v\n", err)
+		}
 	}
 
 	return nil
@@ -153,6 +169,10 @@ func (s *OrganizerProfileService) FindByUserID(userID string) (*dto.OrganizerPro
 	organizer := toOrganizerProfileResponse(profile)
 
 	return organizer, nil
+}
+
+func (s *OrganizerProfileService) FindAll(pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
+	return s.OrganizerRepo.FindAll(pagination)
 }
 
 func (s *OrganizerProfileService) FindByCountry(
@@ -256,19 +276,19 @@ func (s *OrganizerProfileService) UpdatePhotoProfile(file *multipart.FileHeader,
 }
 
 func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOrganizerProfileReq) (int, error) {
-
 	profile, err := s.OrganizerRepo.FindByUserID(userID)
 	if err != nil {
 		return fiber.StatusNotFound, errors.New("profile not found")
 	}
 
+	// Only validate user can update
+	if userID != profile.UserID && profile.User.Role != "admin" {
+		return fiber.StatusUnauthorized, errors.New("unauthorized action")
+	}
+
 	admins, err := s.UserRepo.FindByRole("admin")
 	if err != nil {
 		return fiber.StatusBadRequest, err
-	}
-
-	if userID != profile.UserID {
-		return fiber.StatusUnauthorized, errors.New("unauthorized action")
 	}
 
 	// Validate phone number
@@ -291,6 +311,14 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 			criticalChanged = true
 		}
 
+		if profile.CompanyDetail.NPWPNumber != req.CompanyDetail.NPWP {
+			criticalChanged = true
+		}
+
+		if profile.CompanyDetail.NIBNumber != req.CompanyDetail.NIB {
+			criticalChanged = true
+		}
+
 		if criticalChanged {
 			profile.Status.Status = "pending"
 		}
@@ -310,13 +338,14 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 		profile.CompanyDetail.NPWPNumber = req.CompanyDetail.NPWP
 		profile.CompanyDetail.NIBNumber = req.CompanyDetail.NIB
 
-		oldNPWP := fmt.Sprintf("%s/%s", npwpFilePath, profile.CompanyDetail.NPWPDocument)
-		oldNIB := fmt.Sprintf("%s/%s", nibFilePath, profile.CompanyDetail.NIBDocument)
+		criticalChanged = true
 
-		// Save new NPWP & NIB file
+		// Save new NPWP & NIB file in staging
 		fileReq := &dto.SaveNPWPAndNIBFileReq{
-			NPWP: &req.CompanyDetail.NPWPFile,
-			NIB:  &req.CompanyDetail.NIBFile,
+			NPWP:     &req.CompanyDetail.NPWPFile,
+			NIB:      &req.CompanyDetail.NIBFile,
+			NPWPPath: npwpStagePath,
+			NIBPath:  nibStagePath,
 		}
 
 		npwpFile, nibFile, err := saveNPWPAndNIBFile(fileReq)
@@ -326,24 +355,29 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 
 		profile.CompanyDetail.NPWPDocument = npwpFile
 		profile.CompanyDetail.NIBDocument = nibFile
-
-		// Remove old files
-		if err := os.Remove(oldNPWP); err != nil {
-			fmt.Errorf("failed to remove file: %v", err)
-		}
-
-		if err := os.Remove(oldNIB); err != nil {
-			fmt.Errorf("failed to remove file: %v", err)
-		}
 	}
 
 	profile.UpdatedAt = time.Now().UTC()
 
-	if err := s.OrganizerRepo.Update(profile); err != nil {
-		return fiber.StatusBadRequest, err
-	}
-
 	if criticalChanged {
+		// Save profile update to staging
+		// Keep it in staging first if the change is critical
+		// This way the new data will have to wait for validation from admin
+		profileUpdate := &model.OrganizerProfilesUpdates{
+			ProfileID:    profile.ID,
+			Name:         req.Name,
+			PhoneNumber:  fmt.Sprintf("+%s", phonenumber),
+			Country:      country,
+			NPWPNumber:   req.CompanyDetail.NPWP,
+			NPWPDocument: profile.CompanyDetail.NPWPDocument,
+			NIBNumber:    req.CompanyDetail.NIB,
+			NIBDocument:  profile.CompanyDetail.NIBDocument,
+		}
+
+		if err := s.OrganizerUpdateRepo.Create(profileUpdate); err != nil {
+			return fiber.StatusBadRequest, err
+		}
+
 		// Send email to organizer
 		organizerpayload := &model.EmailPayload{
 			To:   profile.User.Email,
@@ -362,6 +396,11 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 			}
 
 			s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
+		}
+	} else {
+		// Only update if there is no critical change
+		if err := s.OrganizerRepo.Update(profile); err != nil {
+			return fiber.StatusBadRequest, err
 		}
 	}
 
@@ -388,12 +427,12 @@ func validateFile(req *dto.ValidateFileReq) error {
 }
 
 func saveNPWPAndNIBFile(req *dto.SaveNPWPAndNIBFileReq) (string, string, error) {
-	npwpPath, npwpFile, err := helper.SaveToLocal(req.NPWP, npwpFilePath)
+	npwpPath, npwpFile, err := helper.SaveToLocal(req.NPWP, req.NPWPPath)
 	if err != nil {
 		return "", "", err
 	}
 
-	nipPath, nibFile, err := helper.SaveToLocal(req.NIB, nibFilePath)
+	nipPath, nibFile, err := helper.SaveToLocal(req.NIB, req.NIBPath)
 	if err != nil {
 		return "", "", err
 	}

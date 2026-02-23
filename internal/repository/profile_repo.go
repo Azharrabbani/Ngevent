@@ -3,6 +3,8 @@ package repository
 import (
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
+
+	"gorm.io/gorm"
 )
 
 type AttendeeProfilesRepo interface {
@@ -15,7 +17,9 @@ type AttendeeProfilesRepo interface {
 }
 
 type OrganizerProfileRepo interface {
+	GetDB() *gorm.DB
 	Create(profile *model.OrganizerProfiles) error
+	FindAll(pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error)
 	FindByID(id string) (*model.OrganizerProfiles, error)
 	FindByUserID(userID string) (*model.OrganizerProfiles, error)
 	FindByCountry(country string, pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error)
@@ -23,5 +27,14 @@ type OrganizerProfileRepo interface {
 	RejectProfile(id string, req *dto.RejectedReq) error
 	Update(profile *model.OrganizerProfiles) error
 	UpdatePhotoProfile(userID, photo string) error
+	Delete(id string) error
+}
+
+type OrganizerProfileUpdateRepo interface {
+	GetDB() *gorm.DB
+	Create(profile *model.OrganizerProfilesUpdates) error
+	FindByID(id string) (*model.OrganizerProfilesUpdates, error)
+	FindByProfileID(pagination model.Pagination, profileID string) (*model.PaginationRow[*model.OrganizerProfilesUpdates], error)
+	Validate(id, status string) error
 	Delete(id string) error
 }

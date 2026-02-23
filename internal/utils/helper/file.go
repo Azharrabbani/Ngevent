@@ -21,7 +21,7 @@ import (
 func ValidateImage(file *multipart.FileHeader) error {
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 
-	if ext == ".png" || ext == ".jpg" || ext == "jpeg" {
+	if ext == ".png" || ext == ".jpg" || ext == ".jpeg" {
 		return nil
 	}
 
@@ -108,6 +108,39 @@ func SaveToLocal(file *multipart.FileHeader, filePath string) (string, string, e
 	}
 
 	return path, newFileName, nil
+}
+
+func CopyFile(srcPath, dstPath string) (string, error) {
+	// Open source file
+	srcFile, err := os.Open(srcPath)
+	if err != nil {
+		return "", err
+	}
+	defer srcFile.Close()
+
+	// Make sure the destination folder exist
+	if err := os.MkdirAll(filepath.Dir(dstPath), os.ModePerm); err != nil {
+		return "", err
+	}
+
+	// Make destination file
+	dstFile, err := os.Create(dstPath)
+	if err != nil {
+		return "", err
+	}
+	defer dstFile.Close()
+
+	// Copy source file
+	if _, err := io.Copy(dstFile, srcFile); err != nil {
+		return "", err
+	}
+
+	// Sync to disk
+	if err := dstFile.Sync(); err != nil {
+		return "", err
+	}
+
+	return dstFile.Name(), nil
 }
 
 func CompressPDF(input, output string) error {

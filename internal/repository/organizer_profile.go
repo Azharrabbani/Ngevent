@@ -17,6 +17,11 @@ func NewOrganizerRepository(db *gorm.DB) OrganizerProfileRepo {
 	return &OrganizerRepository{db: db}
 }
 
+// GetDB implements OrganizerProfileRepo.
+func (r *OrganizerRepository) GetDB() *gorm.DB {
+	return r.db
+}
+
 // Create implements OrganizerProfileRepo.
 func (r *OrganizerRepository) Create(profile *model.OrganizerProfiles) error {
 	return r.db.Create(profile).Error
@@ -25,6 +30,25 @@ func (r *OrganizerRepository) Create(profile *model.OrganizerProfiles) error {
 // Delete implements OrganizerProfileRepo.
 func (r *OrganizerRepository) Delete(id string) error {
 	return r.db.Where("id = ?", id).Delete(&model.OrganizerProfiles{}).Error
+}
+
+// FindAll implements OrganizerProfileRepo.
+func (r *OrganizerRepository) FindAll(pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
+	var profiles []*model.OrganizerProfiles
+
+	if err := r.db.Preload("User").
+		Scopes(Paginate(profiles, &pagination, r.db)).
+		Find(&profiles).Error; err != nil {
+		return nil, err
+	}
+
+	// Transform data to response struct
+	organizers := toOrganizerResponse(profiles)
+
+	return &model.PaginationRow[*dto.OrganizerProfilesResponse]{
+		Pagination: pagination,
+		Rows:       organizers,
+	}, nil
 }
 
 // FindByCountry implements OrganizerProfileRepo.
@@ -117,6 +141,9 @@ func toOrganizerResponse(profiles []*model.OrganizerProfiles) []*dto.OrganizerPr
 	var organizers []*dto.OrganizerProfilesResponse
 
 	for _, profile := range profiles {
+		createdAt := helper.ConvertDatetoUnix(profile.CreatedAt.Format(time.RFC3339))
+		updatedAt := helper.ConvertDatetoUnix(profile.UpdatedAt.Format(time.RFC3339))
+
 		reviewedAt := helper.ConvertDatetoUnix(profile.Status.ReviewedAt.Format(time.RFC3339))
 		organizers = append(organizers, &dto.OrganizerProfilesResponse{
 			ID: profile.ID,
@@ -142,6 +169,8 @@ func toOrganizerResponse(profiles []*model.OrganizerProfiles) []*dto.OrganizerPr
 				NPWPFile:    profile.CompanyDetail.NPWPDocument,
 				NIB:         profile.CompanyDetail.NIBDocument,
 			},
+			CreatedAt: createdAt,
+			UpdatedAt: updatedAt,
 		})
 	}
 

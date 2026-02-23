@@ -41,6 +41,10 @@ type OrganizerSocialMediaReq struct {
 	Instagram *string `json:"instagram,omitempty"`
 }
 
+type FilterReq struct {
+	Country string `json:"country" query:"country" validate:"required"`
+}
+
 type OrganizerCompDetailReq struct {
 	Description *string              `json:"description,omitempty"`
 	NPWP        string               `json:"npwp" validate:"required"`
@@ -59,8 +63,10 @@ type UpdateOrganizerProfileReq struct {
 }
 
 type SaveNPWPAndNIBFileReq struct {
-	NPWP *multipart.FileHeader
-	NIB  *multipart.FileHeader
+	NPWP     *multipart.FileHeader
+	NIB      *multipart.FileHeader
+	NPWPPath string
+	NIBPath  string
 }
 
 type ValidateFileReq struct {
@@ -122,4 +128,6 @@ type OrganizerProfilesResponse struct {
 	Address       *string                 `json:"address,omitempty"`
 	SocialMedia   OrganizerSocialMediaReq `json:"social_media"`
 	CompanyDetail OrganizerCompDetailRes  `json:"company_detail"`
+	CreatedAt     int64                   `json:"created_at"`
+	UpdatedAt     int64                   `json:"updated_at"`
 }

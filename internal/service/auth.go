@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
 	"ngevent/internal/utils/helper"
@@ -118,87 +119,97 @@ func (s *AuthService) VerififyEmail(id, otpInput string) (int, error) {
 	return 0, nil
 }
 
-func (s *AuthService) Login(client *model.Client, email, password string) (*model.Users, int, string, error) {
-	authX := s.userRepo.GetDB().Begin()
+func (s *AuthService) Login(client *model.Client, req dto.LoginInput) (*model.Users, string, string, time.Time, error) {
+	sesX := s.sessionRepo.GetDB().Begin()
 
 	// Rollback if failed
 	defer func() {
 		if r := recover(); r != nil {
-			authX.Rollback()
+			sesX.Rollback()
 		}
 	}()
 
 	// Login by checking user account
-	user, err := s.userRepo.Login(email, password)
+	user, err := s.userRepo.Login(req.Email, req.Password)
 	if err != nil {
-		return nil, fiber.StatusNotFound, "", errors.New("incorrect password or user not found")
+		return nil, "", "", time.Time{}, errors.New("incorrect password or user not found")
 	}
 
 	// is user verified
 	if !user.IsVerified {
-		return nil, fiber.StatusBadRequest, "", errors.New("user not verified")
+		return nil, "", "", time.Time{}, errors.New("user not verified")
 	}
 
-	// Check user session
-	userSession, err := s.sessionRepo.FindByUserID(user.ID)
+	// Generate access token
+	accessToken, err := helper.GenerateAccessToken(user)
 	if err != nil {
-		// Session not found -> create new session
-		accessToken, refreshToken, err := helper.GenerateToken(user)
-		if err != nil {
-			return nil, fiber.StatusBadRequest, "", err
-		}
-
-		newSession := &model.Sessions{
-			UserID:       user.ID,
-			RefreshToken: refreshToken,
-			IPAddress:    client.IP,
-			ExpiredAt:    time.Now().Add(time.Hour * 24 * 7).UTC(),
-			UserAgent:    client.UserAgent,
-		}
-
-		// Save the session
-		if err := s.sessionRepo.Create(newSession); err != nil {
-			authX.Rollback()
-			return nil, fiber.StatusBadRequest, "", err
-		}
-
-		return user, 0, accessToken, nil
+		return nil, "", "", time.Time{}, err
 	}
 
-	// Session exist -> check if session expired
-	if time.Now().After(userSession.ExpiredAt) {
-		if err := s.sessionRepo.Delete(userSession.ID); err != nil {
-			return nil, fiber.StatusBadRequest, "", err
-		}
-
-		return nil, fiber.StatusBadRequest, "", errors.New("session expired, please login again")
+	// Determine refresh token expire time
+	var refreshExpire time.Time
+	if req.RememberMe {
+		refreshExpire = time.Now().UTC().Add(7 * 24 * time.Hour)
+	} else {
+		refreshExpire = time.Now().UTC().Add(24 * time.Hour)
 	}
 
-	// Session valid -> update token
-	accessToken, refreshToken, err := helper.GenerateToken(user)
+	// Generate refresh token
+	refreshToken, jti, err := helper.GenerateRefreshToken(user.ID, refreshExpire)
 	if err != nil {
-		authX.Rollback()
-		return nil, fiber.StatusBadRequest, "", err
+		return nil, "", "", time.Time{}, err
 	}
 
-	// Set New Expired
-	expiredAt := time.Now().Add(time.Hour * 24 * 7).UTC()
-	updateAt := time.Now().UTC()
-	userIP := client.IP
-	userAgent := client.UserAgent
-
-	// Update session
-	if err := s.sessionRepo.Update(user.ID, refreshToken, userIP, userAgent, expiredAt, updateAt); err != nil {
-		authX.Rollback()
-		return nil, fiber.StatusBadRequest, "", err
+	// Save new session
+	session := &model.Sessions{
+		UserID:       user.ID,
+		JTI:          jti,
+		RefreshToken: refreshToken,
+		ExpiredAt:    refreshExpire,
+		IPAddress:    client.IP,
+		UserAgent:    client.UserAgent,
 	}
 
-	// Commit all changes
-	if err := authX.Commit().Error; err != nil {
-		return nil, fiber.StatusBadGateway, "", err
+	if err := sesX.Create(session).Error; err != nil {
+		sesX.Rollback()
+		return nil, "", "", time.Time{}, err
 	}
 
-	return user, 0, accessToken, nil
+	// Commit all change
+	if err := sesX.Commit().Error; err != nil {
+		sesX.Rollback()
+		return nil, "", "", time.Time{}, err
+	}
+
+	return user, accessToken, refreshToken, refreshExpire, nil
+}
+
+func (s *AuthService) RefreshToken(refreshToken string) (string, error) {
+	// Parse refresh token
+	userID, jti, err := helper.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		return "", err
+	}
+
+	// Check session
+	session, err := s.sessionRepo.FindByJTI(jti)
+	if err != nil {
+		return "", errors.New("session not found")
+	}
+
+	// Check expired
+	now := time.Now().UTC()
+	if now.After(session.ExpiredAt.UTC()) {
+		return "", errors.New("refresh token expired")
+	}
+
+	// Generate new access token
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return "", err
+	}
+
+	return helper.GenerateAccessToken(user)
 }
 
 func (s *AuthService) ForgotPassword(email string) (int, error) {
@@ -329,8 +340,14 @@ func (s *AuthService) ResetPassword(id, newPassword, confirmPassword string) (in
 	return 0, nil
 }
 
-func (s *AuthService) Logout(id string) error {
-	return s.sessionRepo.DeleteByUserID(id)
+func (s *AuthService) Logout(refreshToken string) error {
+	// Parse refresh token
+	_, jti, err := helper.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		return err
+	}
+
+	return s.sessionRepo.Revoke(jti)
 }
 
 func (s *AuthService) DeleteUnusedOTP(id string) error {

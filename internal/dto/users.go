@@ -7,8 +7,9 @@ type RegisterInput struct {
 }
 
 type LoginInput struct {
-	Email    string `json:"email" validate:"required"`
-	Password string `json:"password" validate:"required"`
+	Email      string `json:"email" validate:"required"`
+	Password   string `json:"password" validate:"required"`
+	RememberMe bool   `json:"remember_me"`
 }
 
 type ForgetPasswordInput struct {
@@ -26,4 +27,10 @@ type VerifyEmailInput struct {
 
 type ResentOTPInput struct {
 	Email string `json:"email" validate:"required"`
+}
+
+type LoginResponse struct {
+	ID          string `json:"id"`
+	Email       string `json:"email"`
+	Role        string `json:"role"`
 }

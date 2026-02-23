@@ -48,6 +48,8 @@ services:
       - ./storage/profiles:/app/storage/profiles
       - ./storage/npwp:/app/storage/npwp
       - ./storage/nib:/app/storage/nib
+      - ./storage/npwp/stage:/app/storage/npwp/stage
+      - ./storage/nib/stage:/app/storage/nib/stage
   
   worker:
     build: 

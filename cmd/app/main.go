@@ -68,13 +68,15 @@ func main() {
 	otpRepo := repository.NewOtpRepository(server.DB)
 	attendeeProfileRepo := repository.NewAttendeeProfileRepository(server.DB)
 	organizerProfileRepo := repository.NewOrganizerRepository(server.DB)
+	organizerUpdateRepo := repository.NewOrganizerProfileUpdateRepository(server.DB)
 
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
 	userService := service.NewUserService(userRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
 	otpService := service.NewOTPService(userRepo, otpRepo, unusedOTPTaskPublisher, emailTaskPublisher)
 	attendeeProfileService := service.NewAttendeeProfileService(attendeeProfileRepo)
-	organizerProfileService := service.NewOrganizerProfileService(organizerProfileRepo, userRepo, emailTaskPublisher)
+	organizerProfileService := service.NewOrganizerProfileService(organizerProfileRepo, userRepo, organizerUpdateRepo, emailTaskPublisher)
+	organizerUpdateService := service.NewOrganizerUpdateService(userRepo, organizerProfileRepo, organizerUpdateRepo, emailTaskPublisher)
 
 	// Init handler
 	authHandler := handler.NewAuthHandler(authService, validate)
@@ -82,6 +84,7 @@ func main() {
 	otpHandler := handler.NewOTPHandler(otpService, validate)
 	attendeeProfileHandler := handler.NewAttendeeProfileService(attendeeProfileService, validate)
 	organizerProfileHandler := handler.NewOrganizerProfileHandler(organizerProfileService, validate)
+	organizerUpdateHandler := handler.NewOrganizerUpdateHandler(organizerUpdateService, validate)
 
 	// Register routes
 	server.RegisterFiberRoutes()
@@ -90,6 +93,7 @@ func main() {
 	server.RegisterOTPRoutes(otpHandler)
 	server.RegisterAttendeeProfileRoutes(attendeeProfileHandler)
 	server.RegisterOrganizerProfileRoutes(organizerProfileHandler)
+	server.RegisterOrganizerUpdateRoutes(organizerUpdateHandler)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

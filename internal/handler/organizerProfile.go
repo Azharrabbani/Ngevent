@@ -2,6 +2,7 @@ package handler
 
 import (
 	"ngevent/internal/dto"
+	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
 	"time"
@@ -27,6 +28,17 @@ func NewOrganizerProfileHandler(
 
 func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
+	role := c.Locals("role").(string)
+
+	// Only event organizer can create EO profile
+	if role != "event organizer" {
+		return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
+			fiber.StatusUnauthorized,
+			"failed",
+			"error",
+			"unauthorized action",
+		))
+	}
 
 	photo, err := c.FormFile("photo")
 	if err != nil {
@@ -157,6 +169,98 @@ func (h *OrganizerProfileHandler) GetProfileByUserID(c *fiber.Ctx) error {
 	))
 }
 
+func (h *OrganizerProfileHandler) GetAllProfile(c *fiber.Ctx) error {
+	paginate := new(model.Pagination)
+
+	if err := c.QueryParser(paginate); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	page := &model.Pagination{
+		Page:  paginate.Page,
+		Limit: paginate.Limit,
+		Sort:  paginate.Sort,
+	}
+
+	organizers, err := h.OrganizerService.FindAll(*page)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		organizers,
+	))
+}
+
+func (h *OrganizerProfileHandler) FilterProfile(c *fiber.Ctx) error {
+	filter := new(dto.FilterReq)
+	if err := c.QueryParser(filter); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	if err := h.Validate.Struct(filter); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"error",
+			"validation-error",
+			msg,
+		))
+	}
+
+	paginate := new(model.Pagination)
+
+	if err := c.QueryParser(paginate); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	page := &model.Pagination{
+		Limit: paginate.Limit,
+		Page:  paginate.Page,
+		Sort:  paginate.Sort,
+	}
+
+	profiles, err := h.OrganizerService.FindByCountry(filter.Country, *page)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		profiles,
+	))
+}
+
 func (h *OrganizerProfileHandler) UpdatePhotoProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
@@ -191,9 +295,8 @@ func (h *OrganizerProfileHandler) UpdatePhotoProfile(c *fiber.Ctx) error {
 func (h *OrganizerProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
-	var req *dto.UpdateOrganizerProfileReq
-
-	if err := c.BodyParser(&req); err != nil {
+	npwpFile, err := c.FormFile("npwp_file")
+	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"failed",
@@ -202,14 +305,52 @@ func (h *OrganizerProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 		))
 	}
 
-	if err := h.Validate.Struct(req); err != nil {
-		msg := utils.GetValidationError(err)
+	nibFile, err := c.FormFile("nib_file")
+	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"failed",
 			"error",
-			msg,
+			err.Error(),
 		))
+	}
+
+	// Check if npwp or nib null
+	if nibFile == nil || npwpFile == nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			"NPWP and NIB must be uploaded.",
+		))
+	}
+
+	name := c.FormValue("name")
+	phoneNumber := c.FormValue("phonenumber")
+	iso := c.FormValue("iso")
+	address := c.FormValue("address")
+	email := c.FormValue("email")
+	instagram := c.FormValue("instagram")
+	desc := c.FormValue("description")
+	npwpNumber := c.FormValue("npwp_number")
+	nibNumber := c.FormValue("nib_number")
+
+	req := &dto.UpdateOrganizerProfileReq{
+		Name:        name,
+		PhoneNumber: phoneNumber,
+		ISO:         iso,
+		Address:     &address,
+		SocialMedia: dto.OrganizerSocialMediaReq{
+			Email:     &email,
+			Instagram: &instagram,
+		},
+		CompanyDetail: dto.OrganizerCompDetailReq{
+			Description: &desc,
+			NPWP:        npwpNumber,
+			NIB:         nibNumber,
+			NPWPFile:    *npwpFile,
+			NIBFile:     *nibFile,
+		},
 	}
 
 	status, err := h.OrganizerService.UpdateProfile(userID, req)
@@ -233,6 +374,17 @@ func (h *OrganizerProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 func (h *OrganizerProfileHandler) ApprovedProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	profileID := c.Params("id")
+	role := c.Locals("role").(string)
+
+	// Only admin can do the action
+	if role != "admin" {
+		return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
+			fiber.StatusUnauthorized,
+			"failed",
+			"error",
+			"unauthorized action",
+		))
+	}
 
 	approvedReq := &dto.ApprovedReq{
 		ReviewedBy: userID,
@@ -259,6 +411,17 @@ func (h *OrganizerProfileHandler) ApprovedProfile(c *fiber.Ctx) error {
 func (h *OrganizerProfileHandler) RejectProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	profileID := c.Params("id")
+	role := c.Locals("role").(string)
+
+	// Only admin can do the action
+	if role != "admin" {
+		return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
+			fiber.StatusUnauthorized,
+			"failed",
+			"error",
+			"unauthorized action",
+		))
+	}
 
 	var req *dto.RejectedReq
 

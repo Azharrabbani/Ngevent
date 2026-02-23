@@ -32,6 +32,22 @@ type OrganizerProfiles struct {
 	User          Users                `gorm:"foreignKey:UserID"`
 }
 
+type OrganizerProfilesUpdates struct {
+	ID           string    `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	ProfileID    string    `json:"profile_id"`
+	Status       string    `json:"status"`
+	Name         string    `json:"name"`
+	PhoneNumber  string    `json:"phone_number"`
+	Country      string    `json:"country"`
+	NPWPNumber   string    `json:"npwp_number"`
+	NPWPDocument string    `json:"npwp_document"`
+	NIBNumber    string    `json:"nib"`
+	NIBDocument  string    `json:"nib_document"`
+	CreatedAt    time.Time `json:"created_at" gorm:"default:now()"`
+	UpdatedAt    time.Time `json:"updated_at" gorm:"default:now()"`
+	User         Users     `gorm:"foreignKey:UserID"`
+}
+
 type OrganizerStatus struct {
 	Status         string     `json:"status" gorm:"type:organizer_profile_status;default:'pending'"`
 	RejectedReason *string    `json:"rejected_reason"`

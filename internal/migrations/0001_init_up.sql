@@ -21,7 +21,8 @@ CREATE TABLE "public"."users"(
 CREATE TABLE "public"."sessions"(
 	"id" uuid DEFAULT uuid_generate_v4() NOT NULL,
 	"user_id" uuid NOT NULL,
-	"refresh_token" varchar(255) NOT NULL,
+	"jti" varchar(255) NOT NULL,
+	"refresh_token" text NOT NULL,
 	"ip_address" varchar(255) NOT NULL,
 	"user_agent" varchar(255) NOT NULL,
 	"expired_at" TIMESTAMPTZ NOT NULL,
@@ -88,24 +89,16 @@ CREATE TABLE "public"."organizer_profiles_updates"(
 	"id" uuid DEFAULT uuid_generate_v4() NOT NULL,
 	"profile_id" uuid NOT NULL,
 	"status" organizer_profile_status NOT NULL DEFAULT 'pending',
-	"rejected_reason" TEXT,
-	"reviewed_by" uuid,
-	"reviewed_at" TIMESTAMPTZ,
 	"name" VARCHAR(255) NOT NULL,
-	"photo_profile" TEXT,
-	"email" VARCHAR(255),
-	"instagram" VARCHAR(255),
 	"phone_number" VARCHAR(100) NOT NULL,
 	"country" VARCHAR(120) NOT NULL,
-	"address" TEXT,
-	"description" TEXT,
 	"npwp_number" VARCHAR(100) NOT NULL,
 	"npwp_document" TEXT NOT NULL,
 	"nib_number" VARCHAR(100) NOT NULL,
 	"nib_document" TEXT NOT NULL,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	CONSTRAINT "organizer_profiles_pk" PRIMARY KEY("id"),
+	CONSTRAINT "organizer_profiles_updates_pk" PRIMARY KEY("id"),
 	CONSTRAINT "fk_organizer_profiles_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE
 );
 
@@ -119,7 +112,7 @@ ON "public"."organizer_profiles"("nib_number")
 WHERE status = 'approved';
 
 CREATE UNIQUE INDEX unique_pending_update
-ON organizer_profile_updates (organizer_profile_id)
+ON "public"."organizer_profile_updates" ("organizer_profile_id")
 WHERE status = 'pending';
 
 
@@ -128,3 +121,4 @@ CREATE INDEX "idx_users_role" ON "public"."users"("role");
 CREATE INDEX "idx_users_deleted_at" ON "public"."users"("deleted_at");
 CREATE INDEX "idx_sessions_user_id" ON "public"."sessions"("user_id");
 CREATE INDEX "idx_otp_user_id" ON "public"."otp_verifications"("user_id");
+CREATE INDEX "idx_eo_profile_id" ON "public"."organizer_profiles_updates"("profile_id")
