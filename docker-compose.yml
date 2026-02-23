@@ -22,7 +22,7 @@ services:
     image: redis:8.2.3
     container_name: redis-ngevent
     ports:
-      - "${REDIS_PORT}:6379"
+      - "6379:6379"
 
   app:
     build:
@@ -44,6 +44,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./storage/profiles:/app/storage/profiles
+      - ./storage/npwp:/app/storage/npwp
+      - ./storage/nib:/app/storage/nib
+      - ./storage/npwp/stage:/app/storage/npwp/stage
+      - ./storage/nib/stage:/app/storage/nib/stage
   
   worker:
     build: 

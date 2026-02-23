@@ -22,8 +22,8 @@ func main() {
 	otpRepo := repository.NewOtpRepository(worker.DB)
 
 	// Init service
-	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, nil, nil)
-	userService := service.NewUserService(userRepo, otpRepo, nil, nil)
+	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, nil, nil, nil)
+	userService := service.NewUserService(userRepo, otpRepo, nil, nil, nil)
 
 	// Init tasks handler
 	userTaskHandler := tasks.NewUserTaskHandler(userService)
@@ -32,6 +32,14 @@ func main() {
 	// Setup handlers
 	worker.Mux.HandleFunc(model.TypeVerifiedUser, userTaskHandler.HandlerUnverifiedTask)
 	worker.Mux.HandleFunc(model.TypeVerifiedOTP, otpTaskHandler.HandlerUnusedOTP)
+
+	// Email handlers
+	worker.Mux.HandleFunc(model.TypeEMailVerify, tasks.NewEmailTaskHandler().HandlerUserVerification)
+	worker.Mux.HandleFunc(model.TypeEmailForgetPassword, tasks.NewEmailTaskHandler().HandlerUserForgetPassword)
+	worker.Mux.HandleFunc(model.TypeEmailAdminVerification, tasks.NewEmailTaskHandler().HandlerAdminVerifyProfile)
+	worker.Mux.HandleFunc(model.TypeEmailOrganizerProfile, tasks.NewEmailTaskHandler().HandlerOrganizerProfileNotif)
+	worker.Mux.HandleFunc(model.TypeEmailOrganizerProfileVerified, tasks.NewEmailTaskHandler().HandlerOrganizerProfileVerified)
+	worker.Mux.HandleFunc(model.TypeEmailOrganizerProfileRejected, tasks.NewEmailTaskHandler().HandlerOrganizerProfileRejected)
 
 	// Start Worker Server
 	if err := worker.Srv.Run(worker.Mux); err != nil {

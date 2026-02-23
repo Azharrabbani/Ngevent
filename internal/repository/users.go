@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"ngevent/internal/model"
 	"ngevent/internal/utils/helper"
 	"time"
@@ -12,7 +13,7 @@ type UsersRepository struct {
 	db *gorm.DB
 }
 
-func NewUsersRepository(db *gorm.DB) *UsersRepository {
+func NewUsersRepository(db *gorm.DB) UsersRepo {
 	return &UsersRepository{db: db}
 }
 
@@ -31,17 +32,14 @@ func (r *UsersRepository) Create(users *model.Users) (*model.Users, error) {
 func (r *UsersRepository) Login(email, password string) (*model.Users, error) {
 	var user *model.Users
 
-	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := r.db.Where("email = ? AND deleted_at IS NULL", email).First(&user).Error; err != nil {
 		return nil, err
 	}
 
 	// Validate password
 	if err := helper.ValidePassword(user.Password, password); err != nil {
-		return nil, err
+		return nil, errors.New("password not valid")
 	}
-
-	// Update user login time
-	r.db.Model(&user).Where("id = ?", user.ID).Update("updated_at = ?", time.Now())
 
 	return user, nil
 }
@@ -95,7 +93,5 @@ func (r *UsersRepository) Update(users *model.Users) (*model.Users, error) {
 }
 
 func (r *UsersRepository) Delete(id string) error {
-	var user *model.Users
-
-	return r.db.Where("id = ?", id).Delete(&user).Error
+	return r.db.Where("id = ?", id).Update("deleted_at", time.Now().UTC()).Error
 }

@@ -1,6 +1,9 @@
 # Backend
 FROM golang:1.25-alpine AS builder
 
+# Install build dependencies
+RUN apk add --no-cache gcc g++ make libwebp-dev
+
 # Set working directory
 WORKDIR /app
 
@@ -17,12 +20,14 @@ RUN go install github.com/hibiken/asynq/tools/asynq@latest
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o app ./cmd/app
-RUN CGO_ENABLED=0 GOOS=linux go build -o worker ./cmd/worker
+RUN CGO_ENABLED=1 GOOS=linux go build -o app ./cmd/app
+RUN CGO_ENABLED=1 GOOS=linux go build -o worker ./cmd/worker
 
 
 # Final stage backend
 FROM alpine:latest AS prod
+
+RUN apk add --no-cache libwebp tzdata ghostscript
 
 # Workdir App
 WORKDIR /app
@@ -30,6 +35,8 @@ COPY --from=builder /app/app .
 COPY --from=builder /app/worker .
 COPY --from=builder /go/bin/asynq /usr/local/bin/asynq
 COPY .env .env
+
+RUN mkdir -p /app/storage/profiles /app/storage/npwp /app/storage/nib /app/storage/npwp/stage /app/storage/nib/stage
 
 EXPOSE 8080
 CMD ["./app"]

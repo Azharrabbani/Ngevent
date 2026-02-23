@@ -25,6 +25,9 @@ tmp/
 # .env file
 .env
 
+# storage
+/storage
+
 # Project build
 main
 *templ.go

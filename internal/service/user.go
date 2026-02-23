@@ -4,7 +4,6 @@ import (
 	"errors"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
-	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
 	"time"
 )
@@ -15,22 +14,26 @@ type NewTaskUnverifiedUser interface {
 }
 
 type UserService struct {
-	UserRepo          repository.UsersRepo
-	OtpRepo           repository.OtpRepo
-	UserTaskPublisher NewTaskUnverifiedUser
-	OtpTaskPublisher  NewTaskOTP
+	UserRepo           repository.UsersRepo
+	OtpRepo            repository.OtpRepo
+	UserTaskPublisher  NewTaskUnverifiedUser
+	OtpTaskPublisher   NewTaskOTP
+	EmailTaskPublisher NewTaskEmail
 }
 
 func NewUserService(
 	userRepo repository.UsersRepo,
 	otpRepo repository.OtpRepo,
 	userTaskPublisher NewTaskUnverifiedUser,
-	otpTaskPublisher NewTaskOTP) *UserService {
+	otpTaskPublisher NewTaskOTP,
+	emailTaskPublisher NewTaskEmail,
+) *UserService {
 	return &UserService{
-		UserRepo:          userRepo,
-		OtpRepo:           otpRepo,
-		UserTaskPublisher: userTaskPublisher,
-		OtpTaskPublisher:  otpTaskPublisher,
+		UserRepo:           userRepo,
+		OtpRepo:            otpRepo,
+		UserTaskPublisher:  userTaskPublisher,
+		OtpTaskPublisher:   otpTaskPublisher,
+		EmailTaskPublisher: emailTaskPublisher,
 	}
 }
 
@@ -74,14 +77,6 @@ func (s *UserService) CreateUser(email, password, role string) (*model.Users, er
 		return nil, errors.New("email already registred")
 	}
 
-	// Create unverified user task
-	// This task function is to delete unverified user
-	userPayload := &model.UnverifiedUserPayload{UserID: newUser.ID}
-	if err := s.UserTaskPublisher.EnqueueUnverifiedUser(model.TypeVerifiedUser, userPayload); err != nil {
-		userX.Rollback()
-		return nil, err
-	}
-
 	// Generate OTP
 	otpCode, err := helper.GenerateOTP()
 	if err != nil {
@@ -103,6 +98,14 @@ func (s *UserService) CreateUser(email, password, role string) (*model.Users, er
 		return nil, err
 	}
 
+	// Create unverified user task
+	// This task function is to delete unverified user
+	userPayload := &model.UnverifiedUserPayload{UserID: newUser.ID}
+	if err := s.UserTaskPublisher.EnqueueUnverifiedUser(model.TypeVerifiedUser, userPayload); err != nil {
+		userX.Rollback()
+		return nil, err
+	}
+
 	// Create otp task
 	// This task function is to delete unused otp
 	otpPayload := &model.OTPPayload{OTPID: newOTP.ID}
@@ -112,9 +115,6 @@ func (s *UserService) CreateUser(email, password, role string) (*model.Users, er
 		return nil, err
 	}
 
-	// Send to email
-	utils.VerifyEmailMail(newOTP.OTP, newUser.Email, newOTP.ID)
-
 	// Commit all changes
 	if err := userX.Commit().Error; err != nil {
 		return nil, err
@@ -123,6 +123,15 @@ func (s *UserService) CreateUser(email, password, role string) (*model.Users, er
 	if err := otpX.Commit().Error; err != nil {
 		return nil, err
 	}
+
+	// Send to email
+	emailPayload := &model.EmailPayload{
+		To:    newUser.Email,
+		OTP:   newOTP.OTP,
+		OTPID: newOTP.ID,
+	}
+
+	s.EmailTaskPublisher.Enqueue(model.TypeEMailVerify, emailPayload)
 
 	return newUser, nil
 }

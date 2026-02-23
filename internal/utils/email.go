@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"html"
 	"os"
 	"strconv"
 
@@ -9,7 +10,7 @@ import (
 )
 
 // Forgot password email
-func ForgotPasswordMail(email, otpID string) {
+func ForgotPasswordMail(email, otpID string) error {
 
 	urlHost := os.Getenv("APP_HOST")
 	urlPort := os.Getenv("APP_PORT")
@@ -92,16 +93,12 @@ func ForgotPasswordMail(email, otpID string) {
 	username := os.Getenv("SMTP_USERNAME")
 	smtpPassword := os.Getenv("SMTP_PASSWORD")
 
-	go func() {
-		d := gomail.NewDialer(host, port, username, smtpPassword)
-		if err := d.DialAndSend(m); err != nil {
-			panic(err)
-		}
-	}()
+	d := gomail.NewDialer(host, port, username, smtpPassword)
+	return d.DialAndSend(m)
 }
 
 // Verify email
-func VerifyEmailMail(otp, email, otpID string) {
+func VerifyEmailMail(otp, email, otpID string) error {
 	urlHost := os.Getenv("APP_HOST")
 	urlPort := os.Getenv("APP_PORT")
 
@@ -205,10 +202,384 @@ func VerifyEmailMail(otp, email, otpID string) {
 	username := os.Getenv("SMTP_USERNAME")
 	smtpPassword := os.Getenv("SMTP_PASSWORD")
 
-	go func() {
-		d := gomail.NewDialer(host, port, username, smtpPassword)
-		if err := d.DialAndSend(m); err != nil {
-			panic(err)
-		}
-	}()
+	d := gomail.NewDialer(host, port, username, smtpPassword)
+
+	return d.DialAndSend(m)
+
+}
+
+// Email to admin for verify the organizer's profile
+func OrganizerProfileAdminNotificationEmail(
+	adminEmail string,
+	organizerName string,
+	userEmail string,
+	actionType string, // "registered" or "updated"
+) error {
+
+	m := gomail.NewMessage()
+
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", adminEmail)
+	m.SetHeader("Subject", "Organizer Profile Requires Approval")
+
+	m.SetBody("text/html", fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Organizer Profile Approval Needed</title>
+	</head>
+	<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+		<table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
+			<tr>
+				<td align="center">
+					<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+						
+						<tr>
+							<td style="background:#F59E0B; padding:20px; text-align:center;">
+								<h1 style="color:#ffffff; margin:0;">Approval Required ⚠️</h1>
+							</td>
+						</tr>
+
+						<tr>
+							<td style="padding:30px; color:#333333;">
+								<p style="font-size:16px;">
+									Hello Admin,
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									An organizer has <strong>%s</strong> their profile and is waiting for approval.
+								</p>
+
+								<div style="background:#FEF3C7; padding:15px; border-radius:6px; margin:20px 0;">
+									<p style="margin:0; font-size:14px;">
+										<strong>Organizer Name:</strong> %s<br>
+										<strong>User Email:</strong> %s
+									</p>
+								</div>
+
+								<div style="text-align:center; margin:30px 0;">
+									<a href="https://ngevent.id/admin/organizers"
+										style="
+											background:#F59E0B;
+											color:#ffffff;
+											text-decoration:none;
+											padding:12px 24px;
+											border-radius:6px;
+											font-size:16px;
+											display:inline-block;
+										">
+										Review Organizer Profile
+									</a>
+								</div>
+
+								<p style="font-size:14px; color:#777777;">
+									Please review and take the appropriate action.
+								</p>
+
+								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
+
+								<p style="font-size:14px; color:#777777;">
+									Ngevent System Notification
+								</p>
+							</td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+	</html>
+	`, actionType, organizerName, userEmail))
+
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	d := gomail.NewDialer(host, port, username, password)
+
+	return d.DialAndSend(m)
+}
+
+// Organizer profile register
+func OrganizerProfileVerificationEmail(email string, organizerName string) error {
+	m := gomail.NewMessage()
+
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", "Profile is being verified")
+
+	m.SetBody("text/html", fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Profil Organizer Sedang Diverifikasi</title>
+	</head>
+	<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+		<table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
+			<tr>
+				<td align="center">
+					<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+						
+						<tr>
+							<td style="background:#0EA5E9; padding:20px; text-align:center;">
+								<h1 style="color:#ffffff; margin:0;">Ngevent 🎫</h1>
+							</td>
+						</tr>
+
+						<tr>
+							<td style="padding:30px; color:#333333;">
+								<p style="font-size:16px; line-height:1.6;">
+									Hello <strong>%s</strong> 👋,
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									Thank you for completing your <strong>Event Organizer profile</strong> on the <strong>Ngevent</strong> platform.
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									Currently, your profile is being <strong>verified by Ngevent Admin</strong>.
+                                    This process aims to ensure that the organizer's data is valid and reliable.
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									After the verification process is complete, you will receive a follow-up notification email.
+								</p>
+
+								<p style="font-size:14px; color:#555555;">
+									If you feel that you have never created or completed this organizer profile, please ignore this email.
+								</p>
+
+								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
+
+								<p style="font-size:14px; color:#777777;">
+									Best regards,<br>
+									<strong>Ngevent Team</strong>
+								</p>
+							</td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+	</html>
+	`, organizerName))
+
+	// SMTP configuration
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	d := gomail.NewDialer(host, port, username, password)
+
+	return d.DialAndSend(m)
+}
+
+// Organizer profile verified
+func OrganizerProfileVerifiedEmail(email string, organizerName string) error {
+	m := gomail.NewMessage()
+
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", "Your Profile Has Been Verified 🎉")
+
+	m.SetBody("text/html", fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Profile Organizer Verified</title>
+	</head>
+	<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+		<table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
+			<tr>
+				<td align="center">
+					<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+						
+						<tr>
+							<td style="background:#22C55E; padding:20px; text-align:center;">
+								<h1 style="color:#ffffff; margin:0;">Profil Verified ✅</h1>
+							</td>
+						</tr>
+
+						<tr>
+							<td style="padding:30px; color:#333333;">
+								<p style="font-size:16px; line-height:1.6;">
+									Hello <strong>%s</strong> 👋,
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									Good news! 🎉  
+									Your <strong>Event Organizer</strong> profile on <strong>Ngevent</strong> has been successfully
+                                    <strong>verified by the Admin</strong>.
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									Now you can:
+								</p>
+
+								<ul style="font-size:16px; line-height:1.8; padding-left:20px;">
+									<li>Creating and managing events</li>
+									<li>Publish event to public</li>
+									<li>Accepting participants and transactions</li>
+								</ul>
+
+								<p style="font-size:16px; line-height:1.6;">
+									Please log in to your organizer dashboard and start creating your first event 🚀
+								</p>
+
+								<div style="text-align:center; margin:30px 0;">
+									<a href="https://ngevent.id/dashboard"
+										style="
+											background:#22C55E;
+											color:#ffffff;
+											text-decoration:none;
+											padding:12px 24px;
+											border-radius:6px;
+											font-size:16px;
+											display:inline-block;
+										">
+										Log in to the Dashboard
+									</a>
+								</div>
+
+								<p style="font-size:14px; color:#555555;">
+									If you have questions, please contact our support team.
+								</p>
+
+								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
+
+								<p style="font-size:14px; color:#777777;">
+									See you at your event!<br>
+									<strong>The Ngevent Team</strong>
+								</p>
+							</td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+	</html>
+	`, organizerName))
+
+	// SMTP configuration
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	d := gomail.NewDialer(host, port, username, password)
+
+	return d.DialAndSend(m)
+}
+
+// Organizer profile rejected
+func OrganizerProfileRejectedEmail(email, organizerName, rejectedReason string) error {
+	m := gomail.NewMessage()
+
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", "Your Organizer Profile Needs Revision")
+
+	// Escape reason to prevent HTML injection
+	safeReason := html.EscapeString(rejectedReason)
+
+	m.SetBody("text/html", fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Organizer Profile Rejected</title>
+	</head>
+	<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+		<table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
+			<tr>
+				<td align="center">
+					<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+						
+						<tr>
+							<td style="background:#EF4444; padding:20px; text-align:center;">
+								<h1 style="color:#ffffff; margin:0;">Profile Requires Revision</h1>
+							</td>
+						</tr>
+
+						<tr>
+							<td style="padding:30px; color:#333333;">
+								<p style="font-size:16px; line-height:1.6;">
+									Hello <strong>%s</strong>,
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									Thank you for registering as an <strong>Event Organizer</strong> on <strong>Ngevent</strong>.
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									After reviewing your application, we found that your organizer profile
+									<strong>cannot be approved at this time</strong>.
+								</p>
+
+								<div style="background:#FEE2E2; padding:15px; border-radius:6px; margin:20px 0;">
+									<p style="margin:0; font-size:14px; color:#991B1B;">
+										<strong>Reason:</strong><br>
+										%s
+									</p>
+								</div>
+
+								<p style="font-size:16px; line-height:1.6;">
+									Please update your organizer profile and ensure that all submitted
+									information is accurate and complete.
+								</p>
+
+								<div style="text-align:center; margin:30px 0;">
+									<a href="https://ngevent.id/organizer/profile"
+										style="
+											background:#EF4444;
+											color:#ffffff;
+											text-decoration:none;
+											padding:12px 24px;
+											border-radius:6px;
+											font-size:16px;
+											display:inline-block;
+										">
+										Update Organizer Profile
+									</a>
+								</div>
+
+								<p style="font-size:14px; color:#555555;">
+									If you need assistance, please contact our support team.
+								</p>
+
+								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
+
+								<p style="font-size:14px; color:#777777;">
+									Thank you for your understanding,<br>
+									<strong>Ngevent Team</strong>
+								</p>
+							</td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+	</html>
+	`, organizerName, safeReason))
+
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	d := gomail.NewDialer(host, port, username, password)
+
+	return d.DialAndSend(m)
 }

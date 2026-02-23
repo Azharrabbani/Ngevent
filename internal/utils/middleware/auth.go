@@ -19,7 +19,7 @@ type Claims struct {
 func AuthMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// Retrive cookie
-		tokenString := c.Cookies("ngevent-cookie")
+		tokenString := c.Cookies("ngevent_cookie")
 		if tokenString == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
 				fiber.StatusUnauthorized,
@@ -50,6 +50,11 @@ func AuthMiddleware() fiber.Handler {
 
 func VerifyToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (interface{}, error) {
+
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+
 		return []byte(os.Getenv("SECRET_KEY")), nil
 	})
 

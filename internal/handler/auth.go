@@ -5,7 +5,7 @@ import (
 	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
-	"ngevent/internal/utils/helper"
+	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -22,6 +22,20 @@ func NewAuthHandler(authService *service.AuthService, validate *validator.Valida
 		AuthService: authService,
 		validate:    validate,
 	}
+}
+
+func (h *AuthHandler) ListPhoneCodes(c *fiber.Ctx) error {
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+
+	phoneCodes := utils.ListAllPhoneCodes(page, limit)
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		phoneCodes,
+	))
 }
 
 func (h *AuthHandler) VerififyEmail(c *fiber.Ctx) error {
@@ -100,37 +114,86 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	// Login
-	user, status, accessToken, err := h.AuthService.Login(client, req.Email, req.Password)
+	user, accessToken, refreshToken, refreshExp, err := h.AuthService.Login(client, req)
 	if err != nil {
-		return c.Status(status).JSON(dto.Error(
-			status,
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
 			"failed",
 			"login-failed",
 			err.Error(),
 		))
 	}
 
-	userLogin := &model.LoginResponse{
-		ID:          user.ID,
-		Email:       user.Email,
-		Role:        user.Role,
-		AccessToken: accessToken,
-		LoginAt:     helper.ConvertDatetoUnix(user.UpdatedAt.Format(time.RFC3339)),
+	loginUser := &dto.LoginResponse{
+		ID:    user.ID,
+		Email: user.Email,
+		Role:  user.Role,
 	}
 
-	// Set cookie
+	// Set Access Token cookie (short lived)
 	c.Cookie(&fiber.Cookie{
-		Name:     "ngevent-cookie",
+		Name:     "ngevent_cookie",
 		Value:    accessToken,
 		HTTPOnly: true,
+		Secure:   true,
 		MaxAge:   60 * 60 * 3,
+		SameSite: "None",
+	})
+
+	// Set Refresh Token Cookie (long lived)
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		HTTPOnly: true,
+		Secure:   true,
+		Expires:  refreshExp,
+		SameSite: "None",
 	})
 
 	return c.Status(fiber.StatusOK).JSON(dto.Success(
 		fiber.StatusOK,
 		"success",
 		"login-success",
-		userLogin,
+		loginUser,
+	))
+}
+
+func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
+	refreshToken := c.Cookies("refresh_token")
+	if refreshToken == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
+			fiber.StatusUnauthorized,
+			"failed",
+			"error",
+			"missing refresh token",
+		))
+	}
+
+	accessToken, err := h.AuthService.RefreshToken(refreshToken)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
+			fiber.StatusUnauthorized,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	// Set new access token cookie
+	c.Cookie(&fiber.Cookie{
+		Name:     "ngevent_cookie",
+		Value:    accessToken,
+		HTTPOnly: true,
+		Secure:   true,
+		MaxAge:   60 * 60 * 3,
+		SameSite: "None",
+	})
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		"token refreshed",
 	))
 }
 
@@ -218,25 +281,49 @@ func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
-
-	// Logout
-	if err := h.AuthService.Logout(userID); err != nil {
+	refreshToken := c.Cookies("refresh_token")
+	if refreshToken == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
+			"failed",
 			"error",
-			"invalid-request",
+			"missing refresh token",
+		))
+	}
+
+	err := h.AuthService.Logout(refreshToken)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
 			err.Error(),
 		))
 	}
 
-	// Clear cookie
-	c.ClearCookie()
+	c.Cookie(&fiber.Cookie{
+		Name:     "ngevent_cookie",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "None",
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "None",
+	})
 
 	return c.Status(fiber.StatusOK).JSON(dto.Success(
-		fiber.StatusAccepted,
+		fiber.StatusOK,
 		"success",
 		"success",
-		"Logout success",
+		nil,
 	))
 }

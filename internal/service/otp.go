@@ -4,7 +4,6 @@ import (
 	"errors"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
-	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
 	"time"
 
@@ -12,19 +11,23 @@ import (
 )
 
 type OTPService struct {
-	UserRepo         repository.UsersRepo
-	OtpRepo          repository.OtpRepo
-	OtpTaskPublisher NewTaskOTP
+	UserRepo           repository.UsersRepo
+	OtpRepo            repository.OtpRepo
+	OtpTaskPublisher   NewTaskOTP
+	EmailTaskPublisher NewTaskEmail
 }
 
 func NewOTPService(
 	userRepo repository.UsersRepo,
 	otpRepo repository.OtpRepo,
-	otpTaskPublisher NewTaskOTP) *OTPService {
+	otpTaskPublisher NewTaskOTP,
+	emailTaskPublisher NewTaskEmail,
+) *OTPService {
 	return &OTPService{
-		UserRepo:         userRepo,
-		OtpRepo:          otpRepo,
-		OtpTaskPublisher: otpTaskPublisher,
+		UserRepo:           userRepo,
+		OtpRepo:            otpRepo,
+		OtpTaskPublisher:   otpTaskPublisher,
+		EmailTaskPublisher: emailTaskPublisher,
 	}
 }
 
@@ -70,13 +73,18 @@ func (s *OTPService) ResendOTPCode(email string) (int, error) {
 		return fiber.StatusBadGateway, err
 	}
 
-	// Send new email
-	utils.VerifyEmailMail(newOTP.OTP, user.Email, newOTP.ID)
-
 	// Commit changes
 	if err := otpX.Commit().Error; err != nil {
 		return fiber.StatusBadGateway, err
 	}
+
+	emailPayload := &model.EmailPayload{
+		To:    email,
+		OTP:   newOTP.OTP,
+		OTPID: newOTP.ID,
+	}
+	// Send new email
+	s.EmailTaskPublisher.Enqueue(model.TypeEMailVerify, emailPayload)
 
 	return 0, nil
 }

@@ -5,6 +5,14 @@ package model
 const (
 	TypeVerifiedUser = "user:verified"
 	TypeVerifiedOTP  = "otp:verified"
+
+	// Email payload
+	TypeEmailForgetPassword           = "email:user:forgetPassword"
+	TypeEMailVerify                   = "email:user:verify"
+	TypeEmailAdminVerification        = "email:admin:verify"
+	TypeEmailOrganizerProfile         = "email:organizer:profile"
+	TypeEmailOrganizerProfileVerified = "email:organizer:profile:verified"
+	TypeEmailOrganizerProfileRejected = "email:organizer:profile:rejected"
 )
 
 // Task payload for any unverified user related tasks.
@@ -15,4 +23,20 @@ type UnverifiedUserPayload struct {
 // Task payload for expired otp
 type OTPPayload struct {
 	OTPID string
+}
+
+// Task payload for email
+type EmailPayload struct {
+	To        string
+	Name      string
+	UserEmail string
+	Action    string
+	OTP       string
+	OTPID     string
+}
+
+type RejectedEmailPayload struct {
+	To     string
+	Name   string
+	Reason string
 }
