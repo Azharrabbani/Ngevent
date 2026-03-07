@@ -1,14 +1,19 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
 	"ngevent/internal/utils/helper"
 	"os"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type OrganizerUpdateService struct {
@@ -16,6 +21,7 @@ type OrganizerUpdateService struct {
 	OrganizerProfileRepo repository.OrganizerProfileRepo
 	OrganizerUpdateRepo  repository.OrganizerProfileUpdateRepo
 	EmailTaskPublisher   NewTaskEmail
+	rdb                  *redis.Client
 }
 
 func NewOrganizerUpdateService(
@@ -23,12 +29,14 @@ func NewOrganizerUpdateService(
 	organizerProfileRepo repository.OrganizerProfileRepo,
 	organizerUpdateRepo repository.OrganizerProfileUpdateRepo,
 	emailTaskPublisher NewTaskEmail,
+	rdb *redis.Client,
 ) *OrganizerUpdateService {
 	return &OrganizerUpdateService{
 		UserRepo:             userRepo,
 		OrganizerProfileRepo: organizerProfileRepo,
 		OrganizerUpdateRepo:  organizerUpdateRepo,
 		EmailTaskPublisher:   emailTaskPublisher,
+		rdb:                  rdb,
 	}
 }
 
@@ -36,6 +44,25 @@ var (
 	npwpStagePath = "./storage/npwp/stage"
 	nibStagePath  = "./storage/nib/stage"
 )
+
+func (s *OrganizerUpdateService) InvalidateCache() {
+	ctx := context.Background()
+
+	patterns := []string{
+		"organizer:update:all:*",
+	}
+
+	for _, pattern := range patterns {
+		iter := s.rdb.Scan(ctx, 0, pattern, 0).Iterator()
+
+		for iter.Next(ctx) {
+			s.rdb.Del(ctx, iter.Val())
+		}
+	}
+
+	// Use SCAN for pattern keys to avoid blocking
+	log.Println("[CACHE] organizers update cache invalidated")
+}
 
 func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 	// Start transaction
@@ -159,6 +186,9 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 		return err
 	}
 
+	// Invalidate cache after update
+	s.InvalidateCache()
+
 	return nil
 }
 
@@ -167,5 +197,29 @@ func (s *OrganizerUpdateService) FindByID(id string) (*model.OrganizerProfilesUp
 }
 
 func (s *OrganizerUpdateService) FindByProfileID(id string, pagination model.Pagination) (*model.PaginationRow[*model.OrganizerProfilesUpdates], error) {
-	return s.OrganizerUpdateRepo.FindByProfileID(pagination, id)
+	var organizerUpdate *model.PaginationRow[*model.OrganizerProfilesUpdates]
+
+	// Generate cache key
+	cacheKey := fmt.Sprintf("organizer:update:%d:%d:%s", pagination.Page, pagination.Limit, pagination.Sort)
+
+	// Try get from cache
+	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
+	if err == nil {
+		json.Unmarshal([]byte(val), &organizerUpdate)
+	}
+
+	if organizerUpdate == nil {
+		// If cache miss, get from db
+		organizerUpdate, err = s.OrganizerUpdateRepo.FindByProfileID(pagination, id)
+		if err != nil {
+			return nil, err
+		}
+
+		// Set cache with 15 minute TTL
+		if data, err := json.Marshal(organizerUpdate); err == nil {
+			s.rdb.Set(context.Background(), cacheKey, data, 15*time.Minute)
+		}
+	}
+
+	return organizerUpdate, nil
 }

@@ -45,7 +45,14 @@ func (s *FiberServer) RegisterAuthRoutes(h *handler.AuthHandler) {
 }
 
 func (s *FiberServer) RegisterUserRoutes(h *handler.UserHandler) {
-	v1.Post("/register", h.Register)
+	user := v1.Group("/user")
+	user.Post("/register", h.Register)
+
+	user.Use(middleware.AuthMiddleware())
+	{
+		user.Get("/", middleware.AuthorizeRoles("admin"), h.ListUsers)
+		user.Get("/id", h.FindUserByID)
+	}
 }
 
 func (s *FiberServer) RegisterOTPRoutes(h *handler.OTPHandler) {
@@ -57,11 +64,11 @@ func (s *FiberServer) RegisterAttendeeProfileRoutes(h *handler.AttendeeProfileHa
 	profile.Static("/photo", "./storage/profiles")
 	profile.Use(middleware.AuthMiddleware())
 	{
-		profile.Post("/", h.CreateProfile)
+		profile.Post("/", middleware.AuthorizeRoles("user"), h.CreateProfile)
 		profile.Get("/:id", h.GetProfileByID)
 		profile.Get("/", h.GetProfileByUserID)
-		profile.Put("/photo", h.UpdateProfilePhoto)
-		profile.Put("/", h.UpdateProfile)
+		profile.Put("/photo", middleware.AuthorizeRoles("user"), h.UpdateProfilePhoto)
+		profile.Put("/", middleware.AuthorizeRoles("user"), h.UpdateProfile)
 	}
 }
 
@@ -70,15 +77,15 @@ func (s *FiberServer) RegisterOrganizerProfileRoutes(h *handler.OrganizerProfile
 	profile.Static("/photo", "./storage/profiles")
 	profile.Use(middleware.AuthMiddleware())
 	{
-		profile.Post("/", h.CreateProfile)
+		profile.Post("/", middleware.AuthorizeRoles("event organizer"), h.CreateProfile)
 		profile.Get("/:id", h.GetProfileByID)
 		profile.Get("/profiles", h.GetAllProfile)
 		profile.Get("/profile", h.GetProfileByUserID)
 		profile.Get("/filter", h.FilterProfile)
-		profile.Put("/photo", h.UpdatePhotoProfile)
-		profile.Put("/", h.UpdateProfile)
-		profile.Put("/approve/:id", h.ApprovedProfile)
-		profile.Put("/reject/:id", h.RejectProfile)
+		profile.Put("/photo", middleware.AuthorizeRoles("event organizer", "admin"), h.UpdatePhotoProfile)
+		profile.Put("/", middleware.AuthorizeRoles("event organizer", "admin"), h.UpdateProfile)
+		profile.Put("/approve/:id", middleware.AuthorizeRoles("admin"), h.ApprovedProfile)
+		profile.Put("/reject/:id", middleware.AuthorizeRoles("admin"), h.RejectProfile)
 	}
 }
 
@@ -86,8 +93,20 @@ func (s *FiberServer) RegisterOrganizerUpdateRoutes(h *handler.OrganizerUpdateHa
 	update := v1.Group("/staging-organizer")
 	update.Use(middleware.AuthMiddleware())
 	{
-		update.Put("/:id", h.ValidateUpdate)
+		update.Put("/:id", middleware.AuthorizeRoles("admin"), h.ValidateUpdate)
 		update.Get("/:id", h.FindUpdateByID)
 		update.Get("/", h.FindUpdateByProfileID)
+	}
+}
+
+func (s *FiberServer) RegisterCategoriesRoutes(h *handler.CategoriesHandler) {
+	category := v1.Group("/category")
+	category.Use(middleware.AuthMiddleware())
+	{
+		category.Post("/", middleware.AuthorizeRoles("admin"), h.CreateCategory)
+		category.Get("/", h.ListCategories)
+		category.Get("/filter", h.ListByCatName)
+		category.Put("/:id", middleware.AuthorizeRoles("admin"), h.UpdateCategory)
+		category.Delete("/:id", middleware.AuthorizeRoles("admin"), h.DeleteCategory)
 	}
 }

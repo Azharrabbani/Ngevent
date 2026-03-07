@@ -102,6 +102,15 @@ CREATE TABLE "public"."organizer_profiles_updates"(
 	CONSTRAINT "fk_organizer_profiles_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE
 );
 
+CREATE TABLE "public"."categories"(
+	"id" SERIAL PRIMARY KEY,
+	"name" VARCHAR(255) NOT NULL,
+	"slug" VARCHAR(255) NOT NULL,
+	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
 -- Create Unique Index
 CREATE UNIQUE INDEX "unique_approved_npwp"
 ON "public"."organizer_profiles"("npwp_number")
@@ -121,4 +130,5 @@ CREATE INDEX "idx_users_role" ON "public"."users"("role");
 CREATE INDEX "idx_users_deleted_at" ON "public"."users"("deleted_at");
 CREATE INDEX "idx_sessions_user_id" ON "public"."sessions"("user_id");
 CREATE INDEX "idx_otp_user_id" ON "public"."otp_verifications"("user_id");
-CREATE INDEX "idx_eo_profile_id" ON "public"."organizer_profiles_updates"("profile_id")
+CREATE INDEX "idx_eo_profile_id" ON "public"."organizer_profiles_updates"("profile_id");
+CREATE INDEX "idx_categories_slug" ON "public"."categories"("slug");

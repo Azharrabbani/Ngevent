@@ -69,3 +69,30 @@ func VerifyToken(tokenString string) (*Claims, error) {
 
 	return claims, nil
 }
+
+func AuthorizeRoles(allowedRoles ...string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		role, ok := c.Locals("role").(string)
+		if !ok || role == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
+				fiber.StatusUnauthorized,
+				"failed",
+				"error",
+				"role not found",
+			))
+		}
+
+		for _, allowed := range allowedRoles {
+			if role == allowed {
+				return c.Next()
+			}
+		}
+
+		return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
+			fiber.StatusUnauthorized,
+			"failed",
+			"error",
+			"unauthorized action",
+		))
+	}
+}

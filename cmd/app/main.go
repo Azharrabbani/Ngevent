@@ -69,14 +69,16 @@ func main() {
 	attendeeProfileRepo := repository.NewAttendeeProfileRepository(server.DB)
 	organizerProfileRepo := repository.NewOrganizerRepository(server.DB)
 	organizerUpdateRepo := repository.NewOrganizerProfileUpdateRepository(server.DB)
+	categoryRepo := repository.NewCategoriesRepository(server.DB)
 
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
-	userService := service.NewUserService(userRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
+	userService := service.NewUserService(userRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher, server.RDB)
 	otpService := service.NewOTPService(userRepo, otpRepo, unusedOTPTaskPublisher, emailTaskPublisher)
 	attendeeProfileService := service.NewAttendeeProfileService(attendeeProfileRepo)
-	organizerProfileService := service.NewOrganizerProfileService(organizerProfileRepo, userRepo, organizerUpdateRepo, emailTaskPublisher)
-	organizerUpdateService := service.NewOrganizerUpdateService(userRepo, organizerProfileRepo, organizerUpdateRepo, emailTaskPublisher)
+	organizerProfileService := service.NewOrganizerProfileService(organizerProfileRepo, userRepo, organizerUpdateRepo, emailTaskPublisher, server.RDB)
+	organizerUpdateService := service.NewOrganizerUpdateService(userRepo, organizerProfileRepo, organizerUpdateRepo, emailTaskPublisher, server.RDB)
+	categoryService := service.NewCategoryService(categoryRepo, server.RDB)
 
 	// Init handler
 	authHandler := handler.NewAuthHandler(authService, validate)
@@ -85,6 +87,7 @@ func main() {
 	attendeeProfileHandler := handler.NewAttendeeProfileService(attendeeProfileService, validate)
 	organizerProfileHandler := handler.NewOrganizerProfileHandler(organizerProfileService, validate)
 	organizerUpdateHandler := handler.NewOrganizerUpdateHandler(organizerUpdateService, validate)
+	categoryHandler := handler.NewCategoriesHandler(categoryService, validate)
 
 	// Register routes
 	server.RegisterFiberRoutes()
@@ -94,6 +97,7 @@ func main() {
 	server.RegisterAttendeeProfileRoutes(attendeeProfileHandler)
 	server.RegisterOrganizerProfileRoutes(organizerProfileHandler)
 	server.RegisterOrganizerUpdateRoutes(organizerUpdateHandler)
+	server.RegisterCategoriesRoutes(categoryHandler)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

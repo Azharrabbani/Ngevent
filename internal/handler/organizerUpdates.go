@@ -26,17 +26,6 @@ func NewOrganizerUpdateHandler(
 }
 
 func (h *OrganizerUpdateHandler) ValidateUpdate(c *fiber.Ctx) error {
-	role := c.Locals("role").(string)
-
-	if role != "admin" {
-		return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
-			fiber.StatusUnauthorized,
-			"failed",
-			"error",
-			"unauthorized action",
-		))
-	}
-
 	id := c.Params("id")
 
 	var req *dto.ValidateUpdateReq

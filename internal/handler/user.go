@@ -6,7 +6,6 @@ import (
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -58,7 +57,51 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 	}
 
 	// Store new user
-	users, err := h.UserService.CreateUser(input.Email, string(hashPassword), input.Role)
+	if err := h.UserService.CreateUser(input.Email, string(hashPassword), input.Role); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(dto.Success(
+		fiber.StatusAccepted,
+		"success",
+		"register-success",
+		"new user created",
+	))
+}
+
+func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
+	filterUser := new(dto.ListUsersReq)
+	if err := c.QueryParser(filterUser); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	paginate := new(model.Pagination)
+	if err := c.QueryParser(paginate); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	page := &model.Pagination{
+		Page:  paginate.Page,
+		Limit: paginate.Limit,
+		Sort:  paginate.Sort,
+	}
+
+	users, err := h.UserService.FindAllUsers(filterUser, *page)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -68,20 +111,31 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 		))
 	}
 
-	newUser := &model.RegisterResponse{
-		ID:         users.ID,
-		Email:      users.Email,
-		Password:   users.Password,
-		Role:       users.Role,
-		IsVerified: users.IsVerified,
-		CreatedAt:  helper.ConvertDatetoUnix(users.CreatedAt.Format(time.RFC3339)),
-		UpdatedAt:  helper.ConvertDatetoUnix(users.UpdatedAt.Format(time.RFC3339)),
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		users,
+	))
+}
+
+func (h *UserHandler) FindUserByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	user, err := h.UserService.FindUserByID(id)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(dto.Success(
-		fiber.StatusAccepted,
+	return c.Status(fiber.StatusFound).JSON(dto.Success(
+		fiber.StatusFound,
 		"success",
-		"register-success",
-		newUser,
+		"user-found",
+		user,
 	))
 }

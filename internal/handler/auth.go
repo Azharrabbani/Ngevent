@@ -124,12 +124,6 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		))
 	}
 
-	loginUser := &dto.LoginResponse{
-		ID:    user.ID,
-		Email: user.Email,
-		Role:  user.Role,
-	}
-
 	// Set Access Token cookie (short lived)
 	c.Cookie(&fiber.Cookie{
 		Name:     "ngevent_cookie",
@@ -149,6 +143,14 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		Expires:  refreshExp,
 		SameSite: "None",
 	})
+
+	loginUser := &dto.LoginResponse{
+		ID:              user.ID,
+		Email:           user.Email,
+		Role:            user.Role,
+		NgeventToken:    accessToken,
+		NgeventRefToken: refreshToken,
+	}
 
 	return c.Status(fiber.StatusOK).JSON(dto.Success(
 		fiber.StatusOK,
@@ -189,11 +191,15 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 		SameSite: "None",
 	})
 
+	token := &dto.RefreshTokenResp{
+		NgeventToken: accessToken,
+	}
+
 	return c.Status(fiber.StatusOK).JSON(dto.Success(
 		fiber.StatusOK,
 		"success",
-		"success",
-		"token refreshed",
+		"token-refreshed",
+		token,
 	))
 }
 

@@ -29,8 +29,30 @@ type ResentOTPInput struct {
 	Email string `json:"email" validate:"required"`
 }
 
+type ListUsersReq struct {
+	Role       *string `json:"role" query:"role"`
+	IsVerified *bool   `json:"is_verified" query:"is_verified"`
+	Email      *string `json:"email" query:"email"`
+}
+
 type LoginResponse struct {
-	ID          string `json:"id"`
-	Email       string `json:"email"`
-	Role        string `json:"role"`
+	ID              string `json:"id"`
+	Email           string `json:"email"`
+	Role            string `json:"role"`
+	NgeventToken    string `json:"ngevent-token"`
+	NgeventRefToken string `json:"ngevent-ref-token"`
+}
+
+type UsersResponse struct {
+	ID         string `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	Email      string `json:"email"`
+	Role       string `json:"role"`
+	IsVerified bool   `json:"is_verified"`
+	CreatedAt  int64  `json:"created_at"`
+	UpdatedAt  int64  `json:"updated_at"`
+	DeletedAt  int64  `json:"deleted_at,omitempty"`
+}
+
+type RefreshTokenResp struct {
+	NgeventToken string `json:"ngevent-token"`
 }
