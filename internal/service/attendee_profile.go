@@ -112,13 +112,13 @@ func (s *AttendeeProfileService) UpdatePhotoProfile(file *multipart.FileHeader, 
 		return fiber.StatusBadRequest, err
 	}
 
+	if err := s.AttendeeRepo.UpdatePhotoProfile(userID, fileName); err != nil {
+		return fiber.StatusBadRequest, err
+	}
+
 	// Remove old photo
 	if err := os.Remove(oldPhoto); err != nil {
 		log.Printf("failed to remove file from local %v\n", err)
-	}
-
-	if err := s.AttendeeRepo.UpdatePhotoProfile(userID, fileName); err != nil {
-		return fiber.StatusBadRequest, err
 	}
 
 	return 0, nil

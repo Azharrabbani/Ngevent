@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -16,6 +18,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/redis/go-redis/v9"
 )
 
 type OrganizerProfileService struct {
@@ -23,6 +26,7 @@ type OrganizerProfileService struct {
 	UserRepo            repository.UsersRepo
 	OrganizerUpdateRepo repository.OrganizerProfileUpdateRepo
 	EmailTaskPublisher  NewTaskEmail
+	rdb                 *redis.Client
 }
 
 func NewOrganizerProfileService(
@@ -30,12 +34,14 @@ func NewOrganizerProfileService(
 	userRepo repository.UsersRepo,
 	organizerUpdateRepo repository.OrganizerProfileUpdateRepo,
 	emailTaskPublisher NewTaskEmail,
+	rdb *redis.Client,
 ) *OrganizerProfileService {
 	return &OrganizerProfileService{
 		OrganizerRepo:       organizerRepo,
 		UserRepo:            userRepo,
 		OrganizerUpdateRepo: organizerUpdateRepo,
 		EmailTaskPublisher:  emailTaskPublisher,
+		rdb:                 rdb,
 	}
 }
 
@@ -43,6 +49,25 @@ var (
 	nibFilePath  = "./storage/nib"
 	npwpFilePath = "./storage/npwp"
 )
+
+func (s *OrganizerProfileService) InvalidateCache() {
+	ctx := context.Background()
+
+	patterns := []string{
+		"organizer:all:*",
+	}
+
+	for _, pattern := range patterns {
+		iter := s.rdb.Scan(ctx, 0, pattern, 0).Iterator()
+
+		for iter.Next(ctx) {
+			s.rdb.Del(ctx, iter.Val())
+		}
+	}
+
+	// Use SCAN for pattern keys to avoid blocking
+	log.Println("[CACHE] organizers cache invalidated")
+}
 
 func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProfileReq) error {
 	validateReq := &dto.ValidateFileReq{
@@ -146,6 +171,9 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 		}
 	}
 
+	// Invalidate cache after update
+	s.InvalidateCache()
+
 	return nil
 }
 
@@ -172,19 +200,62 @@ func (s *OrganizerProfileService) FindByUserID(userID string) (*dto.OrganizerPro
 }
 
 func (s *OrganizerProfileService) FindAll(pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
-	return s.OrganizerRepo.FindAll(pagination)
+	var organizers *model.PaginationRow[*dto.OrganizerProfilesResponse]
+
+	// Genereate cache key
+	cacheKey := fmt.Sprintf("organizer:all:%d:%d:%s", pagination.Limit, pagination.Page, pagination.Sort)
+
+	// Tru get from cache
+	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
+	if err == nil {
+		json.Unmarshal([]byte(val), &organizers)
+	}
+
+	if organizers == nil {
+		// if cache miss, get from db
+		organizers, err = s.OrganizerRepo.FindAll(pagination)
+		if err != nil {
+			return nil, err
+		}
+
+		// Set cache with 15 minute TTL
+		if data, err := json.Marshal(organizers); err == nil {
+			s.rdb.Set(context.Background(), cacheKey, data, 15*time.Minute)
+		}
+	}
+
+	return organizers, nil
 }
 
 func (s *OrganizerProfileService) FindByCountry(
 	country string,
 	pagination model.Pagination,
 ) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
-	profiles, err := s.OrganizerRepo.FindByCountry(country, pagination)
-	if err != nil {
-		return nil, err
+	var organizers *model.PaginationRow[*dto.OrganizerProfilesResponse]
+
+	// Genereate cache key
+	cacheKey := fmt.Sprintf("organizer:all:%s:%d:%d:%s", country, pagination.Limit, pagination.Page, pagination.Sort)
+
+	// Tru get from cache
+	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
+	if err == nil {
+		json.Unmarshal([]byte(val), &organizers)
 	}
 
-	return profiles, nil
+	if organizers == nil {
+		// if cache miss, get from db
+		organizers, err = s.OrganizerRepo.FindByCountry(country, pagination)
+		if err != nil {
+			return nil, err
+		}
+
+		// Set cache with 15 minute TTL
+		if data, err := json.Marshal(organizers); err == nil {
+			s.rdb.Set(context.Background(), cacheKey, data, 15*time.Minute)
+		}
+	}
+
+	return organizers, nil
 }
 
 func (s *OrganizerProfileService) VerifiedProfile(id string, req *dto.ApprovedReq) error {
@@ -208,6 +279,9 @@ func (s *OrganizerProfileService) VerifiedProfile(id string, req *dto.ApprovedRe
 		Name: profile.Name,
 	}
 	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileVerified, payload)
+
+	// Invalidate cache after update
+	s.InvalidateCache()
 
 	return nil
 }
@@ -234,6 +308,9 @@ func (s *OrganizerProfileService) RejectProfile(id string, req *dto.RejectedReq)
 		Reason: req.Reason,
 	}
 	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileRejected, payload)
+
+	// Invalidate cache after update
+	s.InvalidateCache()
 
 	return nil
 }
@@ -271,6 +348,9 @@ func (s *OrganizerProfileService) UpdatePhotoProfile(file *multipart.FileHeader,
 	if err := s.OrganizerRepo.UpdatePhotoProfile(userID, fileName); err != nil {
 		return fiber.StatusBadRequest, err
 	}
+
+	// Invalidate cache after update
+	s.InvalidateCache()
 
 	return 0, nil
 }
@@ -403,6 +483,9 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 			return fiber.StatusBadRequest, err
 		}
 	}
+
+	// Invalidate cache after update
+	s.InvalidateCache()
 
 	return fiber.StatusOK, nil
 }

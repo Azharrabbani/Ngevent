@@ -374,17 +374,6 @@ func (h *OrganizerProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 func (h *OrganizerProfileHandler) ApprovedProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	profileID := c.Params("id")
-	role := c.Locals("role").(string)
-
-	// Only admin can do the action
-	if role != "admin" {
-		return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
-			fiber.StatusUnauthorized,
-			"failed",
-			"error",
-			"unauthorized action",
-		))
-	}
 
 	approvedReq := &dto.ApprovedReq{
 		ReviewedBy: userID,
@@ -411,17 +400,6 @@ func (h *OrganizerProfileHandler) ApprovedProfile(c *fiber.Ctx) error {
 func (h *OrganizerProfileHandler) RejectProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	profileID := c.Params("id")
-	role := c.Locals("role").(string)
-
-	// Only admin can do the action
-	if role != "admin" {
-		return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
-			fiber.StatusUnauthorized,
-			"failed",
-			"error",
-			"unauthorized action",
-		))
-	}
 
 	var req *dto.RejectedReq
 

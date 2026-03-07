@@ -23,7 +23,7 @@ func main() {
 
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, nil, nil, nil)
-	userService := service.NewUserService(userRepo, otpRepo, nil, nil, nil)
+	userService := service.NewUserService(userRepo, otpRepo, nil, nil, nil, nil)
 
 	// Init tasks handler
 	userTaskHandler := tasks.NewUserTaskHandler(userService)
