@@ -36,7 +36,7 @@ COPY --from=builder /app/worker .
 COPY --from=builder /go/bin/asynq /usr/local/bin/asynq
 COPY .env .env
 
-RUN mkdir -p /app/storage/profiles /app/storage/npwp /app/storage/nib /app/storage/npwp/stage /app/storage/nib/stage
+RUN mkdir -p /app/storage/profiles /app/storage/npwp /app/storage/nib /app/storage/npwp/stage /app/storage/nib/stage /app/storage/event/banner
 
 EXPOSE 8080
 CMD ["./app"]

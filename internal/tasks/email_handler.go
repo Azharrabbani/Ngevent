@@ -74,3 +74,34 @@ func (h *EmailTaskHandler) HandlerOrganizerProfileRejected(ctx context.Context, 
 
 	return utils.OrganizerProfileRejectedEmail(p.To, p.Name, p.Reason)
 }
+
+// ============ Email event handler ===============
+// Admin new event notification
+func (h *EmailTaskHandler) HandlerEventAdminNotification(ctx context.Context, t *asynq.Task) error {
+	var p *model.EventEmailPayload
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return err
+	}
+
+	return utils.AdminEventNotification(p.To, p.EOName, p.EOEmail, p.EventName)
+}
+
+// Organizer new event notification
+func (h *EmailTaskHandler) HandlerEventOrganizerNotification(ctx context.Context, t *asynq.Task) error {
+	var p *model.EventEmailPayload
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return err
+	}
+
+	return utils.OrganizerEventNotification(p.To, p.EOName, p.EventName)
+}
+
+// Organizer event verification
+func (h *EmailTaskHandler) HandlerEventOrganizerVerification(ctx context.Context, t *asynq.Task) error {
+	var p *model.EventEmailPayload
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return err
+	}
+
+	return utils.OrganizerEventVerification(p.To, p.EOName, p.EventName, p.Status)
+}

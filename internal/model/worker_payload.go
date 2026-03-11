@@ -13,6 +13,10 @@ const (
 	TypeEmailOrganizerProfile         = "email:organizer:profile"
 	TypeEmailOrganizerProfileVerified = "email:organizer:profile:verified"
 	TypeEmailOrganizerProfileRejected = "email:organizer:profile:rejected"
+
+	// Event email
+	TypeEventAdminNotification = "event:admin:notification"
+	TypeEventEONotification    = "event:admin:notification"
 )
 
 // Task payload for any unverified user related tasks.
@@ -39,4 +43,12 @@ type RejectedEmailPayload struct {
 	To     string
 	Name   string
 	Reason string
+}
+
+type EventEmailPayload struct {
+	To        string
+	EOName    string
+	EOEmail   string
+	EventName string
+	Status    string
 }

@@ -14,5 +14,7 @@ type EventsRepo interface {
 	FindByID(id string) (*model.Events, error)
 	FindBySlug(slug string, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error)
 	Update(event *model.Events, categories []*model.Categories, tickets []*model.Tickets) error
+	UpdateBannerEvent(id, banner string) error
+	ReviewEvent(event *model.Events) error
 	Delete(id string) error
 }

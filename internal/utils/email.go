@@ -583,3 +583,310 @@ func OrganizerProfileRejectedEmail(email, organizerName, rejectedReason string) 
 
 	return d.DialAndSend(m)
 }
+
+// ========== Event email ===========
+// Admin notification
+func AdminEventNotification(email, organizerName, eventName, EOEmail string) error {
+	m := gomail.NewMessage()
+
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", "New Event Requires Review")
+
+	m.SetBody("text/html", fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>New Event Review</title>
+	</head>
+	<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+		<table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
+			<tr>
+				<td align="center">
+					<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+
+						<tr>
+							<td style="background:#2563EB; padding:20px; text-align:center;">
+								<h1 style="color:#ffffff; margin:0;">New Event Submission</h1>
+							</td>
+						</tr>
+
+						<tr>
+							<td style="padding:30px; color:#333333;">
+
+								<p style="font-size:16px; line-height:1.6;">
+									Hello Admin,
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									A new event has been submitted and is currently waiting for your review.
+								</p>
+
+								<div style="background:#EFF6FF; padding:15px; border-radius:6px; margin:20px 0;">
+									<p style="margin:5px 0; font-size:14px;">
+										<strong>Event Name:</strong> %s
+									</p>
+									<p style="margin:5px 0; font-size:14px;">
+										<strong>Organizer Name:</strong> %s
+									</p>
+									<p style="margin:5px 0; font-size:14px;">
+										<strong>Organizer Email:</strong> %s
+									</p>
+								</div>
+
+								<p style="font-size:16px; line-height:1.6;">
+									Please review the event details and approve or reject it from the admin dashboard.
+								</p>
+
+								<div style="text-align:center; margin:30px 0;">
+									<a href="https://ngevent.id/admin/events"
+										style="
+											background:#2563EB;
+											color:#ffffff;
+											text-decoration:none;
+											padding:12px 24px;
+											border-radius:6px;
+											font-size:16px;
+											display:inline-block;
+										">
+										Review Event
+									</a>
+								</div>
+
+								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
+
+								<p style="font-size:14px; color:#777777;">
+									This notification was sent automatically by the Ngevent system.
+								</p>
+
+							</td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+	</html>
+	`, eventName, organizerName, EOEmail))
+
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	d := gomail.NewDialer(host, port, username, password)
+
+	return d.DialAndSend(m)
+}
+
+// EO notification
+func OrganizerEventNotification(email, organizerName, eventName string) error {
+	m := gomail.NewMessage()
+
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", "Your Event Has Been Submitted")
+
+	m.SetBody("text/html", fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Event Submitted</title>
+	</head>
+	<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+		<table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
+			<tr>
+				<td align="center">
+					<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+						
+						<tr>
+							<td style="background:#22C55E; padding:20px; text-align:center;">
+								<h1 style="color:#ffffff; margin:0;">Event Successfully Submitted</h1>
+							</td>
+						</tr>
+
+						<tr>
+							<td style="padding:30px; color:#333333;">
+								<p style="font-size:16px; line-height:1.6;">
+									Hello <strong>%s</strong>,
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									Your event has been successfully created on <strong>Ngevent</strong>.
+								</p>
+
+								<div style="background:#ECFDF5; padding:15px; border-radius:6px; margin:20px 0;">
+									<p style="margin:0; font-size:15px;">
+										<strong>Event Name:</strong> %s
+									</p>
+								</div>
+
+								<p style="font-size:16px; line-height:1.6;">
+									Your event is currently <strong>pending review</strong> by our admin team.
+									Once the review process is completed, you will receive another notification
+									regarding the approval status of your event.
+								</p>
+
+								<div style="text-align:center; margin:30px 0;">
+									<a href="https://ngevent.id/organizer/events"
+										style="
+											background:#22C55E;
+											color:#ffffff;
+											text-decoration:none;
+											padding:12px 24px;
+											border-radius:6px;
+											font-size:16px;
+											display:inline-block;
+										">
+										View My Events
+									</a>
+								</div>
+
+								<p style="font-size:14px; color:#555555;">
+									Thank you for using <strong>Ngevent</strong> to manage your events.
+								</p>
+
+								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
+
+								<p style="font-size:14px; color:#777777;">
+									Best regards,<br>
+									<strong>Ngevent Team</strong>
+								</p>
+							</td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+	</html>
+	`, organizerName, eventName))
+
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	d := gomail.NewDialer(host, port, username, password)
+
+	return d.DialAndSend(m)
+}
+
+// EO verification notification
+func OrganizerEventVerification(email, organizerName, eventName, status string) error {
+	m := gomail.NewMessage()
+
+	var subject string
+	var title string
+	var message string
+	var color string
+	var boxColor string
+
+	switch status {
+	case "active":
+		subject = "Your Event Has Been Approved"
+		title = "Event Approved"
+		color = "#22C55E"
+		boxColor = "#ECFDF5"
+		message = "Congratulations! Your event has been approved by our admin team and is now live on Ngevent."
+
+	case "reject":
+		subject = "Your Event Has Been Rejected"
+		title = "Event Rejected"
+		color = "#EF4444"
+		boxColor = "#FEE2E2"
+		message = "Unfortunately, your event submission could not be approved by our admin team. Please review your event details and make the necessary updates."
+
+	default:
+		subject = "Event Status Update"
+		title = "Event Status Updated"
+		color = "#6B7280"
+		boxColor = "#F3F4F6"
+		message = "Your event status has been updated."
+	}
+
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", subject)
+
+	m.SetBody("text/html", fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>%s</title>
+	</head>
+	<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+		<table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
+			<tr>
+				<td align="center">
+					<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+						
+						<tr>
+							<td style="background:%s; padding:20px; text-align:center;">
+								<h1 style="color:#ffffff; margin:0;">%s</h1>
+							</td>
+						</tr>
+
+						<tr>
+							<td style="padding:30px; color:#333333;">
+								<p style="font-size:16px; line-height:1.6;">
+									Hello <strong>%s</strong>,
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									%s
+								</p>
+
+								<div style="background:%s; padding:15px; border-radius:6px; margin:20px 0;">
+									<p style="margin:0; font-size:15px;">
+										<strong>Event Name:</strong> %s
+									</p>
+								</div>
+
+								<div style="text-align:center; margin:30px 0;">
+									<a href="https://ngevent.id/organizer/events"
+										style="
+											background:%s;
+											color:#ffffff;
+											text-decoration:none;
+											padding:12px 24px;
+											border-radius:6px;
+											font-size:16px;
+											display:inline-block;
+										">
+										View My Events
+									</a>
+								</div>
+
+								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
+
+								<p style="font-size:14px; color:#777777;">
+									Best regards,<br>
+									<strong>Ngevent Team</strong>
+								</p>
+
+							</td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+	</html>
+	`, title, color, title, organizerName, message, boxColor, eventName, color))
+
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	d := gomail.NewDialer(host, port, username, password)
+
+	return d.DialAndSend(m)
+}

@@ -15,6 +15,19 @@ type EventsRepository struct {
 	db *gorm.DB
 }
 
+// UpdateBannerEvent implements EventsRepo.
+func (r *EventsRepository) UpdateBannerEvent(id, banner string) error {
+	return r.db.Model(&model.Events{}).
+		Where("id = ?", id).
+		Updates(&model.Events{
+			Banner:    &banner,
+			UpdatedAt: time.Now().UTC()}).Error
+}
+
+func NewEventsRepository(db *gorm.DB) EventsRepo {
+	return &EventsRepository{db: db}
+}
+
 // GetDB implements EventsRepo.
 func (r *EventsRepository) GetDB() *gorm.DB {
 	return r.db
@@ -56,6 +69,7 @@ func (r *EventsRepository) Create(event *model.Events, categories []*model.Categ
 	// Create tickets
 	if len(tickets) > 0 {
 		for _, ticket := range tickets {
+			ticket.EventID = event.ID
 			if err := tx.Create(ticket).Error; err != nil {
 				tx.Rollback()
 				return err
@@ -68,6 +82,11 @@ func (r *EventsRepository) Create(event *model.Events, categories []*model.Categ
 	}
 
 	return nil
+}
+
+// ReviewEvent implements EventsRepo.
+func (r *EventsRepository) ReviewEvent(event *model.Events) error {
+	return r.db.Save(&event).Error
 }
 
 // Delete implements EventsRepo.
@@ -187,7 +206,7 @@ func (r *EventsRepository) FindBySlug(slug string, pagination model.Pagination) 
 		Preload("Categories").
 		Preload("Tickets").
 		Find(&events).Error; err != nil {
-		return nil, err
+		return nil, errors.New("event not found")
 	}
 
 	eventsResp, err := toEventResponse(events)
@@ -300,7 +319,7 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 				PhoneNumber:  event.Profile.PhoneNumber,
 			},
 			Event: dto.EventDetail{
-				Banner:      event.Banner,
+				Banner:      *event.Banner,
 				Name:        event.Name,
 				Categories:  categories,
 				Tickets:     tickets,
@@ -323,8 +342,4 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 	}
 
 	return eventsResp, nil
-}
-
-func NewEventsRepository(db *gorm.DB) EventsRepo {
-	return &EventsRepository{db: db}
 }
