@@ -50,7 +50,8 @@ services:
       - ./storage/nib:/app/storage/nib
       - ./storage/npwp/stage:/app/storage/npwp/stage
       - ./storage/nib/stage:/app/storage/nib/stage
-      - ./storage/nib/event/banner:/app/storage/event/banner
+      - ./storage/event/banner:/app/storage/event/banner
+      - ./storage/updated_event/banner:/app/storage/updated_event/banner
   
   worker:
     build: 

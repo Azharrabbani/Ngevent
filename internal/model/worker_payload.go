@@ -16,7 +16,8 @@ const (
 
 	// Event email
 	TypeEventAdminNotification = "event:admin:notification"
-	TypeEventEONotification    = "event:admin:notification"
+	TypeEventEONotification    = "event:eo:notification"
+	TypeEventEOVerification    = "event:eo:verification"
 )
 
 // Task payload for any unverified user related tasks.
@@ -44,6 +45,13 @@ type RejectedEmailPayload struct {
 	Name   string
 	Reason string
 }
+
+type EventActionReq string
+
+const (
+	Create EventActionReq = "create"
+	Update EventActionReq = "update"
+)
 
 type EventEmailPayload struct {
 	To        string

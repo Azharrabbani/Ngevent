@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "postgis";
 CREATE TYPE "public"."role" AS ENUM ('user', 'admin', 'event organizer');
 CREATE TYPE "public"."type_verification" AS ENUM ('verified_email', 'reset_password');
 CREATE TYPE "public"."organizer_profile_status" AS ENUM ('pending', 'approved', 'rejected');
-CREATE TYPE "public"."event_status" AS ENUM ('draft', 'active', 'pending', 'reject', 'done');
+CREATE TYPE "public"."event_status" AS ENUM ('draft', 'active', 'pending', 'reject', 'done', 'cancel');
 CREATE TYPE "public"."event_update_status" AS ENUM ('pending', 'approved', 'rejected');
 CREATE TYPE "public"."ticket_type" AS ENUM ('regular', 'premium', 'vip');
 
@@ -131,7 +131,7 @@ CREATE TABLE "public"."events"(
 	"date" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	"deleted_at" TIMESTAMPTZ NULL,
+	"deleted_at" TIMESTAMPTZ DEFAULT NULL,
 	CONSTRAINT "events_pk" PRIMARY KEY("id"),
 	CONSTRAINT "fk_eo_profiles_id" FOREIGN KEY ("profile_id") REFERENCES "public"."organizer_profiles" ("id") ON DELETE CASCADE
 );
@@ -156,7 +156,7 @@ CREATE TABLE "public"."event_categories"(
 	"category_id" INT NOT NULL,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	"deleted_at" TIMESTAMPTZ NULL,
+	"deleted_at" TIMESTAMPTZ DEFAULT NULL,
 	CONSTRAINT "events_categories_pk" PRIMARY KEY("id"),
 	CONSTRAINT "fk_events_id" FOREIGN KEY ("event_id") REFERENCES "public"."events" ("id") ON DELETE CASCADE,
 	CONSTRAINT "fk_category_id" FOREIGN KEY ("category_id") REFERENCES "public"."categories" ("id") ON DELETE CASCADE
@@ -165,6 +165,8 @@ CREATE TABLE "public"."event_categories"(
 CREATE TABLE "public"."event_updates"(
 	"id" uuid DEFAULT uuid_generate_v4() NOT NULL,
 	"event_id" uuid NOT NULL,
+	"name" VARCHAR(255) NOT NULL,
+	"slug" VARCHAR(255) NOT NULL,
 	"banner" TEXT,
 	"status" event_update_status NOT NULL DEFAULT 'pending',
 	"description" TEXT NOT NULL,

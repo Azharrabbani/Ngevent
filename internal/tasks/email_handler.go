@@ -83,7 +83,7 @@ func (h *EmailTaskHandler) HandlerEventAdminNotification(ctx context.Context, t 
 		return err
 	}
 
-	return utils.AdminEventNotification(p.To, p.EOName, p.EOEmail, p.EventName)
+	return utils.AdminEventNotification(p.To, p.EOName, p.EventName, p.EOEmail, p.Status)
 }
 
 // Organizer new event notification

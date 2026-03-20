@@ -2,6 +2,7 @@ package server
 
 import (
 	"ngevent/internal/handler"
+	"ngevent/internal/model"
 	"ngevent/internal/utils/middleware"
 
 	"github.com/gofiber/fiber/v2"
@@ -108,5 +109,21 @@ func (s *FiberServer) RegisterCategoriesRoutes(h *handler.CategoriesHandler) {
 		category.Get("/filter", h.ListByCatName)
 		category.Put("/:id", middleware.AuthorizeRoles("admin"), h.UpdateCategory)
 		category.Delete("/:id", middleware.AuthorizeRoles("admin"), h.DeleteCategory)
+	}
+}
+
+func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
+	event := v1.Group("/event")
+	event.Static("/banner", "./storage/event/banner")
+	event.Static("/updated-banner", "./storage/updated_event/banner")
+	event.Use(middleware.AuthMiddleware())
+	{
+		event.Post("/", middleware.AuthorizeRoles(string(model.Organizer)), h.CreateEvent)
+		event.Get("/", middleware.AuthorizeRoles(string(model.Attendee), string(model.Admin)), h.GetAEvents)
+		event.Get("/organizer-events", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.GetEventsByProfileID)
+		event.Put("/review", middleware.AuthorizeRoles(string(model.Admin)), h.ReviewEvent)
+		event.Put("/cancel", middleware.AuthorizeRoles(string(model.Organizer)), h.CancelEvent)
+		event.Get("/:id", h.GetEventByID)
+		event.Put("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.UpdateEvent)
 	}
 }

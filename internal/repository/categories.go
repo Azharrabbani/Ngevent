@@ -10,17 +10,6 @@ type CategoriesRepository struct {
 	db *gorm.DB
 }
 
-// FindByIDs implements CategoriesRepo.
-func (r *CategoriesRepository) FindByIDs(ids []int64) ([]*model.Categories, error) {
-	var categories []*model.Categories
-
-	if err := r.db.Where("(id) IN ?", ids).Find(&categories).Error; err != nil {
-		return nil, err
-	}
-
-	return categories, nil
-}
-
 // Create implements CategoriesRepo.
 func (r *CategoriesRepository) Create(category *model.Categories) error {
 	return r.db.Create(category).Error
@@ -54,6 +43,17 @@ func (r *CategoriesRepository) FindByID(id string) (*model.Categories, error) {
 	}
 
 	return category, nil
+}
+
+// FindByIDs implements CategoriesRepo.
+func (r *CategoriesRepository) FindByIDs(ids []int64) ([]*model.Categories, error) {
+	var categories []*model.Categories
+
+	if err := r.db.Where("(id) IN ?", ids).Find(&categories).Error; err != nil {
+		return nil, err
+	}
+
+	return categories, nil
 }
 
 // FindBySlug implements CategoriesRepo.

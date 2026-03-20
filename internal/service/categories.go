@@ -30,7 +30,7 @@ func NewCategoryService(
 	}
 }
 
-func (s *CategoryService) InvalidateCache() {
+func (s *CategoryService) InvalidateCategoryCache() {
 	ctx := context.Background()
 
 	patterns := []string{
@@ -59,7 +59,7 @@ func (s *CategoryService) Create(req *dto.CreateCatReq) error {
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCache()
+	s.InvalidateCategoryCache()
 
 	return nil
 }
@@ -143,7 +143,7 @@ func (s *CategoryService) Update(updateReq *dto.UpdateCatReq) error {
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCache()
+	s.InvalidateCategoryCache()
 
 	return nil
 }
@@ -161,7 +161,7 @@ func (s *CategoryService) Delete(id string) error {
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCache()
+	s.InvalidateCategoryCache()
 
 	return nil
 }

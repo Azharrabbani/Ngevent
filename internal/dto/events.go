@@ -4,6 +4,7 @@ import (
 	"errors"
 	"mime/multipart"
 	"ngevent/internal/model"
+	"time"
 )
 
 type CreateEventReq struct {
@@ -12,36 +13,54 @@ type CreateEventReq struct {
 }
 
 type EventReq struct {
+	ID          *string         `json:"id"`
 	Name        string          `json:"name" validate:"required"`
 	UserID      string          `json:"user_id"`
-	EventID     string          `json:"event_id"`
 	Description string          `json:"description" validate:"required"`
 	Categories  []int64         `json:"categories" validate:"required,min=1"`
 	Tickets     []TicketsReq    `json:"tickets" validate:"required,min=1"`
 	Date        int64           `json:"date" validate:"required"`
 	Address     EventAddressReq `json:"address" validate:"required"`
-	Status      *string         `json:"status"`
+	Status      string          `json:"status" validate:"oneof=draft pending"`
+}
+
+type EventFilterReq struct {
+	Title    string `json:"title" query:"title"`
+	Category []int  `json:"category" query:"category"`
+	Status   string `json:"status" query:"status"`
+	Date     int64  `json:"date" query:"date"`
+	City     string `json:"city" query:"city"`
+	Country  string `json:"country" query:"country"`
+}
+
+type EventFilter struct {
+	ProfileID *string    `json:"profile_id"`
+	Title     *string    `json:"title" query:"title"`
+	Category  *[]int     `json:"category" query:"category"`
+	Status    *string    `json:"status" query:"status"`
+	Start     *time.Time `json:"start" query:"start"`
+	End       *time.Time `json:"end" query:"end"`
+	City      *string    `json:"city" query:"city"`
+	Country   *string    `json:"country" query:"country"`
 }
 
 type TicketsReq struct {
-	Name       string `json:"name"`
-	Price      string `json:"price"`
-	Quantity   int    `json:"quantity"`
-	TicketType string `json:"ticket_type"`
+	ID         *string `json:"id"`
+	Name       string  `json:"name" validate:"required"`
+	Price      string  `json:"price" validate:"required"`
+	Quantity   int     `json:"quantity" validate:"required"`
+	TicketType string  `json:"ticket_type" validate:"required,oneof=regular premium vip"`
 }
 
 type EventAddressReq struct {
-	Address       string `json:"address"`
-	City          string `json:"city"`
-	Country       string `json:"country"`
-	DetailAddress string `json:"detail_address"`
-	Lat           string `json:"lat"`
-	Long          string `json:"long"`
+	DetailAddress string `json:"detail_address" validate:"required"`
+	Lat           string `json:"lat" validate:"required"`
+	Long          string `json:"long" validate:"required"`
 }
 
 type ReviewEventReq struct {
 	ID     string `json:"id" validate:"required"`
-	Status string `json:"status" validate:"required"`
+	Status string `json:"status" validate:"required,oneof=active reject"`
 }
 
 type UpdateEventReq struct {
@@ -58,7 +77,7 @@ type EventsResp struct {
 	Date         int64        `json:"date"`
 	CreatedAt    int64        `json:"created_at" gorm:"default:now()"`
 	UpdatedAt    int64        `json:"updated_at" gorm:"default:now()"`
-	DeletedAt    int64        `json:"deleted_at"`
+	DeletedAt    *int64       `json:"deleted_at,omitempty"`
 }
 
 type EventRespReq struct {
@@ -69,7 +88,7 @@ type EventRespReq struct {
 	Date            int64
 	CreatedAt       int64
 	UpdatedAt       int64
-	DeletedAt       int64
+	DeletedAt       *int64
 }
 
 type EOProfiles struct {
@@ -82,7 +101,7 @@ type EOProfiles struct {
 }
 
 type EventDetail struct {
-	Banner      string            `json:"banner"`
+	Banner      *string           `json:"banner,omitempty"`
 	Name        string            `json:"name"`
 	Categories  []EventCategories `json:"categories"`
 	Tickets     []Tickets         `json:"tickets"`
@@ -100,7 +119,7 @@ type EventAddress struct {
 }
 
 type EventCategories struct {
-	ID   string `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	ID   int64  `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 	Name string `json:"name"`
 }
 
@@ -128,7 +147,7 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 			PhoneNumber:  req.Organizer.PhoneNumber,
 		},
 		Event: EventDetail{
-			Banner:      *req.Event.Banner,
+			Banner:      req.Event.Banner,
 			Name:        req.Event.Name,
 			Categories:  req.EventCategories,
 			Tickets:     req.Tickets,

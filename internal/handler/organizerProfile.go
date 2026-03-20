@@ -40,38 +40,36 @@ func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 		))
 	}
 
-	photo, err := c.FormFile("photo")
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
-		))
+	photo, _ := c.FormFile("photo")
+	if photo != nil {
+		// Check pdf size
+		if photo.Size > (5 * 1024 * 1024) {
+			return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+				fiber.StatusBadRequest,
+				"failed",
+				"error",
+				"file is too big",
+			))
+		}
+	} else {
+		photo = nil
 	}
 
-	npwpFile, err := c.FormFile("npwp_file")
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
-		))
-	}
+	npwpFile, _ := c.FormFile("npwp_file")
 
-	nibFile, err := c.FormFile("nib_file")
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
-		))
-	}
+	nibFile, _ := c.FormFile("nib_file")
 
-	// Check if npwp or nib null
-	if nibFile == nil || npwpFile == nil {
+	if npwpFile != nil && nibFile != nil {
+		// Check pdf size
+		if npwpFile.Size > (100*1024*1024) || nibFile.Size > (100*1024*1024) {
+			return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+				fiber.StatusBadRequest,
+				"failed",
+				"error",
+				"file for npwp or nib is too big",
+			))
+		}
+	} else {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"failed",

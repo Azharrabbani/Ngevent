@@ -497,12 +497,12 @@ func validateFile(req *dto.ValidateFileReq) error {
 	}
 
 	// Validate npwp file
-	if err := helper.ValidatePDF(req.NPWP); err != nil {
+	if err := helper.ValidatePDF(&req.NPWP); err != nil {
 		return err
 	}
 
 	// Validate nib file
-	if err := helper.ValidatePDF(req.NIB); err != nil {
+	if err := helper.ValidatePDF(&req.NIB); err != nil {
 		return err
 	}
 

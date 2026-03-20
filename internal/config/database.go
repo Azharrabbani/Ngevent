@@ -46,7 +46,8 @@ func ConnectDB() *gorm.DB {
 		// Inisialisasi koneksi GORM
 		var err error
 		db, err = gorm.Open(postgres.Open(dsn()), &gorm.Config{
-			Logger: logger.Default.LogMode(logger.Info),
+			Logger:         logger.Default.LogMode(logger.Info),
+			TranslateError: true,
 		})
 
 		if err != nil {

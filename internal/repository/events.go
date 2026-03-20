@@ -33,8 +33,37 @@ func (r *EventsRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
+// IsCategoriesChanged implements EventsRepo.
+func (r *EventsRepository) IsCategoriesChanged(eventID string, ids []int64) bool {
+
+	var old []int64
+
+	r.db.
+		Model(&model.EventCategories{}).
+		Where("event_id = ?", eventID).
+		Pluck("category_id", &old)
+
+	if len(old) != len(ids) {
+		return true
+	}
+
+	set := map[int64]bool{}
+
+	for _, id := range old {
+		set[id] = true
+	}
+
+	for _, id := range ids {
+		if !set[id] {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Create implements EventsRepo.
-func (r *EventsRepository) Create(event *model.Events, categories []*model.Categories, tickets []*model.Tickets) error {
+func (r *EventsRepository) Create(event *model.Events, categories []*model.Categories, tickets []*model.Tickets) (*model.Events, error) {
 	// Make transaction
 	tx := r.db.Begin()
 
@@ -48,7 +77,7 @@ func (r *EventsRepository) Create(event *model.Events, categories []*model.Categ
 	// Create event
 	if err := tx.Create(event).Error; err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	// Create event categories
@@ -58,11 +87,12 @@ func (r *EventsRepository) Create(event *model.Events, categories []*model.Categ
 			eventCategories = append(eventCategories, &model.EventCategories{
 				EventID:    event.ID,
 				CategoryID: category.ID,
+				DeletedAt:  nil,
 			})
 		}
 		if err := tx.Create(eventCategories).Error; err != nil {
 			tx.Rollback()
-			return err
+			return nil, err
 		}
 	}
 
@@ -70,23 +100,24 @@ func (r *EventsRepository) Create(event *model.Events, categories []*model.Categ
 	if len(tickets) > 0 {
 		for _, ticket := range tickets {
 			ticket.EventID = event.ID
+			ticket.DeletedAt = nil
 			if err := tx.Create(ticket).Error; err != nil {
 				tx.Rollback()
-				return err
+				return nil, err
 			}
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return event, nil
 }
 
 // ReviewEvent implements EventsRepo.
 func (r *EventsRepository) ReviewEvent(event *model.Events) error {
-	return r.db.Save(&event).Error
+	return r.db.Updates(&event).Error
 }
 
 // Delete implements EventsRepo.
@@ -109,7 +140,7 @@ func (r *EventsRepository) Delete(id string) error {
 		return err
 	}
 
-	event.DeletedAt = now
+	event.DeletedAt = &now
 	if err := tx.Updates(event).Error; err != nil {
 		tx.Rollback()
 		return err
@@ -123,7 +154,7 @@ func (r *EventsRepository) Delete(id string) error {
 	}
 
 	for _, category := range eventCategories {
-		category.DeletedAt = now
+		category.DeletedAt = &now
 		if err := tx.Updates(category).Error; err != nil {
 			tx.Rollback()
 			return err
@@ -139,7 +170,7 @@ func (r *EventsRepository) Delete(id string) error {
 	}
 
 	for _, ticket := range tickets {
-		ticket.DeletedAt = now
+		ticket.DeletedAt = &now
 		if err := tx.Updates(ticket).Error; err != nil {
 			tx.Rollback()
 			return err
@@ -154,14 +185,23 @@ func (r *EventsRepository) Delete(id string) error {
 
 }
 
+// CancelEvent implements EventsRepo.
+func (r *EventsRepository) CancelEvent(id string) error {
+	return r.db.Model(&model.Events{}).
+		Where("id = ?", id).
+		Update("status", model.Cancel).Error
+}
+
 // FindAll implements EventsRepo.
-func (r *EventsRepository) FindAll(pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
+func (r *EventsRepository) FindAll(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
 	var events []*model.Events
 
-	if err := r.db.
-		Scopes(Paginate(events, &pagination, r.db)).
-		Preload("Profile").
-		Preload("Categories").
+	query := r.db.Scopes(filterEventList(filter))
+
+	if err := query.
+		Scopes(Paginate(events, &pagination, query)).
+		Preload("Profile.User").
+		Preload("Categories.Category").
 		Preload("Tickets").
 		Find(&events).Error; err != nil {
 		return nil, err
@@ -179,13 +219,70 @@ func (r *EventsRepository) FindAll(pagination model.Pagination) (*model.Paginati
 
 }
 
+// FindActiveEvents implements EventsRepo.
+func (r *EventsRepository) FindActiveEvents(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
+	var events []*model.Events
+
+	if filter.Status != nil {
+		return nil, errors.New("unauthorized action")
+	}
+
+	query := r.db.Scopes(filterEventList(filter))
+
+	if err := query.
+		Scopes(Paginate(events, &pagination, query)).
+		Preload("Profile.User").
+		Preload("Categories.Category").
+		Preload("Tickets").
+		Find(&events).Error; err != nil {
+		return nil, err
+	}
+
+	eventsResp, err := toEventResponse(events)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.PaginationRow[*dto.EventsResp]{
+		Pagination: pagination,
+		Rows:       eventsResp,
+	}, nil
+
+}
+
+// FindByProfileID implements EventsRepo.
+func (r *EventsRepository) FindByProfileID(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
+	var events []*model.Events
+
+	query := r.db.Scopes(filterEventList(filter))
+
+	if err := query.
+		Scopes(Paginate(events, &pagination, query)).
+		Preload("Profile.User").
+		Preload("Categories.Category").
+		Preload("Tickets").
+		Find(&events).Error; err != nil {
+		return nil, err
+	}
+
+	eventsResp, err := toEventResponse(events)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.PaginationRow[*dto.EventsResp]{
+		Pagination: pagination,
+		Rows:       eventsResp,
+	}, nil
+}
+
 // FindByID implements EventsRepo.
 func (r *EventsRepository) FindByID(id string) (*model.Events, error) {
 	var event *model.Events
 
 	if err := r.db.Where("id = ?", id).
-		Preload("Profile").
-		Preload("Categories").
+		Preload("Profile.User").
+		Preload("Categories.Category").
 		Preload("Tickets").
 		First(&event).Error; err != nil {
 		return nil, err
@@ -202,8 +299,8 @@ func (r *EventsRepository) FindBySlug(slug string, pagination model.Pagination) 
 
 	if err := query.
 		Scopes(Paginate(events, &pagination, query)).
-		Preload("Profile").
-		Preload("Categories").
+		Preload("Profile.User").
+		Preload("Categories.Category").
 		Preload("Tickets").
 		Find(&events).Error; err != nil {
 		return nil, errors.New("event not found")
@@ -235,11 +332,16 @@ func (r *EventsRepository) Update(event *model.Events, categories []*model.Categ
 	// Update event
 	if err := tx.Updates(event).Error; err != nil {
 		tx.Rollback()
+
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return errors.New("Cannot request an update while a previous update is still pending review for this event")
+		}
+
 		return err
 	}
 
 	// Update event categories
-	if err := r.db.Where("event_id = ?", event.ID).Delete(&model.EventCategories{}).Error; err != nil {
+	if err := tx.Where("event_id = ?", event.ID).Delete(&model.EventCategories{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -250,24 +352,26 @@ func (r *EventsRepository) Update(event *model.Events, categories []*model.Categ
 			eventCategories = append(eventCategories, &model.EventCategories{
 				EventID:    event.ID,
 				CategoryID: category.ID,
+				DeletedAt:  nil,
 			})
 		}
-		if err := tx.Updates(eventCategories).Error; err != nil {
+		if err := tx.Save(eventCategories).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 
 	// Update tickets
-	if err := r.db.Where("event_id = ?", event.ID).Delete(&model.Tickets{}).Error; err != nil {
+	if err := tx.Where("event_id = ?", event.ID).Delete(&model.Tickets{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Update tickets
 	if len(tickets) > 0 {
 		for _, ticket := range tickets {
-			if err := tx.Updates(ticket).Error; err != nil {
+			ticket.EventID = event.ID
+			ticket.DeletedAt = nil
+			if err := tx.Save(ticket).Error; err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -281,10 +385,50 @@ func (r *EventsRepository) Update(event *model.Events, categories []*model.Categ
 	return nil
 }
 
+func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		if filter.ProfileID != nil {
+			db = db.Where("profile_id = ?", filter.ProfileID)
+		}
+
+		if filter.Status != nil {
+			db = db.Where("status = ?", *filter.Status)
+		} else {
+			db = db.Where("status = ?", model.Active)
+		}
+
+		if filter.Title != nil {
+			db = db.Where("LOWER(slug) LIKE LOWER(?)", "%"+*filter.Title+"%")
+		}
+
+		if filter.City != nil {
+			db = db.Where("LOWER(city) LIKE LOWER(?)", "%"+*filter.City+"%")
+		}
+
+		if filter.Country != nil {
+			db = db.Where("LOWER(country) LIKE LOWER(?)", "%"+*filter.Country+"%")
+		}
+
+		if filter.Category != nil {
+			db = db.InnerJoins("Categories", db.Where("(category_id) IN ?", filter.Category))
+		}
+
+		if filter.Start != nil {
+			db = db.Where("created_at >= ?", filter.Start)
+		}
+
+		if filter.End != nil {
+			db = db.Where("created_at < ?", filter.End)
+		}
+
+		return db
+	}
+}
+
 func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 	var eventsResp []*dto.EventsResp
 
-	if len(eventsResp) < 0 {
+	if len(events) == 0 {
 		return nil, errors.New("no data found")
 	}
 
@@ -292,7 +436,7 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 		var categories []dto.EventCategories
 		for _, cat := range event.Categories {
 			categories = append(categories, dto.EventCategories{
-				ID:   cat.ID,
+				ID:   cat.Category.ID,
 				Name: cat.Category.Name,
 			})
 		}
@@ -319,7 +463,7 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 				PhoneNumber:  event.Profile.PhoneNumber,
 			},
 			Event: dto.EventDetail{
-				Banner:      *event.Banner,
+				Banner:      event.Banner,
 				Name:        event.Name,
 				Categories:  categories,
 				Tickets:     tickets,
@@ -337,7 +481,7 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 			Date:      helper.ConvertDatetoUnix(event.Date.Format(time.RFC3339)),
 			CreatedAt: helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
 			UpdatedAt: helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
-			DeletedAt: helper.ConvertDatetoUnix(event.DeletedAt.Format(time.RFC3339)),
+			DeletedAt: helper.TimePtrToUnix(event.DeletedAt),
 		})
 	}
 

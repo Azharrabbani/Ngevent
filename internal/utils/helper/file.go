@@ -2,6 +2,7 @@ package helper
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
@@ -18,6 +19,11 @@ import (
 	"github.com/ryanbekhen/go-webp"
 )
 
+var (
+	path        string
+	newFileName string
+)
+
 func ValidateImage(file *multipart.FileHeader) error {
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 
@@ -28,7 +34,7 @@ func ValidateImage(file *multipart.FileHeader) error {
 	return errors.New("image type must be .png/.jpg/.jpeg")
 }
 
-func ValidatePDF(file multipart.FileHeader) error {
+func ValidatePDF(file *multipart.FileHeader) error {
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 
 	if ext == ".pdf" {
@@ -44,51 +50,81 @@ func SaveToLocal(file *multipart.FileHeader, filePath string) (string, string, e
 	}
 
 	ext := strings.ToLower(filepath.Ext(file.Filename))
-	baseName := uuid.NewString()
 
-	var (
-		path        string
-		newFileName string
-	)
+	// Get filename without its extension
+	baseName := strings.TrimSuffix(file.Filename, ext)
+
+	fileName, err := TransformFileName(baseName)
+	if err != nil {
+		return "", "", err
+	}
 
 	// ============= IMAGE ================
-	if ext == ".png" || ext == ".jpg" || ext == "jpeg" {
-		src, err := file.Open()
+	if ext == ".png" || ext == ".jpg" || ext == ".jpeg" {
+		path, newFileName, err := SaveImage(file, fileName, filePath)
 		if err != nil {
 			return "", "", err
-		}
-
-		img, _, err := image.Decode(src)
-		if err != nil {
-			return "", "", err
-		}
-
-		newFileName = baseName + ".webp"
-		path = filepath.Join(filePath, newFileName)
-
-		out, err := os.Create(path)
-		if err != nil {
-			return "", "", err
-		}
-		defer out.Close()
-
-		if file.Size > 1*1024*1024 {
-			err = webp.Encode(img, 75, out)
-			if err != nil {
-				return "", "", err
-			}
-		} else {
-			err = webp.Encode(img, 100, out)
-			if err != nil {
-				return "", "", err
-			}
 		}
 
 		return path, newFileName, nil
 	}
 
 	// ================= PDF =================
-	newFileName = baseName + ext
+	path, newFileName, err := SavePDF(file, fileName, filePath, ext)
+	if err != nil {
+		return "", "", err
+	}
+
+	return path, newFileName, nil
+}
+
+func SaveImage(file *multipart.FileHeader, fileName, filePath string) (string, string, error) {
+	// Validate the imaage
+	if err := ValidateImage(file); err != nil {
+		return "", "", err
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return "", "", err
+	}
+	defer src.Close()
+
+	img, _, err := image.Decode(src)
+	if err != nil {
+		return "", "", err
+	}
+
+	newFileName = fileName + ".webp"
+	path = filepath.Join(filePath, newFileName)
+
+	out, err := os.Create(path)
+	if err != nil {
+		return "", "", err
+	}
+	defer out.Close()
+
+	if file.Size > 1*1024*1024 {
+		err = webp.Encode(img, 75, out)
+		if err != nil {
+			return "", "", err
+		}
+	} else {
+		err = webp.Encode(img, 100, out)
+		if err != nil {
+			return "", "", err
+		}
+	}
+
+	return path, newFileName, nil
+}
+
+func SavePDF(file *multipart.FileHeader, fileName, filePath, ext string) (string, string, error) {
+	if err := ValidatePDF(file); err != nil {
+		return "", "", err
+	}
+
+	newFileName = fileName + ext
 	path = filepath.Join(filePath, newFileName)
 
 	src, err := file.Open()
@@ -108,6 +144,25 @@ func SaveToLocal(file *multipart.FileHeader, filePath string) (string, string, e
 	}
 
 	return path, newFileName, nil
+}
+
+func TransformFileName(baseName string) (string, error) {
+	if baseName == "" {
+		return "", errors.New("file name empyt")
+	}
+
+	baseName = fmt.Sprintf("%s%s", baseName, uuid.New().String())
+
+	// remove spacing in the first and the last
+	baseName = strings.TrimSpace(baseName)
+
+	// Separation based on any number of spaces
+	parts := strings.Fields(baseName)
+
+	// Join with "_"
+	newName := strings.Join(parts, "_")
+
+	return newName, nil
 }
 
 func CopyFile(srcPath, dstPath string) (string, error) {

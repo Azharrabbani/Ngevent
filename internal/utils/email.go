@@ -586,7 +586,132 @@ func OrganizerProfileRejectedEmail(email, organizerName, rejectedReason string) 
 
 // ========== Event email ===========
 // Admin notification
-func AdminEventNotification(email, organizerName, eventName, EOEmail string) error {
+func AdminEventNotification(email, organizerName, eventName, EOEmail, status string) error {
+	m := gomail.NewMessage()
+
+	var subject string
+	var title string
+	var message string
+	var color string
+	var boxColor string
+
+	switch status {
+	case "create":
+		subject = "New Event Requires Review"
+		title = "New Event Submission"
+		color = "#2563EB"
+		boxColor = "#EFF6FF"
+		message = "A new event has been submitted and is currently waiting for your review."
+
+	case "update":
+		subject = "Event Update Requires Review"
+		title = "Event Updated"
+		color = "#F59E0B"
+		boxColor = "#FEF3C7"
+		message = "An existing event has been updated by the organizer and requires your review."
+
+	default:
+		subject = "Event Notification"
+		title = "Event Notification"
+		color = "#6B7280"
+		boxColor = "#F3F4F6"
+		message = "There is an update regarding an event."
+	}
+
+	m.SetHeader("From", "ngevent@gmail.com")
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", subject)
+
+	m.SetBody("text/html", fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>%s</title>
+	</head>
+	<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+		<table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
+			<tr>
+				<td align="center">
+					<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+
+						<tr>
+							<td style="background:%s; padding:20px; text-align:center;">
+								<h1 style="color:#ffffff; margin:0;">%s</h1>
+							</td>
+						</tr>
+
+						<tr>
+							<td style="padding:30px; color:#333333;">
+
+								<p style="font-size:16px; line-height:1.6;">
+									Hello Admin,
+								</p>
+
+								<p style="font-size:16px; line-height:1.6;">
+									%s
+								</p>
+
+								<div style="background:%s; padding:15px; border-radius:6px; margin:20px 0;">
+									<p style="margin:5px 0; font-size:14px;">
+										<strong>Event Name:</strong> %s
+									</p>
+									<p style="margin:5px 0; font-size:14px;">
+										<strong>Organizer Name:</strong> %s
+									</p>
+									<p style="margin:5px 0; font-size:14px;">
+										<strong>Organizer Email:</strong> %s
+									</p>
+								</div>
+
+								<p style="font-size:16px; line-height:1.6;">
+									Please review the event details and approve or reject it from the admin dashboard.
+								</p>
+
+								<div style="text-align:center; margin:30px 0;">
+									<a href="https://ngevent.id/admin/events"
+										style="
+											background:%s;
+											color:#ffffff;
+											text-decoration:none;
+											padding:12px 24px;
+											border-radius:6px;
+											font-size:16px;
+											display:inline-block;
+										">
+										Review Event
+									</a>
+								</div>
+
+								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
+
+								<p style="font-size:14px; color:#777777;">
+									This notification was sent automatically by the Ngevent system.
+								</p>
+
+							</td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+	</html>
+	`, title, color, title, message, boxColor, eventName, organizerName, EOEmail, color))
+
+	host := os.Getenv("SMTP_HOST")
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	d := gomail.NewDialer(host, port, username, password)
+
+	return d.DialAndSend(m)
+}
+
+// Admin req update event notification
+func AdminUpdatedEventNotification(email, organizerName, eventName, EOEmail string) error {
 	m := gomail.NewMessage()
 
 	m.SetHeader("From", "ngevent@gmail.com")
