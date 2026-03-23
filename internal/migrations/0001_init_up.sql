@@ -5,7 +5,7 @@ CREATE TYPE "public"."role" AS ENUM ('user', 'admin', 'event organizer');
 CREATE TYPE "public"."type_verification" AS ENUM ('verified_email', 'reset_password');
 CREATE TYPE "public"."organizer_profile_status" AS ENUM ('pending', 'approved', 'rejected');
 CREATE TYPE "public"."event_status" AS ENUM ('draft', 'active', 'pending', 'reject', 'done', 'cancel');
-CREATE TYPE "public"."event_update_status" AS ENUM ('pending', 'approved', 'rejected');
+CREATE TYPE "public"."event_update_status" AS ENUM ('pending', 'approved', 'rejected', 'canceled');
 CREATE TYPE "public"."ticket_type" AS ENUM ('regular', 'premium', 'vip');
 
 SET TIME ZONE 'UTC';

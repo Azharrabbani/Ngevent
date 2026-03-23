@@ -15,6 +15,7 @@ import (
 	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -52,27 +53,12 @@ func NewEventService(
 
 var (
 	eventBannerPath        = "./storage/event/banner"
-	updatedEventBannerPath = "./storage/updated_event/banner"
+	updatedEventBannerPath = "./storage/updated/banner"
 )
 
-func (s *EventService) InvalidateEventCache() {
-	ctx := context.Background()
-
-	patterns := []string{
-		"events:all:*",
-		"organizer_events:all:*",
-		"updated_events:all:*",
-	}
-
-	for _, pattern := range patterns {
-		iter := s.rdb.Scan(ctx, 0, pattern, 0).Iterator()
-		for iter.Next(ctx) {
-			s.rdb.Del(ctx, iter.Val())
-		}
-	}
-
-	// Use SCAN for pattern keys to avoid blocking
-	log.Println("[CACHE] events cache invalidated")
+var eventCache []string = []string{
+	"events:all:*",
+	"organizer_events:all:*",
 }
 
 func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventReq) error {
@@ -154,7 +140,8 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 	}
 
 	// Invalidate cache after update
-	s.InvalidateEventCache()
+	utils.InvalidateCache(s.rdb, eventCache)
+	// s.InvalidateEventCache()
 
 	// Email the admins
 	// Only if the organizer decide to immediately up the event
@@ -209,7 +196,8 @@ func (s *EventService) ReviewEvent(req *dto.ReviewEventReq) error {
 	}
 
 	// Invalidate cache after update
-	s.InvalidateEventCache()
+	utils.InvalidateCache(s.rdb, eventCache)
+	// s.InvalidateEventCache()
 
 	// Email the EO
 	organizer, err := s.ProfileRepo.FindByID(event.ProfileID)
@@ -385,7 +373,7 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 		}
 
 		// Invalidate cache after update
-		s.InvalidateEventCache()
+		utils.InvalidateCache(s.rdb, updatedEventCache)
 
 		// Email the admins
 		admins, err := s.UserRepo.FindByRole(string(model.Admin))
@@ -470,7 +458,7 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	}
 
 	// Invalidate cache after update
-	s.InvalidateEventCache()
+	utils.InvalidateCache(s.rdb, eventCache)
 
 	// If organizer decide to up the event
 	// Notify the admins
@@ -537,7 +525,7 @@ func (s *EventService) CancelEvent(id, userID string) error {
 	}
 
 	// Invalidate cache after update
-	s.InvalidateEventCache()
+	utils.InvalidateCache(s.rdb, eventCache)
 
 	return nil
 }
@@ -576,6 +564,7 @@ func (s *EventService) CreateUpdateEvent(banner *multipart.FileHeader, event *mo
 
 	// If banner changed
 	// Save to temporary storage
+	var updatedEvent *model.UpdatedEvents
 	if banner != nil {
 		_, fileName, err := helper.SaveToLocal(banner, updatedEventBannerPath)
 		if err != nil {
@@ -583,27 +572,55 @@ func (s *EventService) CreateUpdateEvent(banner *multipart.FileHeader, event *mo
 			return err
 		}
 
-		event.Banner = &fileName
-	}
+		updatedEvent = &model.UpdatedEvents{
+			EventID:       event.ID,
+			Name:          req.Name,
+			Banner:        &fileName,
+			Slug:          utils.CreateSlug(req.Name),
+			Status:        string(model.UpdatePending),
+			Description:   req.Description,
+			Address:       *location.Address,
+			City:          *location.City,
+			Country:       *location.Country,
+			DetailAddress: req.Address.DetailAddress,
+			Coordinates:   *location.Coordinates,
+			Date:          helper.ConvertUnixtoDate(req.Date),
+		}
 
-	updatedEvent := &model.UpdatedEvents{
-		EventID:       event.ID,
-		Name:          req.Name,
-		Banner:        event.Banner,
-		Slug:          utils.CreateSlug(req.Name),
-		Status:        string(model.UpdatePending),
-		Description:   req.Description,
-		Address:       *location.Address,
-		City:          *location.City,
-		Country:       *location.Country,
-		DetailAddress: req.Address.DetailAddress,
-		Coordinates:   *location.Coordinates,
-		Date:          helper.ConvertUnixtoDate(req.Date),
-	}
+		if err := s.UpdatedEventRepo.Create(updatedEvent, categories, tickets); err != nil {
+			log.Printf("[ERROR] failed to update event %v\n", err)
+			return err
+		}
+	} else {
+		fileName := *event.Banner
 
-	if err := s.UpdatedEventRepo.Create(updatedEvent, categories, tickets); err != nil {
-		log.Printf("[ERROR] failed to update event %v\n", err)
-		return err
+		eventBannerSrc := filepath.Join(eventBannerPath, fileName)
+		dstPath := filepath.Join(eventBannerPath, fileName)
+
+		bannerFile, err := helper.CopyFile(eventBannerSrc, dstPath)
+		if err != nil {
+			return err
+		}
+
+		updatedEvent = &model.UpdatedEvents{
+			EventID:       event.ID,
+			Name:          req.Name,
+			Banner:        &bannerFile,
+			Slug:          utils.CreateSlug(req.Name),
+			Status:        string(model.UpdatePending),
+			Description:   req.Description,
+			Address:       *location.Address,
+			City:          *location.City,
+			Country:       *location.Country,
+			DetailAddress: req.Address.DetailAddress,
+			Coordinates:   *location.Coordinates,
+			Date:          helper.ConvertUnixtoDate(req.Date),
+		}
+
+		if err := s.UpdatedEventRepo.Create(updatedEvent, categories, tickets); err != nil {
+			log.Printf("[ERROR] failed to update event %v\n", err)
+			return err
+		}
 	}
 
 	return nil

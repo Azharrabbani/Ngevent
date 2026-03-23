@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
+	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
 	"time"
 
@@ -47,22 +47,8 @@ func NewUserService(
 	}
 }
 
-func (s *UserService) InvalidateCache() {
-	ctx := context.Background()
-
-	patterns := []string{
-		"users:all:*",
-	}
-
-	for _, pattern := range patterns {
-		iter := s.rdb.Scan(ctx, 0, pattern, 0).Iterator()
-		for iter.Next(ctx) {
-			s.rdb.Del(ctx, iter.Val())
-		}
-	}
-
-	// Use SCAN for pattern keys to avoid blocking
-	log.Println("[CACHE] users cache invalidated")
+var userCache []string = []string{
+	"users:all:*",
 }
 
 func (s *UserService) CreateUser(email, password, role string) error {
@@ -99,7 +85,7 @@ func (s *UserService) CreateUser(email, password, role string) error {
 		}
 
 		// Invalidate cache after update
-		s.InvalidateCache()
+		utils.InvalidateCache(s.rdb, userCache)
 
 		return nil
 	}
@@ -164,7 +150,7 @@ func (s *UserService) CreateUser(email, password, role string) error {
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCache()
+	utils.InvalidateCache(s.rdb, userCache)
 
 	// Send to email
 	emailPayload := &model.EmailPayload{
@@ -234,7 +220,7 @@ func (s *UserService) DeleteUnverifiedUser(id string) error {
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCache()
+	utils.InvalidateCache(s.rdb, userCache)
 
 	return nil
 }

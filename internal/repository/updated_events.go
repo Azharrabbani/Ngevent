@@ -71,21 +71,52 @@ func (r *UpdatedEventsRepository) Create(event *model.UpdatedEvents, categories 
 }
 
 // Delete implements EventsUpdateRepo.
-func (r *UpdatedEventsRepository) Delete(id string) error {
+func (r *UpdatedEventsRepository) Cancel(id string) error {
 	return r.db.
 		Model(&model.UpdatedEvents{}).
 		Where("id = ?", id).
-		Update("deleted_at", time.Now().UTC()).Error
+		Updates(&model.UpdatedEvents{
+			Status:    string(model.UpdatedCanceled),
+			DeletedAt: helper.TimeToPointer(time.Now().UTC()),
+		}).Error
 }
 
 // FindAll implements EventsUpdateRepo.
-func (r *UpdatedEventsRepository) FindAll(pagination model.Pagination) (*model.PaginationRow[*dto.EventsUpdatesResp], error) {
+func (r *UpdatedEventsRepository) FindAll(filter *dto.UpdatedEventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsUpdatesResp], error) {
 	var updatedEvents []*model.UpdatedEvents
 
-	if err := r.db.
-		Scopes(Paginate(updatedEvents, &pagination, r.db)).
+	query := r.db.Scopes(filterUpdatedEventList(filter))
+
+	if err := query.
+		Scopes(Paginate(updatedEvents, &pagination, query)).
 		Preload("Event").
-		Preload("Categories").
+		Preload("Categories.Category").
+		Preload("Tickets").
+		Find(&updatedEvents).Error; err != nil {
+		return nil, err
+	}
+
+	updatedEventsResp, err := toUpdatedEventsResp(updatedEvents)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.PaginationRow[*dto.EventsUpdatesResp]{
+		Pagination: pagination,
+		Rows:       updatedEventsResp,
+	}, nil
+}
+
+// FindAllByEventID implements EventsUpdateRepo.
+func (r *UpdatedEventsRepository) FindAllByEventID(filter *dto.UpdatedEventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsUpdatesResp], error) {
+	var updatedEvents []*model.UpdatedEvents
+
+	query := r.db.Scopes(filterUpdatedEventList(filter))
+
+	if err := query.
+		Scopes(Paginate(updatedEvents, &pagination, query)).
+		Preload("Event").
+		Preload("Categories.Category").
 		Preload("Tickets").
 		Find(&updatedEvents).Error; err != nil {
 		return nil, err
@@ -108,7 +139,7 @@ func (r *UpdatedEventsRepository) FindByID(id string) (*model.UpdatedEvents, err
 
 	if err := r.db.Where("id = ?", id).
 		Preload("Event").
-		Preload("Categories").
+		Preload("Categories.Category").
 		Preload("Tickets").
 		First(&updatedEvent).Error; err != nil {
 		return nil, err
@@ -125,6 +156,32 @@ func (r *UpdatedEventsRepository) GetDB() *gorm.DB {
 // ReviewEvent implements EventsUpdateRepo.
 func (r *UpdatedEventsRepository) ReviewEvent(id string, status string) error {
 	return r.db.Model(&model.UpdatedEvents{}).Where("id = ?", id).Update("status", status).Error
+}
+
+func filterUpdatedEventList(filter *dto.UpdatedEventFilter) func(*gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		if filter.EventID != nil {
+			db = db.Where("event_id = ?", filter.EventID)
+		}
+
+		if filter.Status != nil {
+			db = db.Where("status = ?", *filter.Status)
+		}
+
+		if filter.Title != nil {
+			db = db.Where("LOWER(slug) LIKE LOWER(?)", "%"+*filter.Title+"%")
+		}
+
+		if filter.Start != nil {
+			db = db.Where("created_at >= ?", filter.Start)
+		}
+
+		if filter.End != nil {
+			db = db.Where("created_at < ?", filter.End)
+		}
+
+		return db
+	}
 }
 
 func toUpdatedEventsResp(updatedEvents []*model.UpdatedEvents) ([]*dto.EventsUpdatesResp, error) {
@@ -146,7 +203,7 @@ func toUpdatedEventsResp(updatedEvents []*model.UpdatedEvents) ([]*dto.EventsUpd
 		updatedEventResp = append(updatedEventResp, &dto.EventsUpdatesResp{
 			ID:         event.ID,
 			EventID:    event.Event.ID,
-			EventTitle: event.Event.Name,
+			EventTitle: event.Name,
 			UpdatedDetails: dto.UpdatedDetails{
 				Banner:      *event.Banner,
 				Status:      event.Status,
@@ -164,7 +221,7 @@ func toUpdatedEventsResp(updatedEvents []*model.UpdatedEvents) ([]*dto.EventsUpd
 			UpdatedTickets:    len(event.Tickets),
 			CreatedAt:         helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
 			UpdatedAt:         helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
-			DeletedAt:         helper.ConvertDatetoUnix(event.DeletedAt.Format(time.RFC3339)),
+			DeletedAt:         helper.TimePtrToUnix(event.DeletedAt),
 		})
 	}
 

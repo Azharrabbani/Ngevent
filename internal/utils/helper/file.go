@@ -19,11 +19,6 @@ import (
 	"github.com/ryanbekhen/go-webp"
 )
 
-var (
-	path        string
-	newFileName string
-)
-
 func ValidateImage(file *multipart.FileHeader) error {
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 
@@ -95,8 +90,8 @@ func SaveImage(file *multipart.FileHeader, fileName, filePath string) (string, s
 		return "", "", err
 	}
 
-	newFileName = fileName + ".webp"
-	path = filepath.Join(filePath, newFileName)
+	newFileName := fileName + ".webp"
+	path := filepath.Join(filePath, newFileName)
 
 	out, err := os.Create(path)
 	if err != nil {
@@ -124,8 +119,8 @@ func SavePDF(file *multipart.FileHeader, fileName, filePath, ext string) (string
 		return "", "", err
 	}
 
-	newFileName = fileName + ext
-	path = filepath.Join(filePath, newFileName)
+	newFileName := fileName + ext
+	path := filepath.Join(filePath, newFileName)
 
 	src, err := file.Open()
 	if err != nil {
@@ -195,7 +190,7 @@ func CopyFile(srcPath, dstPath string) (string, error) {
 		return "", err
 	}
 
-	return dstFile.Name(), nil
+	return filepath.Base(dstPath), nil
 }
 
 func CompressPDF(input, output string) error {

@@ -82,6 +82,7 @@ func main() {
 	organizerUpdateService := service.NewOrganizerUpdateService(userRepo, organizerProfileRepo, organizerUpdateRepo, emailTaskPublisher, server.RDB)
 	categoryService := service.NewCategoryService(categoryRepo, server.RDB)
 	eventService := service.NewEventService(eventRepo, updateEventRepo, userRepo, organizerProfileRepo, categoryRepo, emailTaskPublisher, server.RDB)
+	updateEventService := service.NewUpdatedEventService(updateEventRepo, eventRepo, organizerProfileRepo, server.RDB, emailTaskPublisher)
 
 	// Init handler
 	authHandler := handler.NewAuthHandler(authService, validate)
@@ -92,6 +93,7 @@ func main() {
 	organizerUpdateHandler := handler.NewOrganizerUpdateHandler(organizerUpdateService, validate)
 	categoryHandler := handler.NewCategoriesHandler(categoryService, validate)
 	eventHandler := handler.NewEventHandler(eventService, validate)
+	updateEventHandler := handler.NewUpdatedEventHandler(updateEventService, validate)
 
 	// Register routes
 	server.RegisterFiberRoutes()
@@ -103,6 +105,7 @@ func main() {
 	server.RegisterOrganizerUpdateRoutes(organizerUpdateHandler)
 	server.RegisterCategoriesRoutes(categoryHandler)
 	server.RegisterEventRoutes(eventHandler)
+	server.RegisterUpdatedEventRoutes(updateEventHandler)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

@@ -44,6 +44,7 @@ type EventFilter struct {
 	Country   *string    `json:"country" query:"country"`
 }
 
+
 type TicketsReq struct {
 	ID         *string `json:"id"`
 	Name       string  `json:"name" validate:"required"`

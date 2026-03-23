@@ -115,7 +115,6 @@ func (s *FiberServer) RegisterCategoriesRoutes(h *handler.CategoriesHandler) {
 func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 	event := v1.Group("/event")
 	event.Static("/banner", "./storage/event/banner")
-	event.Static("/updated-banner", "./storage/updated_event/banner")
 	event.Use(middleware.AuthMiddleware())
 	{
 		event.Post("/", middleware.AuthorizeRoles(string(model.Organizer)), h.CreateEvent)
@@ -126,4 +125,18 @@ func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 		event.Get("/:id", h.GetEventByID)
 		event.Put("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.UpdateEvent)
 	}
+}
+
+func (s *FiberServer) RegisterUpdatedEventRoutes(h *handler.UpdatedEventHandler) {
+	updateEvent := v1.Group("/updated-event")
+	updateEvent.Static("/updated-banner", "./storage/updated_event/banner")
+	updateEvent.Use(middleware.AuthMiddleware())
+	{
+		updateEvent.Get("/", middleware.AuthorizeRoles(string(model.Admin)), h.ListAllUpdated)
+		updateEvent.Get("/:id", middleware.AuthorizeRoles(string(model.Admin)), h.GetUpdatedByID)
+		updateEvent.Get("/update-list/:event_id", middleware.AuthorizeRoles(string(model.Admin)), h.ListAllUpdatedByEventID)
+		updateEvent.Put("/", middleware.AuthorizeRoles(string(model.Admin)), h.ReviewUpdate)
+		updateEvent.Put("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.CancelUpdate)
+	}
+
 }

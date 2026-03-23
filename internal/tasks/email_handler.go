@@ -105,3 +105,12 @@ func (h *EmailTaskHandler) HandlerEventOrganizerVerification(ctx context.Context
 
 	return utils.OrganizerEventVerification(p.To, p.EOName, p.EventName, p.Status)
 }
+
+func (h *EmailTaskHandler) HandlerUpdateEventOrganizerNotif(ctx context.Context, t *asynq.Task) error {
+	var p *model.EventEmailPayload
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return err
+	}
+
+	return utils.OrganizerUpdatedEventNotif(p.To, p.EOName, p.EventName, p.Status)
+}

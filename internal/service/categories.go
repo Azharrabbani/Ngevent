@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
@@ -30,22 +29,8 @@ func NewCategoryService(
 	}
 }
 
-func (s *CategoryService) InvalidateCategoryCache() {
-	ctx := context.Background()
-
-	patterns := []string{
-		"category:all:*",
-	}
-
-	for _, pattern := range patterns {
-		iter := s.rdb.Scan(ctx, 0, pattern, 0).Iterator()
-		for iter.Next(ctx) {
-			s.rdb.Del(ctx, iter.Val())
-		}
-	}
-
-	// Use SCAN for pattern keys to avoid blocking
-	log.Println("[CACHE] categories cache invalidated")
+var categoryCache []string = []string{
+	"category:all:*",
 }
 
 func (s *CategoryService) Create(req *dto.CreateCatReq) error {
@@ -59,7 +44,7 @@ func (s *CategoryService) Create(req *dto.CreateCatReq) error {
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCategoryCache()
+	utils.InvalidateCache(s.rdb, categoryCache)
 
 	return nil
 }
@@ -143,7 +128,7 @@ func (s *CategoryService) Update(updateReq *dto.UpdateCatReq) error {
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCategoryCache()
+	utils.InvalidateCache(s.rdb, categoryCache)
 
 	return nil
 }
@@ -161,7 +146,7 @@ func (s *CategoryService) Delete(id string) error {
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCategoryCache()
+	utils.InvalidateCache(s.rdb, categoryCache)
 
 	return nil
 }

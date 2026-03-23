@@ -51,7 +51,7 @@ services:
       - ./storage/npwp/stage:/app/storage/npwp/stage
       - ./storage/nib/stage:/app/storage/nib/stage
       - ./storage/event/banner:/app/storage/event/banner
-      - ./storage/updated_event/banner:/app/storage/updated_event/banner
+      - ./storage/updated/banner:/app/storage/updated/banner
   
   worker:
     build: 

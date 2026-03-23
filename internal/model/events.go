@@ -14,9 +14,10 @@ const (
 )
 
 const (
-	UpdatePending UpdateStatus = "pending"
-	UpdateApprove UpdateStatus = "approved"
-	UpdateReject  UpdateStatus = "rejected"
+	UpdatePending   UpdateStatus = "pending"
+	UpdateApprove   UpdateStatus = "approved"
+	UpdateReject    UpdateStatus = "rejected"
+	UpdatedCanceled UpdateStatus = "canceled"
 )
 
 type Events struct {
@@ -82,7 +83,7 @@ type UpdatedEvents struct {
 	Date          time.Time                `json:"date"`
 	CreatedAt     time.Time                `json:"created_at" gorm:"default:now()"`
 	UpdatedAt     time.Time                `json:"updated_at" gorm:"default:now()"`
-	DeletedAt     time.Time                `json:"deleted_at"`
+	DeletedAt     *time.Time               `json:"deleted_at"`
 	Event         Events                   `gorm:"foreignKey:EventID"`
 }
 
