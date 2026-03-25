@@ -78,11 +78,11 @@ type UpdatedDetails struct {
 }
 
 type UpdatedAddress struct {
-	Address       string `json:"address"`
-	City          string `json:"city"`
-	Country       string `json:"country"`
-	DetailAddress string `json:"detail_address"`
-	Coordinates   string `json:"cooridinates"`
+	Address       string      `json:"address"`
+	City          string      `json:"city"`
+	Country       string      `json:"country"`
+	DetailAddress string      `json:"detail_address"`
+	Coordinates   Coordinates `json:"cooridinates"`
 }
 
 func ToEventUpdateResp(req *UpdatedEventRespReq) (*EventUpdatesResp, error) {
@@ -105,7 +105,10 @@ func ToEventUpdateResp(req *UpdatedEventRespReq) (*EventUpdatesResp, error) {
 			City:          req.UpdatedEvent.City,
 			Country:       req.UpdatedEvent.Country,
 			DetailAddress: req.UpdatedEvent.DetailAddress,
-			Coordinates:   req.UpdatedEvent.Coordinates,
+			Coordinates: Coordinates{
+				Lat: req.UpdatedEvent.Lat,
+				Lon: req.UpdatedEvent.Lon,
+			},
 		},
 		UpdatedCategories: req.EventCategories,
 		UpdatedTickets:    req.Tickets,

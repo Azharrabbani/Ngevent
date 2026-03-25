@@ -96,7 +96,7 @@ func (h *EventHandler) CreateEvent(c *fiber.Ctx) error {
 	))
 }
 
-func (h *EventHandler) GetAEvents(c *fiber.Ctx) error {
+func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 	role := c.Locals("role").(string)
 
 	filterReq := new(dto.EventFilterReq)
@@ -120,7 +120,8 @@ func (h *EventHandler) GetAEvents(c *fiber.Ctx) error {
 
 	var start, end time.Time
 	if filterReq.Date != 0 {
-		unix := time.Unix(filterReq.Date, 0)
+		loc, _ := time.LoadLocation("Asia/Jakarta")
+		unix := time.Unix(filterReq.Date, 0).In(loc)
 		start = time.Date(unix.Year(), unix.Month(), unix.Day(), 0, 0, 0, 0, time.UTC)
 		end = start.Add(24 * time.Hour)
 	}
@@ -210,7 +211,8 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 
 	var start, end time.Time
 	if filterReq.Date != 0 {
-		unix := time.Unix(filterReq.Date, 0)
+		loc, _ := time.LoadLocation("Asia/Jakarta")
+		unix := time.Unix(filterReq.Date, 0).In(loc)
 		start = time.Date(unix.Year(), unix.Month(), unix.Day(), 0, 0, 0, 0, time.UTC)
 		end = start.Add(24 * time.Hour)
 	}

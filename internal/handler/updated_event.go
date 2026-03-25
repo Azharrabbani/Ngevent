@@ -50,7 +50,8 @@ func (h *UpdatedEventHandler) ListAllUpdated(c *fiber.Ctx) error {
 
 	var start, end time.Time
 	if filterReq.Date != 0 {
-		unix := time.Unix(filterReq.Date, 0)
+		loc, _ := time.LoadLocation("Asia/Jakarta")
+		unix := time.Unix(filterReq.Date, 0).In(loc)
 		start = time.Date(unix.Year(), unix.Month(), unix.Day(), 0, 0, 0, 0, time.UTC)
 		end = start.Add(24 * time.Hour)
 	}
@@ -125,7 +126,8 @@ func (h *UpdatedEventHandler) ListAllUpdatedByEventID(c *fiber.Ctx) error {
 
 	var start, end time.Time
 	if filterReq.Date != 0 {
-		unix := time.Unix(filterReq.Date, 0)
+		loc, _ := time.LoadLocation("Asia/Jakarta")
+		unix := time.Unix(filterReq.Date, 0).In(loc)
 		start = time.Date(unix.Year(), unix.Month(), unix.Day(), 0, 0, 0, 0, time.UTC)
 		end = start.Add(24 * time.Hour)
 	}

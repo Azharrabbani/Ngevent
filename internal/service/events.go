@@ -130,7 +130,7 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 		Country:       *location.Country,
 		DetailAddress: req.Address.DetailAddress,
 		Coordinates:   *location.Coordinates,
-		Date:          date,
+		Date:          date.UTC(),
 	}
 
 	event, err = s.EventRepo.Create(event, categories, tickets)

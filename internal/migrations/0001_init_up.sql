@@ -218,14 +218,14 @@ CREATE UNIQUE INDEX "unique_approved_nib"
 ON "public"."organizer_profiles"("nib_number")
 WHERE status = 'approved';
 
-CREATE UNIQUE INDEX unique_pending_update
-ON "public"."organizer_profile_updates" ("organizer_profile_id")
+CREATE UNIQUE INDEX "unique_pending_update"
+ON "public"."organizer_profiles_updates" ("profile_id")
 WHERE status = 'pending';
 
 CREATE UNIQUE INDEX "unique_category_event"
 ON "public"."event_categories"("event_id", "category_id");
 
-CREATE UNIQUE INDEX unique_event_updates
+CREATE UNIQUE INDEX "unique_event_updates"
 ON "public"."event_updates" ("event_id")
 WHERE status = 'pending';
 

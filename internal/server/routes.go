@@ -118,7 +118,7 @@ func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 	event.Use(middleware.AuthMiddleware())
 	{
 		event.Post("/", middleware.AuthorizeRoles(string(model.Organizer)), h.CreateEvent)
-		event.Get("/", middleware.AuthorizeRoles(string(model.Attendee), string(model.Admin)), h.GetAEvents)
+		event.Get("/", middleware.AuthorizeRoles(string(model.Attendee), string(model.Admin)), h.GetEvents)
 		event.Get("/organizer-events", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.GetEventsByProfileID)
 		event.Put("/review", middleware.AuthorizeRoles(string(model.Admin)), h.ReviewEvent)
 		event.Put("/cancel", middleware.AuthorizeRoles(string(model.Organizer)), h.CancelEvent)

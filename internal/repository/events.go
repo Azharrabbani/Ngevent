@@ -196,7 +196,11 @@ func (r *EventsRepository) CancelEvent(id string) error {
 func (r *EventsRepository) FindAll(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
 	var events []*model.Events
 
-	query := r.db.Scopes(filterEventList(filter))
+	query := r.db.Select(
+		`events.*,
+		ST_Y(coordinates::geometry) AS lat,
+		ST_X(coordinates::geometry) AS lon`,
+	).Scopes(filterEventList(filter))
 
 	if err := query.
 		Scopes(Paginate(events, &pagination, query)).
@@ -254,7 +258,11 @@ func (r *EventsRepository) FindActiveEvents(filter *dto.EventFilter, pagination 
 func (r *EventsRepository) FindByProfileID(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
 	var events []*model.Events
 
-	query := r.db.Scopes(filterEventList(filter))
+	query := r.db.Select(
+		`events.*,
+		ST_Y(coordinates::geometry) AS lat,
+		ST_X(coordinates::geometry) AS lon`,
+	).Scopes(filterEventList(filter))
 
 	if err := query.
 		Scopes(Paginate(events, &pagination, query)).
@@ -280,7 +288,13 @@ func (r *EventsRepository) FindByProfileID(filter *dto.EventFilter, pagination m
 func (r *EventsRepository) FindByID(id string) (*model.Events, error) {
 	var event *model.Events
 
-	if err := r.db.Where("id = ?", id).
+	if err := r.db.
+		Select(`
+			events.*,
+			ST_Y(coordinates::geometry) AS lat,
+			ST_X(coordinates::geometry) AS lon
+		`).
+		Where("id = ?", id).
 		Preload("Profile.User").
 		Preload("Categories.Category").
 		Preload("Tickets").
@@ -414,11 +428,11 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 		}
 
 		if filter.Start != nil {
-			db = db.Where("created_at >= ?", filter.Start)
+			db = db.Where("date >= ?", filter.Start)
 		}
 
 		if filter.End != nil {
-			db = db.Where("created_at < ?", filter.End)
+			db = db.Where("date < ?", filter.End)
 		}
 
 		return db
@@ -476,7 +490,10 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 				City:          event.City,
 				Country:       event.Country,
 				DetailAddress: event.DetailAddress,
-				Coordinates:   event.Coordinates,
+				Coordinates: dto.Coordinates{
+					Lat: event.Lat,
+					Lon: event.Lon,
+				},
 			},
 			Date:      helper.ConvertDatetoUnix(event.Date.Format(time.RFC3339)),
 			CreatedAt: helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),

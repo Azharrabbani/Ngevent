@@ -44,7 +44,6 @@ type EventFilter struct {
 	Country   *string    `json:"country" query:"country"`
 }
 
-
 type TicketsReq struct {
 	ID         *string `json:"id"`
 	Name       string  `json:"name" validate:"required"`
@@ -112,11 +111,16 @@ type EventDetail struct {
 }
 
 type EventAddress struct {
-	Address       string `json:"address"`
-	City          string `json:"city"`
-	Country       string `json:"country"`
-	DetailAddress string `json:"detail_address"`
-	Coordinates   string `json:"coordinates"`
+	Address       string      `json:"address"`
+	City          string      `json:"city"`
+	Country       string      `json:"country"`
+	DetailAddress string      `json:"detail_address"`
+	Coordinates   Coordinates `json:"coordinates"`
+}
+
+type Coordinates struct {
+	Lat float64 `json:"lat"`
+	Lon float64 `json:"lon"`
 }
 
 type EventCategories struct {
@@ -161,7 +165,10 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 			City:          req.Event.City,
 			Country:       req.Event.Country,
 			DetailAddress: req.Event.DetailAddress,
-			Coordinates:   req.Event.Coordinates,
+			Coordinates: Coordinates{
+				Lat: req.Event.Lat,
+				Lon: req.Event.Lon,
+			},
 		},
 		Date:      req.Date,
 		CreatedAt: req.CreatedAt,

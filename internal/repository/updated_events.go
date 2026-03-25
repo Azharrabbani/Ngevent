@@ -85,7 +85,12 @@ func (r *UpdatedEventsRepository) Cancel(id string) error {
 func (r *UpdatedEventsRepository) FindAll(filter *dto.UpdatedEventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsUpdatesResp], error) {
 	var updatedEvents []*model.UpdatedEvents
 
-	query := r.db.Scopes(filterUpdatedEventList(filter))
+	query := r.db.Select(
+		`events.*,
+		ST_Y(coordinates::geometry) AS lat,
+		ST_X(coordinates::geometry) AS lon`,
+	).
+		Scopes(filterUpdatedEventList(filter))
 
 	if err := query.
 		Scopes(Paginate(updatedEvents, &pagination, query)).
@@ -137,7 +142,13 @@ func (r *UpdatedEventsRepository) FindAllByEventID(filter *dto.UpdatedEventFilte
 func (r *UpdatedEventsRepository) FindByID(id string) (*model.UpdatedEvents, error) {
 	var updatedEvent *model.UpdatedEvents
 
-	if err := r.db.Where("id = ?", id).
+	if err := r.db.
+		Select(`
+			event_updates.*,
+			ST_Y(coordinates::geometry) AS lat,
+			ST_X(coordinates::geometry) AS lon
+		`).
+		Where("id = ?", id).
 		Preload("Event").
 		Preload("Categories.Category").
 		Preload("Tickets").
@@ -173,11 +184,11 @@ func filterUpdatedEventList(filter *dto.UpdatedEventFilter) func(*gorm.DB) *gorm
 		}
 
 		if filter.Start != nil {
-			db = db.Where("created_at >= ?", filter.Start)
+			db = db.Where("date >= ?", filter.Start)
 		}
 
 		if filter.End != nil {
-			db = db.Where("created_at < ?", filter.End)
+			db = db.Where("date < ?", filter.End)
 		}
 
 		return db
@@ -215,7 +226,10 @@ func toUpdatedEventsResp(updatedEvents []*model.UpdatedEvents) ([]*dto.EventsUpd
 				City:          event.City,
 				Country:       event.Country,
 				DetailAddress: event.DetailAddress,
-				Coordinates:   event.Coordinates,
+				Coordinates: dto.Coordinates{
+					Lat: event.Lat,
+					Lon: event.Lon,
+				},
 			},
 			UpdatedCategories: categories,
 			UpdatedTickets:    len(event.Tickets),
