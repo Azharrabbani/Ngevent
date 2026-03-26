@@ -86,7 +86,7 @@ func (r *UpdatedEventsRepository) FindAll(filter *dto.UpdatedEventFilter, pagina
 	var updatedEvents []*model.UpdatedEvents
 
 	query := r.db.Select(
-		`events.*,
+		`event_updates.*,
 		ST_Y(coordinates::geometry) AS lat,
 		ST_X(coordinates::geometry) AS lon`,
 	).

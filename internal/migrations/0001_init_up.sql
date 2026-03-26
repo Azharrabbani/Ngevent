@@ -241,6 +241,7 @@ CREATE INDEX "idx_eo_profile_id" ON "public"."organizer_profiles_updates"("profi
 CREATE INDEX "idx_categories_slug" ON "public"."categories"("slug");
 CREATE INDEX "idx_event_slug" ON "public"."events"("slug");
 CREATE INDEX "idx_event_status" ON "public"."events"("status");
+CREATE INDEX "idx_event_city" ON "public"."events"("city");
 CREATE INDEX "idx_ticket_type" ON "public"."tickets"("ticket_type");
 CREATE INDEX "idx_event_id" ON "public"."event_categories"("event_id");
 CREATE INDEX "idx_category_id" ON "public"."event_categories"("category_id");
