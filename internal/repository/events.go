@@ -254,6 +254,40 @@ func (r *EventsRepository) FindActiveEvents(filter *dto.EventFilter, pagination 
 
 }
 
+// FindByCity implements EventsRepo.
+func (r *EventsRepository) FindNearestEvents(lat, lon float64) ([]*dto.EventsResp, error) {
+	var events []*model.Events
+
+	if err := r.db.
+		Select(`
+			events.*,
+			ST_Y(coordinates::geometry) AS lat,
+			ST_X(coordinates::geometry) AS lon,
+			ST_Distance(
+				coordinates,
+				ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography
+			) AS distance
+		`, lon, lat).
+		Where(`
+			ST_DWithin(
+				coordinates,
+				ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography,
+				8000
+			) AND status = ?
+		`, lon, lat, model.Active).
+		Order("distance ASC").
+		Find(&events).Error; err != nil {
+		return nil, err
+	}
+
+	resp, err := toEventResponse(events)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 // FindByProfileID implements EventsRepo.
 func (r *EventsRepository) FindByProfileID(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
 	var events []*model.Events

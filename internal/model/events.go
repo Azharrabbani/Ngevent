@@ -35,8 +35,8 @@ type Events struct {
 	Country       string             `json:"country"`
 	DetailAddress string             `json:"detail_address"`
 	Coordinates   string             `json:"coordinates" gorm:"type:geography(Point,4326)"`
-	Lat           float64            `json:"lat" gorm:"column:lat"`
-	Lon           float64            `json:"lon" gorm:"column:lon"`
+	Lat           float64            `json:"lat" gorm:"->;column:lat"`
+	Lon           float64            `json:"lon" gorm:"->;column:lon"`
 	Date          time.Time          `json:"date"`
 	CreatedAt     time.Time          `json:"created_at" gorm:"default:now()"`
 	UpdatedAt     time.Time          `json:"updated_at" gorm:"default:now()"`

@@ -196,6 +196,52 @@ func (h *EventHandler) GetEventByID(c *fiber.Ctx) error {
 	))
 }
 
+func (h *EventHandler) FindNearestEvents(c *fiber.Ctx) error {
+	var req dto.NearestEventReq
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"validation-error",
+			msg,
+		))
+	}
+
+	user := model.Location{
+		Name: "user",
+		Lat:  req.Lat,
+		Lon:  req.Lon,
+	}
+
+	resp, err := h.EventService.FindNearestEvent(user)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		resp,
+	))
+}
+
 func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 

@@ -250,3 +250,7 @@ CREATE INDEX "event_update_event_id" ON "public"."event_updates" ("event_id");
 CREATE INDEX "event_update_status" ON "public"."event_updates" ("status");
 CREATE INDEX "event_update_tickets_event_update_id" ON "public"."event_update_tickets" ("event_update_id");
 CREATE INDEX "event_update_categories_event_update_id" ON "public"."event_update_categories" ("event_update_id");
+CREATE INDEX "idx_events_active_coordinates"
+ON "public"."events"
+USING GIST ("coordinates")
+WHERE status = 'active';

@@ -24,6 +24,48 @@ type EventReq struct {
 	Status      string          `json:"status" validate:"oneof=draft pending"`
 }
 
+type NearestEventReq struct {
+	Lat float64 `json:"lat" validate:"required"`
+	Lon float64 `json:"lon" validate:"required"`
+}
+
+type NearestResult struct {
+	Haversine Haversine
+	Dijkstra  Dijkstra
+	Path      []string
+}
+
+type Haversine struct {
+	Name     string
+	Distance string
+	Time     string
+	Accuracy string
+}
+
+type Dijkstra struct {
+	Name     string
+	Distance string
+	Time     string
+	Accuracy string
+}
+
+type AccuracyReq struct {
+	Events        []model.Location
+	User          model.Location
+	NearestEvent  NearestResult
+	TotalErrorHav float64
+	TotalErrorDij float64
+}
+
+type PerformenceResp struct {
+	HavResults map[string]float64
+	DistMap    map[string]float64
+	HavTime    time.Duration
+	DijTime    time.Duration
+	MinHav     float64
+	MinDij     float64
+}
+
 type EventFilterReq struct {
 	Title    string `json:"title" query:"title"`
 	Category []int  `json:"category" query:"category"`

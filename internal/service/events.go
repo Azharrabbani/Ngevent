@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"mime/multipart"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
@@ -336,6 +337,26 @@ func (s *EventService) GetEventByID(id string) (*dto.EventsResp, error) {
 	return eventResp, nil
 }
 
+func (s *EventService) FindNearestEvent(user model.Location) (*dto.NearestResult, error) {
+	eventsInRange, err := s.EventRepo.FindNearestEvents(user.Lat, user.Lon)
+	if err != nil {
+		return nil, errors.New("there are no events near your location at the moment.")
+	}
+
+	var events []model.Location
+	for _, event := range eventsInRange {
+		events = append(events, model.Location{
+			Name: event.Event.Name,
+			Lat:  event.EventAddress.Coordinates.Lat,
+			Lon:  event.EventAddress.Coordinates.Lon,
+		})
+	}
+
+	nearestEvent := Nearest(user, events)
+
+	return nearestEvent, nil
+}
+
 func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventReq) error {
 	// Search the eo profile
 	profile, err := s.ProfileRepo.FindByUserID(req.UserID)
@@ -624,6 +645,122 @@ func (s *EventService) CreateUpdateEvent(banner *multipart.FileHeader, event *mo
 	}
 
 	return nil
+}
+
+func Nearest(user model.Location, events []model.Location) *dto.NearestResult {
+	performence := HavAndDijPerformence(user, events)
+
+	totalErrorHav := 0.0
+	totalErrorDij := 0.0
+
+	req := dto.AccuracyReq{
+		Events:        events,
+		User:          user,
+		NearestEvent:  dto.NearestResult{},
+		TotalErrorHav: totalErrorHav,
+		TotalErrorDij: totalErrorDij,
+	}
+
+	accuracyHav, accuracyDij := HavAndDijAccuracy(performence, &req)
+
+	// =========================
+	// ASSIGN PERFORMANCE & ACCURACY
+	// =========================
+	req.NearestEvent.Haversine.Time = fmt.Sprintf("%.4f s", performence.HavTime.Seconds())
+	req.NearestEvent.Haversine.Accuracy = fmt.Sprintf("%.2f%%", accuracyHav)
+
+	req.NearestEvent.Dijkstra.Time = fmt.Sprintf("%.4f s", performence.DijTime.Seconds())
+	req.NearestEvent.Dijkstra.Accuracy = fmt.Sprintf("%.2f%%", accuracyDij)
+
+	return &req.NearestEvent
+}
+
+func HavAndDijPerformence(user model.Location, events []model.Location) *dto.PerformenceResp {
+	// Haversine
+	startHav := time.Now()
+
+	havResults := make(map[string]float64)
+	for _, e := range events {
+		havResults[e.Name] = utils.Haversine(user.Lat, user.Lon, e.Lat, e.Lon)
+	}
+
+	havTime := time.Since(startHav)
+
+	// Dijkstra
+	startDij := time.Now()
+
+	graph := utils.BuildGraph(user, events)
+	distMap, _ := utils.Dijkstra(*graph, user.Name)
+
+	dijTime := time.Since(startDij)
+
+	minHav := math.Inf(1)
+	minDij := math.Inf(1)
+
+	return &dto.PerformenceResp{
+		HavResults: havResults,
+		DistMap:    distMap,
+		HavTime:    havTime,
+		DijTime:    dijTime,
+		MinHav:     minHav,
+		MinDij:     minDij,
+	}
+
+}
+
+func HavAndDijAccuracy(performence *dto.PerformenceResp, req *dto.AccuracyReq) (float64, float64) {
+	for _, e := range req.Events {
+		hav := performence.HavResults[e.Name]
+		dij := performence.DistMap[e.Name]
+
+		if hav < performence.MinHav {
+			performence.MinHav = hav
+			req.NearestEvent.Haversine = dto.Haversine{
+				Name:     e.Name,
+				Distance: fmt.Sprintf("%.2f km", hav),
+			}
+		}
+
+		if dij < performence.MinDij {
+			performence.MinDij = dij
+
+			route, err := utils.GetRouteOSRM(req.User.Lat, req.User.Lon, e.Lat, e.Lon)
+			if err == nil {
+				req.NearestEvent.Path = utils.ExtractPath(route, e.Name)
+			}
+
+			req.NearestEvent.Dijkstra = dto.Dijkstra{
+				Name:     e.Name,
+				Distance: fmt.Sprintf("%.2f km", dij),
+			}
+		}
+
+		// =========================
+		// ACCURACY DIJKSTRA
+		// =========================
+		if dij != 0 {
+			req.TotalErrorDij += math.Abs(hav-dij) / dij * 100
+		}
+
+		// =========================
+		// ACCURACY HAVERSINE
+		// =========================
+		if hav != 0 {
+			req.TotalErrorHav += math.Abs(hav-dij) / hav * 100
+		}
+	}
+
+	// =========================
+	// FINAL ACCURACY
+	// =========================
+	avgErrorHav := req.TotalErrorHav / float64(len(req.Events))
+	accuracyHav := 100 - avgErrorHav
+
+	avgErrorDij := req.TotalErrorDij / float64(len(req.Events))
+	accuracyDij := 100 - avgErrorDij
+
+	return accuracyHav, accuracyDij
+
 }
 
 func getLocation(lat, lon string) *dto.LocationResp {
