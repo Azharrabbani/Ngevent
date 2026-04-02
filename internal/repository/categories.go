@@ -45,6 +45,17 @@ func (r *CategoriesRepository) FindByID(id string) (*model.Categories, error) {
 	return category, nil
 }
 
+// FindByIDs implements CategoriesRepo.
+func (r *CategoriesRepository) FindByIDs(ids []int64) ([]*model.Categories, error) {
+	var categories []*model.Categories
+
+	if err := r.db.Where("(id) IN ?", ids).Find(&categories).Error; err != nil {
+		return nil, err
+	}
+
+	return categories, nil
+}
+
 // FindBySlug implements CategoriesRepo.
 func (r *CategoriesRepository) FindBySlug(title string, pagination model.Pagination) (*model.PaginationRow[*model.Categories], error) {
 	var categories []*model.Categories

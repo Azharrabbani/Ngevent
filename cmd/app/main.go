@@ -70,6 +70,8 @@ func main() {
 	organizerProfileRepo := repository.NewOrganizerRepository(server.DB)
 	organizerUpdateRepo := repository.NewOrganizerProfileUpdateRepository(server.DB)
 	categoryRepo := repository.NewCategoriesRepository(server.DB)
+	eventRepo := repository.NewEventsRepository(server.DB)
+	updateEventRepo := repository.NewUpdatedEventsRepository(server.DB)
 
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
@@ -79,6 +81,8 @@ func main() {
 	organizerProfileService := service.NewOrganizerProfileService(organizerProfileRepo, userRepo, organizerUpdateRepo, emailTaskPublisher, server.RDB)
 	organizerUpdateService := service.NewOrganizerUpdateService(userRepo, organizerProfileRepo, organizerUpdateRepo, emailTaskPublisher, server.RDB)
 	categoryService := service.NewCategoryService(categoryRepo, server.RDB)
+	eventService := service.NewEventService(eventRepo, updateEventRepo, userRepo, organizerProfileRepo, categoryRepo, emailTaskPublisher, server.RDB)
+	updateEventService := service.NewUpdatedEventService(updateEventRepo, eventRepo, organizerProfileRepo, server.RDB, emailTaskPublisher)
 
 	// Init handler
 	authHandler := handler.NewAuthHandler(authService, validate)
@@ -88,6 +92,8 @@ func main() {
 	organizerProfileHandler := handler.NewOrganizerProfileHandler(organizerProfileService, validate)
 	organizerUpdateHandler := handler.NewOrganizerUpdateHandler(organizerUpdateService, validate)
 	categoryHandler := handler.NewCategoriesHandler(categoryService, validate)
+	eventHandler := handler.NewEventHandler(eventService, validate)
+	updateEventHandler := handler.NewUpdatedEventHandler(updateEventService, validate)
 
 	// Register routes
 	server.RegisterFiberRoutes()
@@ -98,6 +104,8 @@ func main() {
 	server.RegisterOrganizerProfileRoutes(organizerProfileHandler)
 	server.RegisterOrganizerUpdateRoutes(organizerUpdateHandler)
 	server.RegisterCategoriesRoutes(categoryHandler)
+	server.RegisterEventRoutes(eventHandler)
+	server.RegisterUpdatedEventRoutes(updateEventHandler)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

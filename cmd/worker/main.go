@@ -41,6 +41,12 @@ func main() {
 	worker.Mux.HandleFunc(model.TypeEmailOrganizerProfileVerified, tasks.NewEmailTaskHandler().HandlerOrganizerProfileVerified)
 	worker.Mux.HandleFunc(model.TypeEmailOrganizerProfileRejected, tasks.NewEmailTaskHandler().HandlerOrganizerProfileRejected)
 
+	// Event email handler
+	worker.Mux.HandleFunc(model.TypeEventAdminNotification, tasks.NewEmailTaskHandler().HandlerEventAdminNotification)
+	worker.Mux.HandleFunc(model.TypeEventEONotification, tasks.NewEmailTaskHandler().HandlerEventOrganizerNotification)
+	worker.Mux.HandleFunc(model.TypeEventEOVerification, tasks.NewEmailTaskHandler().HandlerEventOrganizerVerification)
+	worker.Mux.HandleFunc(model.TypeEventUpdateNotification, tasks.NewEmailTaskHandler().HandlerUpdateEventOrganizerNotif)
+
 	// Start Worker Server
 	if err := worker.Srv.Run(worker.Mux); err != nil {
 		log.Fatalf("could not run server: %v", err)

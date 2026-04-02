@@ -10,3 +10,7 @@ func ConvertDatetoUnix(date string) int64 {
 
 	return unitDate.Unix()
 }
+
+func ConvertUnixtoDate(unix int64) time.Time {
+	return time.Unix(unix, 0)
+}

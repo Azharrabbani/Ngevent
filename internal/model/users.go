@@ -2,6 +2,14 @@ package model
 
 import "time"
 
+type UserRole string
+
+const (
+	Admin     UserRole = "admin"
+	Attendee  UserRole = "user"
+	Organizer UserRole = "event organizer"
+)
+
 type Users struct {
 	ID         string    `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 	Email      string    `json:"email"`

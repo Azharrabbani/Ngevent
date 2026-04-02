@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
+	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
 	"os"
 	"time"
@@ -45,23 +45,8 @@ var (
 	nibStagePath  = "./storage/nib/stage"
 )
 
-func (s *OrganizerUpdateService) InvalidateCache() {
-	ctx := context.Background()
-
-	patterns := []string{
-		"organizer:update:all:*",
-	}
-
-	for _, pattern := range patterns {
-		iter := s.rdb.Scan(ctx, 0, pattern, 0).Iterator()
-
-		for iter.Next(ctx) {
-			s.rdb.Del(ctx, iter.Val())
-		}
-	}
-
-	// Use SCAN for pattern keys to avoid blocking
-	log.Println("[CACHE] organizers update cache invalidated")
+var organizerUpdateCache []string = []string{
+	"organizer:update:all:*",
 }
 
 func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
@@ -187,7 +172,7 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCache()
+	utils.InvalidateCache(s.rdb, organizerUpdateCache)
 
 	return nil
 }

@@ -50,23 +50,8 @@ var (
 	npwpFilePath = "./storage/npwp"
 )
 
-func (s *OrganizerProfileService) InvalidateCache() {
-	ctx := context.Background()
-
-	patterns := []string{
-		"organizer:all:*",
-	}
-
-	for _, pattern := range patterns {
-		iter := s.rdb.Scan(ctx, 0, pattern, 0).Iterator()
-
-		for iter.Next(ctx) {
-			s.rdb.Del(ctx, iter.Val())
-		}
-	}
-
-	// Use SCAN for pattern keys to avoid blocking
-	log.Println("[CACHE] organizers cache invalidated")
+var organizerCache []string = []string{
+	"organizer:all:*",
 }
 
 func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProfileReq) error {
@@ -172,7 +157,7 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCache()
+	utils.InvalidateCache(s.rdb, organizerCache)
 
 	return nil
 }
@@ -281,7 +266,7 @@ func (s *OrganizerProfileService) VerifiedProfile(id string, req *dto.ApprovedRe
 	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileVerified, payload)
 
 	// Invalidate cache after update
-	s.InvalidateCache()
+	utils.InvalidateCache(s.rdb, organizerCache)
 
 	return nil
 }
@@ -310,7 +295,7 @@ func (s *OrganizerProfileService) RejectProfile(id string, req *dto.RejectedReq)
 	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileRejected, payload)
 
 	// Invalidate cache after update
-	s.InvalidateCache()
+	utils.InvalidateCache(s.rdb, organizerCache)
 
 	return nil
 }
@@ -350,7 +335,7 @@ func (s *OrganizerProfileService) UpdatePhotoProfile(file *multipart.FileHeader,
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCache()
+	utils.InvalidateCache(s.rdb, organizerCache)
 
 	return 0, nil
 }
@@ -485,7 +470,7 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 	}
 
 	// Invalidate cache after update
-	s.InvalidateCache()
+	utils.InvalidateCache(s.rdb, organizerCache)
 
 	return fiber.StatusOK, nil
 }
@@ -497,12 +482,12 @@ func validateFile(req *dto.ValidateFileReq) error {
 	}
 
 	// Validate npwp file
-	if err := helper.ValidatePDF(req.NPWP); err != nil {
+	if err := helper.ValidatePDF(&req.NPWP); err != nil {
 		return err
 	}
 
 	// Validate nib file
-	if err := helper.ValidatePDF(req.NIB); err != nil {
+	if err := helper.ValidatePDF(&req.NIB); err != nil {
 		return err
 	}
 
