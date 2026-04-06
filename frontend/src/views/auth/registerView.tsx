@@ -1,19 +1,19 @@
-export default function LoginView() {
+export default function RegisterView() {
     return(
         <section className="bg-gray-50 min-h-screen flex items-center justify-center">
-            {/* Login container */}
+            {/* Register container */}
             <div className="bg-gray-100 flex rounded-2xl shadow-lg  max-w-4xl items-center">
                 {/* Image */}
                 <div className="md:block hidden w-1/2">
-                    <img className="rounded-2xl h-[30rem]" 
+                    <img className="rounded-2xl h-[33rem]" 
                     src="https://plus.unsplash.com/premium_photo-1701760184917-38e25718ee3e?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8bG9naW4lMjBiYWNrZ3JvdW5kfGVufDB8fDB8fHww" 
                     alt="login-img" />
 
                 </div>
 
                 {/* Form */}
-                <div className="md:w-1/2 px-8 md:px-16">
-                    <h2 className="font-bold text-2xl text-center">Login</h2>
+                <div className="md:w-1/2 my-6 px-8 md:px-16">
+                    <h2 className="font-bold text-2xl text-center">Register</h2>
 
                     <form action="" 
                     className="flex flex-col gap-4 mb-2">
@@ -33,7 +33,21 @@ export default function LoginView() {
                               <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
                             </svg>
                         </div>
-                        <button className="bg-cyan-300 text-white rounded-xl py-2 hover:scale-105 hover:bg-blue-400 transition-all duration-300">Login</button>
+                        <div className="relative">
+                            <input 
+                            className="p-2 rounded-xl border-none bg-gray-200 w-full"
+                            type="password" 
+                            name="confirm-password" 
+                            placeholder="confirm password" />
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="gray" className="bi bi-eye absolute top-1/2 right-3 -translate-y-1/2" viewBox="0 0 16 16">
+                              <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                              <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                            </svg>
+                        </div>
+                        <button 
+                        className="bg-cyan-300 text-white rounded-xl py-2 hover:scale-105 hover:bg-blue-400 transition-all duration-300">
+                            Register
+                        </button>
                     </form>
 
                     
@@ -44,7 +58,7 @@ export default function LoginView() {
                     </div>
                     
                     <button 
-                    className="hover:bg-white border py-2 w-full rounded-xl mt-5 flex justify-center items-center text-sm hover:scale-105 transition-full duration-300">
+                    className="bg-white border py-2 w-full rounded-xl mt-5 flex justify-center items-center text-sm hover:scale-105 transition-transform duration-300">
                         <svg 
                         className="mr-3 "
                         xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20px" height="25px" viewBox="0 0 48 48">
@@ -65,8 +79,8 @@ export default function LoginView() {
 
                     <hr />
                     <div className="my-3 text-sm px-3 flex justify-center items-center gap-2">
-                        <p>If you don't have an account...</p>
-                        <a className="text-blue-500 hover:text-blue-700" href="">Register</a>
+                        <p>Already have an account...</p>
+                        <a className="text-blue-500 hover:text-blue-700" href="">Login</a>
                     </div>
                 </div>
             </div>
