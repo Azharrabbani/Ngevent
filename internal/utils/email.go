@@ -13,7 +13,7 @@ import (
 func ForgotPasswordMail(email, otpID string) error {
 
 	urlHost := os.Getenv("APP_HOST")
-	urlPort := os.Getenv("APP_PORT")
+	urlPort := "5173"
 
 	// Send to email
 	m := gomail.NewMessage()
@@ -22,7 +22,7 @@ func ForgotPasswordMail(email, otpID string) error {
 	m.SetHeader("Subject", "Reset Password")
 
 	resetLink := fmt.Sprintf(
-		"%s:%s/api/v1/reset-password/%s",
+		"http://%s:%s/reset-password?token=%s",
 		urlHost,
 		urlPort,
 		otpID,

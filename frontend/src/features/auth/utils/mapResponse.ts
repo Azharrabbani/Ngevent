@@ -1,7 +1,7 @@
+import type { successResponse } from "../../../types/apiResponse";
 import type { AuthModel } from "../types/authModel";
-import type { LoginResponse } from "../types/loginResponse";
 
-export const mapLoginResponse = (res: LoginResponse): AuthModel => {
+export const mapLoginResponse = (res: successResponse<any>): AuthModel => {
     return {
         id: res.data.id,
         email: res.data.email,

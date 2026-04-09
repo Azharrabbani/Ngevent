@@ -1,5 +1,5 @@
 import { useState } from "react"
-import type { LoginRequest } from "../types/loginRequest"
+import type { LoginRequest } from "../types/authRequest"
 import type { AuthModel } from "../types/authModel"
 import { loginApi } from "../api/authApi"
 import { mapLoginResponse } from "../utils/mapResponse"
