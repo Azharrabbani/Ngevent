@@ -98,22 +98,14 @@ func ForgotPasswordMail(email, otpID string) error {
 }
 
 // Verify email
-func VerifyEmailMail(otp, email, otpID string) error {
-	urlHost := os.Getenv("APP_HOST")
-	urlPort := os.Getenv("APP_PORT")
-
+func VerifyEmailMail(otp, email string) error {
 	// Send to email
 	m := gomail.NewMessage()
 	m.SetHeader("From", "ngevent@gmail.com")
 	m.SetHeader("To", email)
 	m.SetHeader("Subject", "Verifify Email")
 
-	verifyLink := fmt.Sprintf(
-		"%s:%s/api/v1/verify-email/%s",
-		urlHost,
-		urlPort,
-		otpID,
-	)
+	
 
 	m.SetBody("text/html", fmt.Sprintf(`
 <!DOCTYPE html>
@@ -165,16 +157,6 @@ func VerifyEmailMail(otp, email, otpID string) error {
 								This verification code will expire shortly.
 							</p>
 
-							<!-- BUTTON -->
-							<div style="text-align:center; margin:30px 0;">
-								<a href="%s"
-								   style="background:#00D9FF; color:#ffffff; text-decoration:none;
-										  padding:14px 24px; border-radius:6px; font-size:16px;
-										  display:inline-block;">
-									Verify Email
-								</a>
-							</div>
-
 							<p style="font-size:14px; color:#555555;">
 								If you did not create an account, you can safely ignore this email.
 							</p>
@@ -194,7 +176,7 @@ func VerifyEmailMail(otp, email, otpID string) error {
 	</table>
 </body>
 </html>
-`, otp, verifyLink))
+`, otp))
 
 	// SMTP configuration
 	host := os.Getenv("SMTP_HOST")

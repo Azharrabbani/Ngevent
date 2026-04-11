@@ -13,6 +13,7 @@ export const useLogin = () => {
         try{
             setLoading(true)
             setError(null)
+            setErrors({})
 
             const res = await loginApi(payload)
 
@@ -33,7 +34,6 @@ export const useLogin = () => {
 
                 setErrors(formatedError)
             } else {
-                setErrors({})
                 setError(err.response?.data?.error || "Login failed")
             }
 

@@ -10,6 +10,7 @@ import (
 type UsersRepo interface {
 	GetDB() *gorm.DB
 	Create(users *model.Users) (*model.Users, error)
+	UpdateRole(users *model.Users) (*model.Users, error)
 	Login(email, password string) (*model.Users, error)
 	FindAll(filter dto.ListUsersReq, pagination model.Pagination) (*model.PaginationRow[*dto.UsersResponse], error)
 	FindByID(id string) (*model.Users, error)

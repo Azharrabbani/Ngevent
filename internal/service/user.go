@@ -51,7 +51,7 @@ var userCache []string = []string{
 	"users:all:*",
 }
 
-func (s *UserService) CreateUser(email, password, role string) error {
+func (s *UserService) CreateUser(email, password, confirmPassword string) (*dto.UsersResponse, error) {
 	userX := s.UserRepo.GetDB().Begin()
 	otpX := s.OtpRepo.GetDB().Begin()
 
@@ -63,55 +63,46 @@ func (s *UserService) CreateUser(email, password, role string) error {
 		}
 	}()
 
-	if role == "admin" {
-		user := &model.Users{
-			Email:      email,
-			Password:   password,
-			Role:       role,
-			IsVerified: true,
-		}
-
-		if err := userX.Create(user); err != nil {
-			return errors.New("email already registred")
-		}
-
-		// Commit all changes
-		if err := userX.Commit().Error; err != nil {
-			return err
-		}
-
-		if err := otpX.Commit().Error; err != nil {
-			return err
-		}
-
-		// Invalidate cache after update
-		utils.InvalidateCache(s.rdb, userCache)
-
-		return nil
+	// Check password
+	if password != confirmPassword {
+		return nil, errors.New("password not match")
 	}
 
-	// User beside admin have to verified their email
+	// Hash the password
+	HashPassword, err := helper.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+
 	user := &model.Users{
 		Email:    email,
-		Password: password,
-		Role:     role,
+		Password: HashPassword,
 	}
 
 	newUser, err := s.UserRepo.Create(user)
 	if err != nil {
-		errors.New("email already registred")
+		userX.Rollback()
+		return nil, errors.New("email already registred")
 	}
+
+	userResp, err := toUserResponse(newUser)
+	if err != nil {
+		userX.Rollback()
+		return nil, err
+	}
+
+	fmt.Println("new user: ", userResp)
 
 	// Generate OTP
 	otpCode, err := helper.GenerateOTP()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	now := time.Now().UTC()
 	otp := helper.NewOTP(
 		otpCode,
-		user.ID,
+		newUser.ID,
 		"verified_email",
 		now.Add(3*time.Minute),
 	)
@@ -120,7 +111,7 @@ func (s *UserService) CreateUser(email, password, role string) error {
 	newOTP, err := s.OtpRepo.Create(otp)
 	if err != nil {
 		userX.Rollback()
-		return err
+		return nil, err
 	}
 
 	// Create unverified user task
@@ -128,7 +119,7 @@ func (s *UserService) CreateUser(email, password, role string) error {
 	userPayload := &model.UnverifiedUserPayload{UserID: newUser.ID}
 	if err := s.UserTaskPublisher.EnqueueUnverifiedUser(model.TypeVerifiedUser, userPayload); err != nil {
 		userX.Rollback()
-		return err
+		return nil, err
 	}
 
 	// Create otp task
@@ -137,16 +128,16 @@ func (s *UserService) CreateUser(email, password, role string) error {
 	if err := s.OtpTaskPublisher.EnqueueOTPVerification(model.TypeVerifiedOTP, otpPayload); err != nil {
 		userX.Rollback()
 		otpX.Rollback()
-		return err
+		return nil, err
 	}
 
 	// Commit all changes
 	if err := userX.Commit().Error; err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := otpX.Commit().Error; err != nil {
-		return err
+		return nil, err
 	}
 
 	// Invalidate cache after update
@@ -154,14 +145,35 @@ func (s *UserService) CreateUser(email, password, role string) error {
 
 	// Send to email
 	emailPayload := &model.EmailPayload{
-		To:    newUser.Email,
-		OTP:   newOTP.OTP,
-		OTPID: newOTP.ID,
+		To:  newUser.Email,
+		OTP: newOTP.OTP,
 	}
 
 	s.EmailTaskPublisher.Enqueue(model.TypeEMailVerify, emailPayload)
 
-	return nil
+	return userResp, nil
+}
+
+func (s *UserService) UpdateRole(id, role string) (*dto.UsersResponse, error) {
+	// Validate user
+	user, err := s.UserRepo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	// Update the role
+	user.Role = &role
+	user, err = s.UserRepo.UpdateRole(user)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := toUserResponse(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func (s *UserService) FindAllUsers(filter *dto.ListUsersReq, pagination model.Pagination) (*model.PaginationRow[*dto.UsersResponse], error) {
@@ -232,6 +244,11 @@ func toUserResponse(user *model.Users) (*dto.UsersResponse, error) {
 		return nil, errors.New("user data not found")
 	}
 
+	var deletedAt int64
+	if user.DeletedAt != nil {
+		deletedAt = helper.ConvertDatetoUnix(user.DeletedAt.Format(time.RFC3339))
+	}
+
 	userResp = &dto.UsersResponse{
 		ID:         user.ID,
 		Email:      user.Email,
@@ -239,7 +256,7 @@ func toUserResponse(user *model.Users) (*dto.UsersResponse, error) {
 		IsVerified: user.IsVerified,
 		CreatedAt:  helper.ConvertDatetoUnix(user.CreatedAt.Format(time.RFC3339)),
 		UpdatedAt:  helper.ConvertDatetoUnix(user.UpdatedAt.Format(time.RFC3339)),
-		DeletedAt:  helper.ConvertDatetoUnix(user.DeletedAt.Format(time.RFC3339)),
+		DeletedAt:  deletedAt,
 	}
 
 	return userResp, nil

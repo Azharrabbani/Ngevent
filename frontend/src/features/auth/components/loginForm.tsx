@@ -17,7 +17,7 @@ export default function LoginForm({onSubmit, loading, errors}: Props) {
         onSubmit(email, password)
     }
 
-    return (
+    return ( 
         <form 
         onSubmit={handleSubmit} 
         className="flex flex-col gap-4 mb-2">

@@ -39,8 +39,6 @@ func (h *AuthHandler) ListPhoneCodes(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) VerififyEmail(c *fiber.Ctx) error {
-	otpID := c.Params("id")
-
 	var req dto.VerifyEmailInput
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
@@ -62,7 +60,7 @@ func (h *AuthHandler) VerififyEmail(c *fiber.Ctx) error {
 	}
 
 	// Verify Email
-	status, err := h.AuthService.VerififyEmail(otpID, req.OTP)
+	status, err := h.AuthService.VerififyEmail(req.Email, req.OTP)
 	if err != nil {
 		return c.Status(status).JSON(dto.Error(
 			status,
@@ -147,7 +145,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	loginUser := &dto.LoginResponse{
 		ID:              user.ID,
 		Email:           user.Email,
-		Role:            user.Role,
+		Role:            *user.Role,
 		NgeventToken:    accessToken,
 		NgeventRefToken: refreshToken,
 	}

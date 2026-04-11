@@ -1,15 +1,34 @@
+import React, { useState } from "react";
 import Button from "../../../components/Button";
 import Input from "../../../components/input";
 
-export default function RegisterForm() {
+interface Props {
+    onSubmit: (email: string, password: string, conFirmPassword: string) => void
+    loading: boolean
+    errors: Record<string, string>
+}
+
+export default function RegisterForm({onSubmit, loading, errors}: Props) {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+
+    const handleSubmit = ((e: React.FormEvent) => {
+        e.preventDefault();
+        onSubmit(email, password, confirmPassword);
+    })
+
     return (
-        <form action="" 
+        <form 
+        onSubmit={handleSubmit} 
         className="flex flex-col gap-4 mb-2">
             <Input
                 type="email"
                 name="email"
                 placeholder="email"
                 className="mt-8"
+                onChange={(e) => setEmail(e.target.value)}
+                error={errors.email}
             />
             <Input
                 type="password"
@@ -21,10 +40,12 @@ export default function RegisterForm() {
                         <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
                     </svg>
                 }
+                onChange={(e) => setPassword(e.target.value)}
+                error={errors.password}
             />
             <Input
                 type="password"
-                name="password"
+                name="confirm_password"
                 placeholder="comfirm password"
                 rightIcon={
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="gray" className="bi bi-eye absolute top-1/2 right-3 -translate-y-1/2" viewBox="0 0 16 16">
@@ -32,9 +53,13 @@ export default function RegisterForm() {
                         <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
                     </svg>
                 }
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                error={errors.confirm_password}
             />
-            <Button type="submit">
-                Register
+            <Button 
+            disabled={loading}
+            type="submit">
+                {loading ? "loading..." : "Register"}
             </Button>
         </form>
     )

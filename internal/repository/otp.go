@@ -29,7 +29,7 @@ func (r *OtpRepository) Create(otp *model.OtpVerifications) (*model.OtpVerificat
 func (r *OtpRepository) FindByID(id string) (*model.OtpVerifications, error) {
 	var otp *model.OtpVerifications
 
-	if err := r.db.Where("id = ?", id).First(&otp).Error; err != nil {
+	if err := r.db.Where("id = ?", id).Order("created_at DESC").First(&otp).Error; err != nil {
 		return nil, err
 	}
 

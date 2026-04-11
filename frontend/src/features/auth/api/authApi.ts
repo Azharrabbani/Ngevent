@@ -1,8 +1,12 @@
-import type { ForgetPasswordRequest, LoginRequest, ResetPasswordRequest } from "../types/authRequest";
-import type { LoginResponse } from "../types/authResponse";
+import type { ForgetPasswordRequest, LoginRequest, RegisterRequest, ResetPasswordRequest } from "../types/authRequest";
+import type { LoginResponse, RegisterResponse } from "../types/authResponse";
 import type { successResponse } from "../../../types/apiResponse";
 import { api } from "../../../lib/api";
 
+export const registerApi = async(payload: RegisterRequest) => {
+    const res = await api.post<successResponse<RegisterResponse>>("/user/register", payload)
+    return res.data
+}
 
 export const loginApi = async(payload: LoginRequest) => {
     const res = await api.post<successResponse<LoginResponse>>("/login", payload)

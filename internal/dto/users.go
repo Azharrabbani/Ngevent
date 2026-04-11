@@ -1,9 +1,13 @@
 package dto
 
 type RegisterInput struct {
-	Email    string `json:"email" validate:"required"`
-	Password string `json:"password" validate:"required"`
-	Role     string `json:"role" validate:"required,oneof=admin user 'event organizer'"`
+	Email           string `json:"email" validate:"required"`
+	Password        string `json:"password" validate:"required"`
+	ConfirmPassword string `json:"confirm_password" validate:"required"`
+}
+
+type RoleInput struct {
+	Role string `json:"role" validate:"required,oneof=user 'event organizer'"`
 }
 
 type LoginInput struct {
@@ -22,7 +26,8 @@ type ResetPasswordInput struct {
 }
 
 type VerifyEmailInput struct {
-	OTP string `json:"otp" validate:"required"`
+	Email string `json:"email"`
+	OTP   string `json:"otp" validate:"required"`
 }
 
 type ResentOTPInput struct {
@@ -44,13 +49,13 @@ type LoginResponse struct {
 }
 
 type UsersResponse struct {
-	ID         string `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
-	Email      string `json:"email"`
-	Role       string `json:"role"`
-	IsVerified bool   `json:"is_verified"`
-	CreatedAt  int64  `json:"created_at"`
-	UpdatedAt  int64  `json:"updated_at"`
-	DeletedAt  int64  `json:"deleted_at,omitempty"`
+	ID         string  `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	Email      string  `json:"email"`
+	Role       *string `json:"role"`
+	IsVerified bool    `json:"is_verified"`
+	CreatedAt  int64   `json:"created_at"`
+	UpdatedAt  int64   `json:"updated_at"`
+	DeletedAt  int64   `json:"deleted_at,omitempty"`
 }
 
 type RefreshTokenResp struct {

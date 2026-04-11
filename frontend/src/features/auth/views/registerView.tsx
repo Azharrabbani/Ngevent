@@ -2,9 +2,23 @@ import AuthContainer from "../components/container";
 import GoogleButton from "../components/googleButton";
 import RegisterForm from "../components/registerForm";
 import Link from "../../../components/link";
+import { useRegister } from "../hooks/useRegister";
 
 export default function RegisterView() {
     const baseUrlPort = import.meta.env.VITE_URL_PORT
+
+    const {register, loading, message, error, errors} = useRegister()
+
+    const handleRegister = async(email: string, password: string, confirm_password: string) => {
+        const user = await register({email, password, confirm_password})
+
+        if (user) {
+            console.log("Register success: ", user)
+
+            // Redirect user to verified email page
+            window.open(`http://localhost:${baseUrlPort}/verified-email`)
+        }
+    }
 
     return(
         <AuthContainer>
@@ -19,7 +33,9 @@ export default function RegisterView() {
                 {/* Form */}
                 <div className="md:w-1/2 my-6 px-8 md:px-16">
                     <h2 className="font-bold text-2xl text-center">Register</h2>
-                    <RegisterForm/>   
+                    <RegisterForm onSubmit={handleRegister} loading={loading} errors={errors}/>
+                    {message && <p>Registration successful! Please check your email for the verification code.</p>}
+                    {error && <p className="text-red-500 mt-3">{error}</p>} 
                     <div className="mt-6 grid grid-cols-3 items-center text-gray-400">
                         <hr  className="border-gray-400"/>
                         <p className="text-center text-sm">or</p>
