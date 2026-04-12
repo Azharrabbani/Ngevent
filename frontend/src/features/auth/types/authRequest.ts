@@ -26,3 +26,7 @@ export interface VerifyEmailRequest {
 export interface ResendOtpRequest {
     email: string
 };
+
+export interface SelectRoleRequest {
+    role: string
+};

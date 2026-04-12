@@ -1,4 +1,4 @@
-import type { ForgetPasswordRequest, LoginRequest, RegisterRequest, ResendOtpRequest, ResetPasswordRequest, VerifyEmailRequest } from "../types/authRequest";
+import type { ForgetPasswordRequest, LoginRequest, RegisterRequest, ResendOtpRequest, ResetPasswordRequest, SelectRoleRequest, VerifyEmailRequest } from "../types/authRequest";
 import type { LoginResponse, RegisterResponse } from "../types/authResponse";
 import type { successResponse } from "../../../types/apiResponse";
 import { api } from "../../../lib/api";
@@ -31,4 +31,9 @@ export const verifyEmailApi = async(payload: VerifyEmailRequest) => {
 export const resendOtpApi = async(payload: ResendOtpRequest) => {
     const res = await api.post<successResponse<string>>("/resend-otp", payload);
     return res.data;
-}
+};
+
+export const selectRoleApi = async(payload: SelectRoleRequest) => {
+    const res = await api.put<successResponse<string>>("/user/role", payload);
+    return res.data;
+};

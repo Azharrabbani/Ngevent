@@ -3,18 +3,26 @@ import GoogleButton from "../components/googleButton";
 import LoginForm from "../components/loginForm";
 import Link from "../../../components/link";
 import { useLogin } from "../hooks/useLogin";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginView() {
     const baseUrlPort = import.meta.env.VITE_URL_PORT
+
+    const navigate = useNavigate()
 
     const {login, loading, error, errors} = useLogin()
 
     const handleLogin = async(email: string, password: string) => {
         const user = await login({email, password})
 
-        if (user) {
-            console.log("Login success: ", user)
+        if (!user) return
+
+        if (user.role == null) {
+            navigate("/select-role")
+        } else {
+            navigate("/dashboard")
         }
+
     }
 
     return(

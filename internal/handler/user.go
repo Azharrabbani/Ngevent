@@ -86,13 +86,12 @@ func (h *UserHandler) SelectRole(c *fiber.Ctx) error {
 		))
 	}
 
-	res, err := h.UserService.UpdateRole(userId, req.Role)
-	if err != nil {
+	if err := h.UserService.UpdateRole(userId, req.Role); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"failed",
 			"invalid-request",
-			err,
+			err.Error(),
 		))
 	}
 
@@ -100,7 +99,7 @@ func (h *UserHandler) SelectRole(c *fiber.Ctx) error {
 		fiber.StatusOK,
 		"success",
 		"success",
-		res,
+		"Role selected",
 	))
 }
 
@@ -164,6 +163,27 @@ func (h *UserHandler) FindUserByID(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusFound).JSON(dto.Success(
 		fiber.StatusFound,
+		"success",
+		"user-found",
+		user,
+	))
+}
+
+func (h *UserHandler) FindCurrentUser(c *fiber.Ctx) error {
+	id := c.Locals("user_id").(string)
+
+	user, err := h.UserService.FindUserByID(id)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
 		"success",
 		"user-found",
 		user,

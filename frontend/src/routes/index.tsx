@@ -4,6 +4,8 @@ import RegisterView from "../features/auth/views/registerView"
 import ForgetPassword from "../features/auth/views/forgetPasswordView"
 import ResetPasswordView from "../features/auth/views/resetPasswordView"
 import VerifiedEmailView from "../features/auth/views/verifiedEmailView"
+import SelectRoleView from "../features/auth/views/selectRoleView"
+import ProtectedRoute from "./protected"
 export default function AppRoutes() {
     return(
         <BrowserRouter>
@@ -13,6 +15,10 @@ export default function AppRoutes() {
                 <Route path="/forget" element={<ForgetPassword/>}/>
                 <Route path="/reset-password" element={<ResetPasswordView/>}/>
                 <Route path="/verified-email" element={<VerifiedEmailView/>}/>
+
+                <Route element={<ProtectedRoute/>}>
+                    <Route path="/select-role" element={<SelectRoleView/>}/>
+                </Route>
             </Routes>
         </BrowserRouter>
     )

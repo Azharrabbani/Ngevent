@@ -31,12 +31,8 @@ func (r *UsersRepository) Create(users *model.Users) (*model.Users, error) {
 }
 
 // UpdateRole implements UsersRepo.
-func (r *UsersRepository) UpdateRole(user *model.Users) (*model.Users, error) {
-	if err := r.db.Updates(user).Error; err != nil {
-		return nil, err
-	}
-
-	return user, nil
+func (r *UsersRepository) UpdateRole(user *model.Users) error {
+	return r.db.Updates(user).Error
 }
 
 func (r *UsersRepository) Login(email, password string) (*model.Users, error) {

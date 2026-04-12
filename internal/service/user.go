@@ -154,26 +154,20 @@ func (s *UserService) CreateUser(email, password, confirmPassword string) (*dto.
 	return userResp, nil
 }
 
-func (s *UserService) UpdateRole(id, role string) (*dto.UsersResponse, error) {
+func (s *UserService) UpdateRole(id, role string) error {
 	// Validate user
 	user, err := s.UserRepo.FindByID(id)
 	if err != nil {
-		return nil, errors.New("user not found")
+		return errors.New("user not found")
+	}
+
+	if user.Role != nil {
+		return errors.New("you have already selected a role")
 	}
 
 	// Update the role
 	user.Role = &role
-	user, err = s.UserRepo.UpdateRole(user)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := toUserResponse(user)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+	return s.UserRepo.UpdateRole(user)
 }
 
 func (s *UserService) FindAllUsers(filter *dto.ListUsersReq, pagination model.Pagination) (*model.PaginationRow[*dto.UsersResponse], error) {

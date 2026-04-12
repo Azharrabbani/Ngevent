@@ -19,8 +19,6 @@ export const useLogin = () => {
 
             const user = mapLoginResponse(res)
 
-            localStorage.setItem("token", user.token)
-
             return user
         } catch(err: any) {
             const validationErrors = err.response?.data?.error
