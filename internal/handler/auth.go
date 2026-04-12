@@ -145,7 +145,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	loginUser := &dto.LoginResponse{
 		ID:              user.ID,
 		Email:           user.Email,
-		Role:            *user.Role,
+		Role:            user.Role,
 		NgeventToken:    accessToken,
 		NgeventRefToken: refreshToken,
 	}

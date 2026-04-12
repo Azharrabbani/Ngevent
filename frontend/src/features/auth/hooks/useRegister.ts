@@ -19,7 +19,7 @@ export const useRegister = () => {
 
             const res = await registerApi(payload)
 
-            localStorage.setItem("token", res.data.email)
+            localStorage.setItem("verify-email", res.data.email)
 
             setMessage(res.message);
             return res

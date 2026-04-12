@@ -113,7 +113,9 @@ func (r *UsersRepository) Update(users *model.Users) (*model.Users, error) {
 }
 
 func (r *UsersRepository) Delete(id string) error {
-	return r.db.Where("id = ?", id).Update("deleted_at", time.Now().UTC()).Error
+	return r.db.Model(&model.Users{}).
+		Where("id = ?", id).
+		Update("deleted_at", time.Now().UTC()).Error
 }
 
 func filterUserList(filter *dto.ListUsersReq) func(*gorm.DB) *gorm.DB {

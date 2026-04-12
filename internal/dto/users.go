@@ -43,7 +43,7 @@ type ListUsersReq struct {
 type LoginResponse struct {
 	ID              string `json:"id"`
 	Email           string `json:"email"`
-	Role            string `json:"role"`
+	Role            *string `json:"role"`
 	NgeventToken    string `json:"ngevent-token"`
 	NgeventRefToken string `json:"ngevent-ref-token"`
 }
