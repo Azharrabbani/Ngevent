@@ -47,7 +47,7 @@ export default function VerifiedEmailView() {
     }, [timeLeft]);
 
     return (
-        <AuthContainer className="p-20 flex flex-col items-center gap-7">
+        <AuthContainer className="px-4 sm:px-6 md:px-10 py-6 flex flex-col items-center gap-6 w-full max-w-md mx-auto">
             <form 
             onSubmit={handleSubmit} 
             className="w-full flex flex-col items-center gap-7"
@@ -59,20 +59,25 @@ export default function VerifiedEmailView() {
                 </div>
         
                 <div className="text-center flex flex-col gap-3">
-                    <h1 className="font-bold text-4xl">
+                    <h1 className="font-bold text-2xl sm:text-3xl md:text-4xl">
                         Verification Code
                     </h1>
-                    <p className="max-w-sm text-center">
+                    <p className="text-sm sm:text-base max-w-xs sm:max-w-sm">
                         Please enter the OTP code sent to your email to verify your account and 
                         continue using our event platform securely.
                     </p>
                 </div>
             
-                <OtpInput
-                    digitLength={6}
-                    value={value}
-                    onChange={e => setValue(e.target.value)}    
-                />
+            <div className="flex justify-center w-full">
+                <div className="flex gap-2 sm:gap-3 flex-wrap justify-center">
+                    <OtpInput
+                        digitLength={6}
+                        value={value}
+                        onChange={e => setValue(e.target.value)}    
+                    />
+
+                </div>
+            </div>
 
                 {error && (
                     <p className="text-red-500 text-sm text-center">
@@ -89,23 +94,23 @@ export default function VerifiedEmailView() {
                 <Button
                     type="submit"
                     disabled={loading || value.length !== 6}
-                    className="bg-blue-600 hover:bg-blue-500 w-full text-xl"
+                    className="bg-blue-600 hover:bg-blue-500 w-full text-base sm:text-lg md:text-xl py-2 sm:py-3"
                 >
                     {loading ? "Verifying..." : "Verify"}
                 </Button>
             </form>        
 
-            <div className="flex justify-between w-full">
+            <div className="flex flex-col sm:flex-row justify-between items-center w-full gap-3">
                 <Button
                     onClick={handleResendEmail}
                     disabled={timeLeft > 0}
-                    className="bg-gray-300 hover:bg-blue-300 hover:text-white font-bold text-sm px-5 text-gray-800"
+                    className="w-full sm:w-auto bg-gray-300 hover:bg-blue-300 hover:text-white font-bold text-sm px-5 text-gray-800"
                 >
                     {loadingResend ? "Sending..." : "Resend"}
                 </Button>
 
                 <p 
-                    className="flex items-center gap-2 bg-blue-300 text-center font-bold text-white rounded-xl p-2 px-5 text-sm"
+                    className="flex items-center justify-center gap-2 bg-blue-300 font-bold text-white rounded-xl px-4 py-2 text-sm w-full sm:w-auto"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-stopwatch-fill" viewBox="0 0 16 16">
                       <path d="M6.5 0a.5.5 0 0 0 0 1H7v1.07A7.001 7.001 0 0 0 8 16a7 7 0 0 0 5.29-11.584l.013-.012.354-.354.353.354a.5.5 0 1 0 .707-.707l-1.414-1.415a.5.5 0 1 0-.707.707l.354.354-.354.354-.012.012A6.97 6.97 0 0 0 9 2.071V1h.5a.5.5 0 0 0 0-1zm2 5.6V9a.5.5 0 0 1-.5.5H4.5a.5.5 0 0 1 0-1h3V5.6a.5.5 0 1 1 1 0"/>

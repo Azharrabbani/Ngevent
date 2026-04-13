@@ -121,7 +121,12 @@ export default function OtpInput({
                             inputRefs.current[index] = el;
                         }}
                         className={cn(
-                            "bg-gray-300 focus:border-input-primary-focus-border focus:ring-input-primary-focus-border/20 flex size-15 items-center justify-center rounded-lg p-2 text-center text-base font-normal shadow-xs focus:ring-1 focus:outline-none disabled:border-base-100 disabled:bg-background-soft-50 disabled:text-input-disabled-text",
+                            `bg-gray-300 
+                            w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14
+                            flex items-center justify-center
+                            rounded-lg text-center text-sm sm:text-base
+                            focus:ring-1 focus:outline-none
+                            transition-all duration-200`,
                             digit && "text-text-50",
                             className
                         )}

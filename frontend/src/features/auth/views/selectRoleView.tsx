@@ -20,13 +20,13 @@ export default function SelectRoleView() {
     }
 
     return(
-        <AuthContainer className="flex flex-col gap-10 p-8">
+        <AuthContainer className="flex flex-col md:flex md:flex-col gap-10 p-8">
             <div className="flex flex-col text-center w-fit gap-2">
                 <h1 className="text-3xl font-bold">Please select your role</h1>
                 <p className="max-w-md mx-auto">Select your role to unlock features and events that match your needs.</p>
             </div>
 
-            <div className="flex gap-10">
+            <div className=" md:flex md:gap-10">
                 {/* Attendee box */}
                 <div
                 onClick={() => setRole("user")}
@@ -58,7 +58,7 @@ export default function SelectRoleView() {
                 className={`
                     flex flex-col gap-3 bg-gray-100 rounded-xl max-w-96 p-7 
                     hover:ring-3 hover:ring-[#312E81] hover:cursor-pointer 
-                    transition-all duration-200
+                    transition-all duration-200 mt-7
                     ${role === "event organizer" ? "ring-3 ring-[#312E81]" : ""}
                 `}>
                     <div className="w-fit rounded-full p-3 bg-[#312E81]">

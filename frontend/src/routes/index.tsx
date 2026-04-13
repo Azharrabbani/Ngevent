@@ -10,15 +10,18 @@ export default function AppRoutes() {
     return(
         <BrowserRouter>
             <Routes>
+                {/* Auth route */}
                 <Route path="/login" element={<LoginView />} />
                 <Route path="/register" element={<RegisterView/>} />
                 <Route path="/forget" element={<ForgetPassword/>}/>
                 <Route path="/reset-password" element={<ResetPasswordView/>}/>
-                <Route path="/verified-email" element={<VerifiedEmailView/>}/>
-
+                <Route element={<ProtectedRoute/>}>
+                    <Route path="/verified-email" element={<VerifiedEmailView/>}/>
+                </Route>            
                 <Route element={<ProtectedRoute/>}>
                     <Route path="/select-role" element={<SelectRoleView/>}/>
                 </Route>
+
             </Routes>
         </BrowserRouter>
     )
