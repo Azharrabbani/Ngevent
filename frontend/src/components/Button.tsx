@@ -11,23 +11,21 @@ const variants = {
 
 interface ButtonsProp extends ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: variant
-    type?:"button" | "submit";
     children: string
     className?: string
-    onClick?: () => void;
 }
 
 export default function Button(
     {
         variant = "primary", 
-        type = "button", 
         children,
         className = "",
-        onClick
+        onClick,
+        ...props
     }: ButtonsProp) {
     return(
         <button 
-        type={type}
+        {...props}
         onClick={onClick}
         className={cn(
             "text-white rounded-xl py-2 transition-all duration-300",

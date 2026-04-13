@@ -22,7 +22,7 @@ func (h *EmailTaskHandler) HandlerUserVerification(ctx context.Context, t *asynq
 		return err
 	}
 
-	return utils.VerifyEmailMail(p.OTP, p.To, p.OTPID)
+	return utils.VerifyEmailMail(p.OTP, p.To)
 }
 
 // Forget password email

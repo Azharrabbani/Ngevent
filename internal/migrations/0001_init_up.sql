@@ -14,7 +14,7 @@ CREATE TABLE "public"."users"(
 	"id" uuid DEFAULT uuid_generate_v4() NOT NULL,
 	"email" varchar(255) NOT NULL UNIQUE,
 	"password" varchar(255) NOT NULL,
-	"role" role NOT NULL,
+	"role" role,
     "is_verified" boolean DEFAULT false,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),

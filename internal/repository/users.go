@@ -30,6 +30,11 @@ func (r *UsersRepository) Create(users *model.Users) (*model.Users, error) {
 	return users, nil
 }
 
+// UpdateRole implements UsersRepo.
+func (r *UsersRepository) UpdateRole(user *model.Users) error {
+	return r.db.Updates(user).Error
+}
+
 func (r *UsersRepository) Login(email, password string) (*model.Users, error) {
 	var user *model.Users
 
@@ -104,7 +109,9 @@ func (r *UsersRepository) Update(users *model.Users) (*model.Users, error) {
 }
 
 func (r *UsersRepository) Delete(id string) error {
-	return r.db.Where("id = ?", id).Update("deleted_at", time.Now().UTC()).Error
+	return r.db.Model(&model.Users{}).
+		Where("id = ?", id).
+		Update("deleted_at", time.Now().UTC()).Error
 }
 
 func filterUserList(filter *dto.ListUsersReq) func(*gorm.DB) *gorm.DB {

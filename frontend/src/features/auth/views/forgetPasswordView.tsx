@@ -1,9 +1,17 @@
 import AuthContainer from "../components/container";
 import Link from "../../../components/link";
 import ForgetPasswordForm from "../components/forgetPasswordForm";
+import { useForgetPassword } from "../hooks/useForgetPassword";
 
 export default function ForgetPassword() {
     const baseUrlPort = import.meta.env.VITE_URL_PORT
+
+    const {forgetPassword, loading, message, error, errors} = useForgetPassword()
+
+    const handleForgetPassword = async(email: string) => {
+        await forgetPassword({email})
+    }
+
 
     return (
         <AuthContainer>
@@ -25,7 +33,9 @@ export default function ForgetPassword() {
                 </div>
                 
                 <h2 className="font-bold text-2xl text-center">Forget passsword</h2>
-                <ForgetPasswordForm/>
+                <ForgetPasswordForm onSubmit={handleForgetPassword} loading={loading} errors={errors}/>
+                {message && <p className="text-green-600 mt-3">{message}</p>}
+                {error && <p className="text-red-500 mt-3">{error}</p>}
             </div>
         </AuthContainer>
     )

@@ -347,7 +347,7 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 	}
 
 	// Only validate user can update
-	if userID != profile.UserID && profile.User.Role != "admin" {
+	if userID != profile.UserID && profile.User.Role != helper.StrPointerIfNotEmpty(string(model.Admin)) {
 		return fiber.StatusUnauthorized, errors.New("unauthorized action")
 	}
 

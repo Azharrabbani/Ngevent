@@ -1,5 +1,5 @@
 import { useState } from "react"
-import type { LoginRequest } from "../types/loginRequest"
+import type { LoginRequest } from "../types/authRequest"
 import type { AuthModel } from "../types/authModel"
 import { loginApi } from "../api/authApi"
 import { mapLoginResponse } from "../utils/mapResponse"
@@ -13,12 +13,11 @@ export const useLogin = () => {
         try{
             setLoading(true)
             setError(null)
+            setErrors({})
 
             const res = await loginApi(payload)
 
             const user = mapLoginResponse(res)
-
-            localStorage.setItem("token", user.token)
 
             return user
         } catch(err: any) {
@@ -33,7 +32,6 @@ export const useLogin = () => {
 
                 setErrors(formatedError)
             } else {
-                setErrors({})
                 setError(err.response?.data?.error || "Login failed")
             }
 

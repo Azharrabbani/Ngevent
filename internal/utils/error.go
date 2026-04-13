@@ -21,17 +21,21 @@ func CustomErrorMessage(err validator.FieldError) ValidationError {
 	var msg string
 	switch err.Tag() {
 	case "required":
-		msg = fmt.Sprintf("%s is required.", field)
+		msg = fmt.Sprintf("%s is required.", FormatErrorMessage(field))
 	case "oneof":
-		msg = fmt.Sprintf("%s must be one of [%s].", field, param)
+		msg = fmt.Sprintf("%s must be one of [%s].", FormatErrorMessage(field), param)
 	default:
-		msg = fmt.Sprintf("%s is invalid.", field)
+		msg = fmt.Sprintf("%s is invalid.", FormatErrorMessage(field))
 	}
 
 	return ValidationError{
 		Field:   field,
 		Message: msg,
 	}
+}
+
+func FormatErrorMessage(field string) string {
+	return strings.ReplaceAll(field, "_", " ")
 }
 
 func GetValidationError(err error) []ValidationError {

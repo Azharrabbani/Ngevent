@@ -26,7 +26,7 @@ func (s *FiberServer) RegisterFiberRoutes() {
 }
 
 func (s *FiberServer) RegisterAuthRoutes(h *handler.AuthHandler) {
-	v1.Put("/verify-email/:id", h.VerififyEmail)
+	v1.Put("/verify-email", h.VerififyEmail)
 
 	v1.Post("/login", h.Login)
 
@@ -48,10 +48,12 @@ func (s *FiberServer) RegisterAuthRoutes(h *handler.AuthHandler) {
 func (s *FiberServer) RegisterUserRoutes(h *handler.UserHandler) {
 	user := v1.Group("/user")
 	user.Post("/register", h.Register)
-
+	
 	user.Use(middleware.AuthMiddleware())
 	{
+		user.Get("/me", h.FindCurrentUser)
 		user.Get("/", middleware.AuthorizeRoles("admin"), h.ListUsers)
+		user.Put("/role", h.SelectRole)
 		user.Get("/id", h.FindUserByID)
 	}
 }

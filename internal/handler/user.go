@@ -5,7 +5,6 @@ import (
 	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
-	"ngevent/internal/utils/helper"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -45,19 +44,9 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 		))
 	}
 
-	// Hashing password
-	hashPassword, err := helper.HashPassword(input.Password)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"invalid-request",
-			err.Error(),
-		))
-	}
-
 	// Store new user
-	if err := h.UserService.CreateUser(input.Email, string(hashPassword), input.Role); err != nil {
+	user, err := h.UserService.CreateUser(input.Email, input.Password, input.ConfirmPassword)
+	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"failed",
@@ -67,10 +56,50 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(dto.Success(
-		fiber.StatusAccepted,
+		fiber.StatusCreated,
 		"success",
 		"register-success",
-		"new user created",
+		user,
+	))
+}
+
+func (h *UserHandler) SelectRole(c *fiber.Ctx) error {
+	userId := c.Locals("user_id").(string)
+	var req dto.RoleInput
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"validation-error",
+			msg,
+		))
+	}
+
+	if err := h.UserService.UpdateRole(userId, req.Role); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"invalid-request",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		"Role selected",
 	))
 }
 
@@ -134,6 +163,27 @@ func (h *UserHandler) FindUserByID(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusFound).JSON(dto.Success(
 		fiber.StatusFound,
+		"success",
+		"user-found",
+		user,
+	))
+}
+
+func (h *UserHandler) FindCurrentUser(c *fiber.Ctx) error {
+	id := c.Locals("user_id").(string)
+
+	user, err := h.UserService.FindUserByID(id)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
 		"success",
 		"user-found",
 		user,

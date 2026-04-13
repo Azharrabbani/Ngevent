@@ -47,7 +47,7 @@ func NewAuthService(
 	}
 }
 
-func (s *AuthService) VerififyEmail(id, otpInput string) (int, error) {
+func (s *AuthService) VerififyEmail(email, otpInput string) (int, error) {
 	otpX := s.otpRepo.GetDB().Begin()
 	authX := s.userRepo.GetDB().Begin()
 
@@ -59,8 +59,13 @@ func (s *AuthService) VerififyEmail(id, otpInput string) (int, error) {
 		}
 	}()
 
+	user, err := s.userRepo.FindByEmail(email)
+	if err != nil {
+		return fiber.StatusNotFound, errors.New("user not found")
+	}
+
 	// Check OTP
-	otp, err := s.otpRepo.FindByID(id)
+	otp, err := s.otpRepo.FindByUserID(user.ID)
 	if err != nil {
 		return fiber.StatusNotFound, errors.New("otp not found")
 	}
@@ -85,12 +90,6 @@ func (s *AuthService) VerififyEmail(id, otpInput string) (int, error) {
 	}
 
 	// Update user verification
-	user, err := s.userRepo.FindByID(otp.UserID)
-	if err != nil {
-		otpX.Rollback()
-		return fiber.StatusBadRequest, err
-	}
-
 	user.IsVerified = true
 	user.UpdatedAt = time.Now().UTC()
 
@@ -299,7 +298,7 @@ func (s *AuthService) ResetPassword(id, newPassword, confirmPassword string) (in
 	}
 
 	if newPassword != confirmPassword {
-		return fiber.StatusBadRequest, errors.New("passwords do not match")
+		return fiber.StatusBadRequest, errors.New("password not match")
 	}
 
 	newHashPassword, err := helper.HashPassword(newPassword)
