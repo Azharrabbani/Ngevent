@@ -41,17 +41,18 @@ type ListUsersReq struct {
 }
 
 type LoginResponse struct {
-	ID              string `json:"id"`
-	Email           string `json:"email"`
+	ID              string  `json:"id"`
+	Email           string  `json:"email"`
 	Role            *string `json:"role"`
-	NgeventToken    string `json:"ngevent-token"`
-	NgeventRefToken string `json:"ngevent-ref-token"`
+	NgeventToken    string  `json:"ngevent-token"`
+	NgeventRefToken string  `json:"ngevent-ref-token"`
 }
 
 type UsersResponse struct {
 	ID         string  `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 	Email      string  `json:"email"`
 	Role       *string `json:"role"`
+	HasProfile *bool   `json:"has_profile,omitempty"`
 	IsVerified bool    `json:"is_verified"`
 	CreatedAt  int64   `json:"created_at"`
 	UpdatedAt  int64   `json:"updated_at"`

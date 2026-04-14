@@ -6,22 +6,32 @@ import ResetPasswordView from "../features/auth/views/resetPasswordView"
 import VerifiedEmailView from "../features/auth/views/verifiedEmailView"
 import SelectRoleView from "../features/auth/views/selectRoleView"
 import ProtectedRoute from "./protected"
+import CompleteProfileView from "../features/profile/views/completeProfileView"
+import CompleteProfileGuard from "./completeProfileGuard"
+import RoleGuard from "./roleGuard"
 export default function AppRoutes() {
     return(
         <BrowserRouter>
             <Routes>
-                {/* Auth route */}
                 <Route path="/login" element={<LoginView />} />
                 <Route path="/register" element={<RegisterView/>} />
                 <Route path="/forget" element={<ForgetPassword/>}/>
                 <Route path="/reset-password" element={<ResetPasswordView/>}/>
+
                 <Route element={<ProtectedRoute/>}>
                     <Route path="/verified-email" element={<VerifiedEmailView/>}/>
-                </Route>            
-                <Route element={<ProtectedRoute/>}>
+                    
                     <Route path="/select-role" element={<SelectRoleView/>}/>
-                </Route>
 
+                    <Route element={<RoleGuard />}>
+        
+                        <Route element={<CompleteProfileGuard />}>
+                            <Route path="/attendee/complete-profile" element={<CompleteProfileView />} />
+                        </Route>
+                    
+                        
+                    </Route>
+                </Route>            
             </Routes>
         </BrowserRouter>
     )

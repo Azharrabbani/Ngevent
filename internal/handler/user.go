@@ -5,6 +5,7 @@ import (
 	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
+	"ngevent/internal/utils/helper"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -94,6 +95,36 @@ func (h *UserHandler) SelectRole(c *fiber.Ctx) error {
 			err.Error(),
 		))
 	}
+
+	user, err := h.UserService.FindUser(userId)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(dto.Error(
+			fiber.StatusInternalServerError,
+			"failed",
+			"error",
+			"failed to fetch updated user",
+		))
+	}
+
+	accessToken, err := helper.GenerateAccessToken(user)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(dto.Error(
+			fiber.StatusInternalServerError,
+			"failed",
+			"error",
+			"failed to generate token",
+		))
+	}
+
+	// update cookie
+	c.Cookie(&fiber.Cookie{
+		Name:     "ngevent_cookie",
+		Value:    accessToken,
+		HTTPOnly: true,
+		Secure:   true,
+		MaxAge:   60 * 60 * 3,
+		SameSite: "None",
+	})
 
 	return c.Status(fiber.StatusOK).JSON(dto.Success(
 		fiber.StatusOK,

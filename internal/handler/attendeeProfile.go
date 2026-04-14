@@ -53,6 +53,16 @@ func (h *AttendeeProfileHandler) CreateProfile(c *fiber.Ctx) error {
 		Address:      &address,
 	}
 
+	if err := h.Validate.Struct(req); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"validation-error",
+			msg,
+		))
+	}
+
 	if err := h.AttendeeProfileService.Create(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -70,6 +80,26 @@ func (h *AttendeeProfileHandler) CreateProfile(c *fiber.Ctx) error {
 	))
 }
 
+func (h *AttendeeProfileHandler) HasProfile(c *fiber.Ctx) error {
+	userId := c.Locals("user_id").(string)
+
+	hasProfile, err := h.AttendeeProfileService.HasProfile(userId)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(dto.Error(
+			fiber.StatusInternalServerError,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		hasProfile,
+	))
+}
 func (h *AttendeeProfileHandler) GetProfileByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 

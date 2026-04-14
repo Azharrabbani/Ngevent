@@ -70,6 +70,7 @@ func (s *FiberServer) RegisterAttendeeProfileRoutes(h *handler.AttendeeProfileHa
 		profile.Post("/", middleware.AuthorizeRoles("user"), h.CreateProfile)
 		profile.Get("/:id", h.GetProfileByID)
 		profile.Get("/", h.GetProfileByUserID)
+		profile.Get("/check-profile", h.HasProfile)
 		profile.Put("/photo", middleware.AuthorizeRoles("user"), h.UpdateProfilePhoto)
 		profile.Put("/", middleware.AuthorizeRoles("user"), h.UpdateProfile)
 	}

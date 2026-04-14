@@ -11,8 +11,20 @@ type AttendeeProfileRepository struct {
 	db *gorm.DB
 }
 
+
 func NewAttendeeProfileRepository(db *gorm.DB) AttendeeProfilesRepo {
 	return &AttendeeProfileRepository{db: db}
+}
+
+// HasProfile implements AttendeeProfilesRepo.
+func (r *AttendeeProfileRepository) HasProfile(userID string) (bool, error) {
+	if err := r.db.
+	Where("user_id = ?", userID).
+	First(&model.AttendeeProfiles{}).Error; err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // Create implements AttendeeProfilesRepo.

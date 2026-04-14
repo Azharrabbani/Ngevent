@@ -2,11 +2,13 @@ import { useState } from "react";
 import Button from "../../../components/Button";
 import AuthContainer from "../components/container";
 import { useSelectRole } from "../hooks/useSelectRole";
+import { useNavigate } from "react-router-dom";
 
 export default function SelectRoleView() {
     const [role, setRole] = useState("");
-
     const {selectRole, loading, message, error} = useSelectRole();
+
+    const navigate = useNavigate();
 
     const handleSelectRole = async(e: React.MouseEvent) => {
         e.preventDefault();
@@ -17,6 +19,12 @@ export default function SelectRoleView() {
         }
 
         await selectRole({role: role});
+
+        if (role === "user") {
+            navigate("/attendee/complete-profile");
+        } else {
+            navigate("/organizer/complete-profile")
+        }
     }
 
     return(
@@ -58,7 +66,7 @@ export default function SelectRoleView() {
                 className={`
                     flex flex-col gap-3 bg-gray-100 rounded-xl max-w-96 p-7 
                     hover:ring-3 hover:ring-[#312E81] hover:cursor-pointer 
-                    transition-all duration-200 mt-7
+                    transition-all duration-200 mt-7 md:mt-0
                     ${role === "event organizer" ? "ring-3 ring-[#312E81]" : ""}
                 `}>
                     <div className="w-fit rounded-full p-3 bg-[#312E81]">

@@ -65,6 +65,15 @@ func (s *AttendeeProfileService) Create(profile *dto.CreateAttendeeProfileReq) e
 	return s.AttendeeRepo.Create(newProfile)
 }
 
+func (s *AttendeeProfileService) HasProfile(userID string) (bool, error) {
+	hasProfile, err := s.AttendeeRepo.HasProfile(userID)
+	if err != nil {
+		return false, err
+	}
+
+	return hasProfile, nil
+}
+
 func (s *AttendeeProfileService) FindByID(id string) (*dto.AttendeeProfilesResponse, error) {
 	profile, err := s.AttendeeRepo.FindByID(id)
 	if err != nil {

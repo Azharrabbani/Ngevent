@@ -4,7 +4,7 @@ import { cn } from "../utils/cn";
 type variant = "primary" | "secondary" | "danger"
 
 const variants = {
-  primary: "bg-cyan-500 hover:bg-cyan-600",
+  primary: "bg-[#0040A1] hover:bg-blue-700",
   secondary: "bg-gray-300 hover:bg-gray-400",
   danger: "bg-red-500 hover:bg-red-600",
 }

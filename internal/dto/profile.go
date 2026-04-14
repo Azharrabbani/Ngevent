@@ -9,11 +9,11 @@ import (
 type CreateAttendeeProfileReq struct {
 	UserID       string
 	PhotoProfile *multipart.FileHeader
-	Name         string
-	Username     *string
-	PhoneNumber  string
+	Name         string  `json:"name" validate:"required"`
+	Username     *string `json:"username"`
+	PhoneNumber  string  `json:"phone_number" validate:"required"`
 	ISO          string
-	Address      *string
+	Address      *string `json:"address"`
 }
 
 type UpdateAttendeeProfileReq struct {

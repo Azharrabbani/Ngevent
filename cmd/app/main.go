@@ -75,7 +75,7 @@ func main() {
 
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
-	userService := service.NewUserService(userRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher, server.RDB)
+	userService := service.NewUserService(userRepo, attendeeProfileRepo, organizerProfileRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher, server.RDB)
 	otpService := service.NewOTPService(userRepo, otpRepo, unusedOTPTaskPublisher, unverifiedUserTaskPublisher, emailTaskPublisher)
 	attendeeProfileService := service.NewAttendeeProfileService(attendeeProfileRepo)
 	organizerProfileService := service.NewOrganizerProfileService(organizerProfileRepo, userRepo, organizerUpdateRepo, emailTaskPublisher, server.RDB)
