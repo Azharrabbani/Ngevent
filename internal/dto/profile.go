@@ -28,17 +28,17 @@ type UpdateAttendeeProfileReq struct {
 type CreateOrganizerProfileReq struct {
 	UserID        string
 	PhotoProfile  *multipart.FileHeader
-	Name          string
-	PhoneNumber   string
+	Name          string `form:"name" validate:"required"`
+	PhoneNumber   string `form:"phone_number" validate:"required"`
 	ISO           string
-	Address       *string
-	SocialMedia   OrganizerSocialMediaReq
-	CompanyDetail OrganizerCompDetailReq
+	Address       *string `form:"address" validate:"required"`
+	SocialMedia   OrganizerSocialMediaReq `validate:"required"`
+	CompanyDetail OrganizerCompDetailReq `validate:"required"`
 }
 
 type OrganizerSocialMediaReq struct {
-	Email     *string `json:"email,omitempty"`
-	Instagram *string `json:"instagram,omitempty"`
+	Email     *string `form:"email,omitempty"`
+	Instagram *string `form:"instagram,omitempty"`
 }
 
 type FilterReq struct {
@@ -46,11 +46,11 @@ type FilterReq struct {
 }
 
 type OrganizerCompDetailReq struct {
-	Description *string              `json:"description,omitempty"`
-	NPWP        string               `json:"npwp" validate:"required"`
-	NPWPFile    multipart.FileHeader `json:"npwp_file" validate:"required"`
-	NIB         string               `json:"nib" validate:"required"`
-	NIBFile     multipart.FileHeader `json:"nib_file" validate:"required"`
+	Description *string              `form:"description,omitempty"`
+	NPWP        string               `form:"npwp" validate:"required"`
+	NPWPFile    multipart.FileHeader `form:"npwp_file" validate:"required"`
+	NIB         string               `form:"nib" validate:"required"`
+	NIBFile     multipart.FileHeader `form:"nib_file" validate:"required"`
 }
 
 type UpdateOrganizerProfileReq struct {

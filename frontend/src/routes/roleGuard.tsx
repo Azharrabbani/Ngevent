@@ -10,9 +10,5 @@ export default function RoleGuard() {
         return <Navigate to="/select-role" replace />
     }
 
-    if (user?.role) {
-        return <Navigate to="/dashboard"/>
-    }
-
     return <Outlet />
 }

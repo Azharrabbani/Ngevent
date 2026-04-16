@@ -19,12 +19,8 @@ export default function SelectRoleView() {
         }
 
         await selectRole({role: role});
-
-        if (role === "user") {
-            navigate("/attendee/complete-profile");
-        } else {
-            navigate("/organizer/complete-profile")
-        }
+        navigate("/complete-profile");
+        
     }
 
     return(

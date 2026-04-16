@@ -26,7 +26,7 @@ export default function AppRoutes() {
                     <Route element={<RoleGuard />}>
         
                         <Route element={<CompleteProfileGuard />}>
-                            <Route path="/attendee/complete-profile" element={<CompleteProfileView />} />
+                            <Route path="/complete-profile" element={<CompleteProfileView />} />
                         </Route>
                     
                         

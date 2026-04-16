@@ -108,6 +108,16 @@ func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 		},
 	}
 
+	if err := h.Validate.Struct(req); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"validation-error",
+			msg,
+		))
+	}
+
 	if err := h.OrganizerService.CreateProfile(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,

@@ -69,10 +69,11 @@ export default function AttendeeProfileForm({onSubmit, loading, errors}: Props) 
                     <input
                         id="photo-upload"
                         type="file"
-                        accept="image/*"
+                        accept=".jpg, .jpeg, .png"
                         name="photo"
                         className="hidden"
                         onChange={handleFileChange}
+                        
                     />
         
                     <label
