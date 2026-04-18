@@ -172,10 +172,9 @@ func toAttendeeProfileResponse(profile *model.AttendeeProfiles) *dto.AttendeePro
 		Email:        profile.User.Email,
 		Name:         profile.Name,
 		Username:     profile.Username,
-		PhotoProfile: profile.PhotoProfile,
+		PhotoProfile: fmt.Sprintf("http://localhost:8080/api/v1/attendee/photo/%s", helper.StringValue(profile.PhotoProfile)),
 		PhoneNumber:  profile.PhoneNumber,
 		Country:      profile.Country,
 		Address:      profile.Address,
 	}
-
 }

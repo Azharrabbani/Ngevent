@@ -9,6 +9,8 @@ import ProtectedRoute from "./protected"
 import CompleteProfileView from "../features/profile/views/completeProfileView"
 import CompleteProfileGuard from "./completeProfileGuard"
 import RoleGuard from "./roleGuard"
+import ProfileView from "../features/profile/views/profileView"
+import ProfileGuard from "./profileGuard"
 export default function AppRoutes() {
     return(
         <BrowserRouter>
@@ -28,8 +30,10 @@ export default function AppRoutes() {
                         <Route element={<CompleteProfileGuard />}>
                             <Route path="/complete-profile" element={<CompleteProfileView />} />
                         </Route>
-                    
-                        
+
+                        <Route element={<ProfileGuard/>}>
+                            <Route path="/profile" element={<ProfileView/>}/>
+                        </Route>
                     </Route>
                 </Route>            
             </Routes>

@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import AttendeeProfileForm from "../components/attendeeProfileForm";
 import CompleteProfileContainer from "../components/container";
 import { UseCreateAttendeeProfile } from "../hooks/useCreateAttendeeProfile";
 import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq } from "../types/profileRequest";
 import { useAuth } from "../../../lib/auth";
-import OrganizerProfileForm from "../components/organizerProfileForm";
 import { useCreateOrganizerProfile } from "../hooks/useCreateOrganizerProfile";
+import CompleteAttendeeProfileForm from "../components/completeAttendeeProfileForm";
+import CompleteOrganizerProfileForm from "../components/completeOrganizerProfileForm";
 
 export default function CompleteProfileView() {
     const { 
@@ -51,7 +51,7 @@ export default function CompleteProfileView() {
                         <h1 className="mb-6 sm:mb-8 font-bold text-xl sm:text-2xl md:text-4xl text-center">
                             Let's complete your profile
                         </h1>    
-                        <AttendeeProfileForm 
+                        <CompleteAttendeeProfileForm 
                             onSubmit={handleCreateAttendeeProfile} 
                             loading={attendeeLoading} 
                             errors={attendeeErrors}
@@ -75,7 +75,7 @@ export default function CompleteProfileView() {
                             personalize your security experience.
                         </p>
                         
-                        <OrganizerProfileForm
+                        <CompleteOrganizerProfileForm
                         onSubmit={handleCreateOrganizerProfile} 
                         loading={organizerLoading} 
                         errors={organizerErrors}/>

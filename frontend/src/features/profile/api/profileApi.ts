@@ -1,6 +1,7 @@
 import { api } from "../../../lib/api";
 import type { successResponse } from "../../../types/apiResponse";
 import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq } from "../types/profileRequest";
+import type { AttendeeResponse } from "../types/profileResponse";
 
 export const createAttendeeProfileApi = async (payload: CreateAttendeeProfileReq) => {
     const formData = new FormData();
@@ -13,7 +14,7 @@ export const createAttendeeProfileApi = async (payload: CreateAttendeeProfileReq
     formData.append("address", payload.address || "");
 
     const res = await api.post<successResponse<string>>(
-        "/attendee",
+        "/attendee/",
         formData
     );
 
@@ -22,7 +23,7 @@ export const createAttendeeProfileApi = async (payload: CreateAttendeeProfileReq
 export const CheckProfile = async () => {
     const res = await api.get<successResponse<boolean>>("/attendee/check-profile");
     return res.data;
-}
+};
 
 
 export const CreateOrganizerProfileApi = async (payload: CreateOrganizerProfileReq) => {
@@ -30,7 +31,7 @@ export const CreateOrganizerProfileApi = async (payload: CreateOrganizerProfileR
 
     formData.append("photo", payload.photo)
     formData.append("name", payload.name);
-    formData.append("phone_number", payload.phonenumber);
+    formData.append("phonenumber", payload.phonenumber);
     formData.append("iso", payload.iso);
     formData.append("address", payload.address || "");
     formData.append("nib_number", payload.nib);
@@ -46,3 +47,13 @@ export const CreateOrganizerProfileApi = async (payload: CreateOrganizerProfileR
 
     return res.data;
 };
+
+export const GetAttendeeProfilePhotoApi = async(payload: string) => {
+    const res = await api.get(`/attendee/photo/${payload}`);
+    return res.data;
+}
+
+export const GetCurrentAttendeeProfileApi = async() => {
+    const res = await api.get<successResponse<AttendeeResponse>>("/attendee");
+    return res.data;
+}

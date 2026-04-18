@@ -7,7 +7,7 @@ export default function CompleteProfileGuard() {
     if (loading) return <p>Loading...</p>
 
     if (user?.has_profile) {
-        return <Navigate to="/attendee/profile" replace />
+        return <Navigate to="/profile" replace />
     }
 
     return <Outlet />
