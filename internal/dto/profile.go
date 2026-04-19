@@ -122,7 +122,7 @@ type OrganizerProfilesResponse struct {
 	IsVerified    bool                    `json:"is_verified"`
 	Email         string                  `json:"email"`
 	Name          string                  `json:"name"`
-	PhotoProfile  *string                 `json:"photo_profile,omitempty"`
+	PhotoProfile  string                 `json:"photo_profile,omitempty"`
 	PhoneNumber   string                  `json:"phone_number"`
 	Country       string                  `json:"country"`
 	Address       *string                 `json:"address,omitempty"`

@@ -48,7 +48,7 @@ func (s *FiberServer) RegisterAuthRoutes(h *handler.AuthHandler) {
 func (s *FiberServer) RegisterUserRoutes(h *handler.UserHandler) {
 	user := v1.Group("/user")
 	user.Post("/register", h.Register)
-	
+
 	user.Use(middleware.AuthMiddleware())
 	{
 		user.Get("/me", h.FindCurrentUser)
@@ -79,12 +79,14 @@ func (s *FiberServer) RegisterAttendeeProfileRoutes(h *handler.AttendeeProfileHa
 func (s *FiberServer) RegisterOrganizerProfileRoutes(h *handler.OrganizerProfileHandler) {
 	profile := v1.Group("/organizer")
 	profile.Static("/photo", "./storage/profiles")
+	profile.Static("/npwp", "./storage/npwp")
+	profile.Static("/nib", "./storage/nib")
 	profile.Use(middleware.AuthMiddleware())
 	{
 		profile.Post("/", middleware.AuthorizeRoles("event organizer"), h.CreateProfile)
+		profile.Get("/", h.GetProfileByUserID)
 		profile.Get("/:id", h.GetProfileByID)
 		profile.Get("/profiles", h.GetAllProfile)
-		profile.Get("/profile", h.GetProfileByUserID)
 		profile.Get("/filter", h.FilterProfile)
 		profile.Put("/photo", middleware.AuthorizeRoles("event organizer", "admin"), h.UpdatePhotoProfile)
 		profile.Put("/", middleware.AuthorizeRoles("event organizer", "admin"), h.UpdateProfile)

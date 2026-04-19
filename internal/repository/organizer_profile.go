@@ -27,6 +27,17 @@ func (r *OrganizerRepository) Create(profile *model.OrganizerProfiles) error {
 	return r.db.Create(profile).Error
 }
 
+// HasProfile implements OrganizerProfileRepo.
+func (r *OrganizerRepository) HasProfile(userID string) (bool, error) {
+	if err := r.db.
+		Where("user_id = ?", userID).
+		First(&model.OrganizerProfiles{}).Error; err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // Delete implements OrganizerProfileRepo.
 func (r *OrganizerRepository) Delete(id string) error {
 	return r.db.Where("id = ?", id).Delete(&model.OrganizerProfiles{}).Error
@@ -155,7 +166,7 @@ func toOrganizerResponse(profiles []*model.OrganizerProfiles) []*dto.OrganizerPr
 			},
 			Name:         profile.Name,
 			Email:        profile.User.Email,
-			PhotoProfile: profile.PhotoProfile,
+			PhotoProfile: helper.StringValue(profile.PhotoProfile),
 			PhoneNumber:  profile.PhoneNumber,
 			Country:      profile.Country,
 			Address:      profile.Address,

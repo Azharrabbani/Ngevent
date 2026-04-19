@@ -1,7 +1,7 @@
 import { api } from "../../../lib/api";
 import type { successResponse } from "../../../types/apiResponse";
 import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq } from "../types/profileRequest";
-import type { AttendeeResponse } from "../types/profileResponse";
+import type { AttendeeResponse, OrganizerResponse } from "../types/profileResponse";
 
 export const createAttendeeProfileApi = async (payload: CreateAttendeeProfileReq) => {
     const formData = new FormData();
@@ -55,5 +55,10 @@ export const GetAttendeeProfilePhotoApi = async(payload: string) => {
 
 export const GetCurrentAttendeeProfileApi = async() => {
     const res = await api.get<successResponse<AttendeeResponse>>("/attendee");
+    return res.data;
+}
+
+export const GetCurrentOrganizerProfileApi = async() => {
+    const res = await api.get<successResponse<OrganizerResponse>>("/organizer");
     return res.data;
 }

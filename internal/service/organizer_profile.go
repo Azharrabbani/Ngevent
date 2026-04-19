@@ -546,7 +546,12 @@ func saveNPWPAndNIBFile(req *dto.SaveNPWPAndNIBFileReq) (string, string, error) 
 }
 
 func toOrganizerProfileResponse(profile *model.OrganizerProfiles) *dto.OrganizerProfilesResponse {
-	reviewedAt := helper.ConvertDatetoUnix(profile.Status.ReviewedAt.Format(time.RFC3339))
+	var reviewedAt int64
+
+	if profile.Status.ReviewedAt != nil {
+		reviewedAt = helper.ConvertDatetoUnix(profile.Status.ReviewedAt.Format(time.RFC3339))
+	}
+
 	return &dto.OrganizerProfilesResponse{
 		ID:     profile.ID,
 		UserID: profile.UserID,
@@ -558,7 +563,7 @@ func toOrganizerProfileResponse(profile *model.OrganizerProfiles) *dto.Organizer
 		},
 		Email:        profile.User.Email,
 		Name:         profile.Name,
-		PhotoProfile: profile.PhotoProfile,
+		PhotoProfile: fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", helper.StringValue(profile.PhotoProfile)),
 		PhoneNumber:  profile.PhoneNumber,
 		Country:      profile.Country,
 		Address:      profile.Address,
@@ -569,9 +574,11 @@ func toOrganizerProfileResponse(profile *model.OrganizerProfiles) *dto.Organizer
 		CompanyDetail: dto.OrganizerCompDetailRes{
 			Description: profile.CompanyDetail.Description,
 			NPWP:        profile.CompanyDetail.NPWPNumber,
-			NPWPFile:    profile.CompanyDetail.NPWPDocument,
+			NPWPFile:    fmt.Sprintf("http://localhost:8080/api/v1/organizer/npwp/%s", profile.CompanyDetail.NPWPDocument),
 			NIB:         profile.CompanyDetail.NIBNumber,
-			NIBFile:     profile.CompanyDetail.NIBDocument,
+			NIBFile:     fmt.Sprintf("http://localhost:8080/api/v1/organizer/nib/%s", profile.CompanyDetail.NIBDocument),
 		},
+		CreatedAt: profile.CreatedAt.Unix(),
+		UpdatedAt: profile.UpdatedAt.Unix(),
 	}
 }

@@ -3,6 +3,7 @@ import Button from "../../../components/Button";
 import Input from "../../../components/input";
 import UploadPhoto from "../../../components/uploadPhoto";
 import type { AttendeeResponse } from "../types/profileResponse";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
     profile: AttendeeResponse | null
@@ -10,6 +11,11 @@ interface Props {
 
 export default function AttendeeProfileForm({profile}: Props) {
     const [previewOpen, setPreviewOpen] = useState(false);
+    const navigate = useNavigate();
+
+    const goBackHome = () => {
+        navigate("/dashboard");
+    };
     
     return(
         <form 
@@ -20,7 +26,6 @@ export default function AttendeeProfileForm({profile}: Props) {
                 onClickImage={() => setPreviewOpen(true)}
                 showEditIcon
             >
-                {/* Image */}
                 {profile?.photo_profile ? (
                     <img
                         src={profile.photo_profile}
@@ -116,11 +121,15 @@ export default function AttendeeProfileForm({profile}: Props) {
         
             <div className="flex flex-col sm:flex-row 
                             gap-6 sm:gap-6 justify-end">
-                <Button className="rounded-md px-4 text-purple-500 bg-white hover:bg-[#FAFAFA] ">
+                <Button
+                type="button" 
+                className="rounded-md px-4 text-[#0040A1] bg-white hover:bg-[#FAFAFA] "
+                onClick={goBackHome}
+                >
                     Back To Home
                 </Button>
         
-                <Button className="bg-[#312E81] hover:bg-[#432E81] rounded-md px-4">
+                <Button className="rounded-md px-4">
                     Save Changes
                 </Button>
             </div>

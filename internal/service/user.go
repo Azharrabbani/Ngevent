@@ -233,6 +233,13 @@ func (s *UserService) FindUserByID(id string) (*dto.UsersResponse, error) {
 		} else {
 			userResp.HasProfile = helper.BoolPtr(false)
 		}
+	} else {
+		profile, _ := s.OrganizerRepo.FindByUserID(user.ID)
+		if profile != nil {
+			userResp.HasProfile = helper.BoolPtr(true)
+		} else {
+			userResp.HasProfile = helper.BoolPtr(false)
+		}
 	}
 
 	if role == string(model.Organizer) {

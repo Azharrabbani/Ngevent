@@ -20,6 +20,7 @@ type AttendeeProfilesRepo interface {
 type OrganizerProfileRepo interface {
 	GetDB() *gorm.DB
 	Create(profile *model.OrganizerProfiles) error
+	HasProfile(userID string) (bool, error)
 	FindAll(pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error)
 	FindByID(id string) (*model.OrganizerProfiles, error)
 	FindByUserID(userID string) (*model.OrganizerProfiles, error)
