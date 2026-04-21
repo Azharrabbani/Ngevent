@@ -1,26 +1,14 @@
-import { useEffect, useState } from "react"
 import { GetCurrentAttendeeProfileApi } from "../api/profileApi"
-import type { AttendeeResponse } from "../types/profileResponse"
+import { useQuery } from "@tanstack/react-query";
 
-export const useGetCurrentAttendeeProfile = () => {
-    const [loading, setLoading] = useState(false)
-    const [profile, setProfile] = useState<AttendeeResponse | null>(null)
-
-    const fethProfile = async() => {
-        try {
-            setLoading(true);        
+export const useGetCurrentAttendeeProfile = (enabled: boolean) => {
+    return useQuery({
+        queryKey: ["attendee-profile"],
+        queryFn: async () => {
             const res = await GetCurrentAttendeeProfileApi();
-            setProfile(res.data)
-        } catch(err: any) {
-            console.log(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fethProfile()
-    }, []);
-    
-    return {profile, loading};
+            return res.data;
+        },
+        staleTime: 1000 * 60 * 5,
+        enabled,
+    });
 }

@@ -4,7 +4,7 @@ interface Props {
     uniqueId: string
     children: string
     file: string | undefined
-    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+    onChange?: (file: File) => void
     onClickFile?: () => void;
     showEditIcon?: boolean
 }
@@ -31,7 +31,11 @@ export default function UploadFile({
                 type="file"
                 accept="application/pdf"
                 className="hidden"
-                onChange={onChange}
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    onChange?.(file);
+                }}
             />
 
             <div className="relative w-full">

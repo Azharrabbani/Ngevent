@@ -1,16 +1,75 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../../../components/Button";
 import Input from "../../../components/input";
 import UploadPhoto from "../../../components/uploadPhoto";
 import type { AttendeeResponse } from "../types/profileResponse";
 import { useNavigate } from "react-router-dom";
+import { useUpdateAttendeePhoto } from "../hooks/useUpdateAttendeePhoto";
+import { useForm } from "react-hook-form";
+import { GetIsoFromPhoneNumber } from "../utils/phoneNumber";
+import { useUpdateAttendeeProfile } from "../hooks/useUpdateAttendeeProfile";
+
 
 interface Props {
-    profile: AttendeeResponse | null
+    profile: AttendeeResponse | undefined
 };
 
 export default function AttendeeProfileForm({profile}: Props) {
+    type FormValues = {
+        name: string;
+        username: string;
+        phonenumber: string;
+        address: string;
+    };
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        formState: {isDirty, errors}
+    } = useForm<FormValues>();
+
+    useEffect(() => {
+        if (profile) {
+            reset({
+                name: profile.name,
+                username: profile.username,
+                phonenumber: profile.phone_number,
+                address: profile.address,
+            });
+        }
+    }, [profile, reset]);
+
     const [previewOpen, setPreviewOpen] = useState(false);
+
+    const { mutateAsync: updatePhoto, isPending: isPhotoPending} = useUpdateAttendeePhoto();
+    const { mutateAsync: updateProfile, isPending: isProfilePending } = useUpdateAttendeeProfile();
+
+    const handleUpdatePhoto = async(e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        await updatePhoto({photo: file});
+    };
+
+    const handleUpdateProfile = async (data: FormValues) => {
+        const iso = GetIsoFromPhoneNumber(data.phonenumber);
+        if (!iso) {
+            console.error("Invalid phone number, ISO not found");
+            return;
+        }
+
+        const payload = {
+            name: data.name,
+            username: data.username,
+            phone_number: data.phonenumber,
+            address: data.address,
+            iso,
+        };
+
+        await updateProfile(payload);
+    };
+
     const navigate = useNavigate();
 
     const goBackHome = () => {
@@ -18,13 +77,16 @@ export default function AttendeeProfileForm({profile}: Props) {
     };
     
     return(
-        <form 
+        <form
+            onSubmit={handleSubmit(handleUpdateProfile)} 
             className="flex flex-col gap-4 sm:gap-5 md:gap-6"
         >
             <UploadPhoto
                 className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full"
                 onClickImage={() => setPreviewOpen(true)}
                 showEditIcon
+                onChange={handleUpdatePhoto}
+                disabled={isPhotoPending}
             >
                 {profile?.photo_profile ? (
                     <img
@@ -61,8 +123,11 @@ export default function AttendeeProfileForm({profile}: Props) {
                 className="p-2 sm:p-3 text-sm sm:text-base"
                 label="Name"
                 type="text"
-                name="name"
-                defaultValue={profile?.name}
+                {...register(
+                    "name",
+                    {required: "name is required"},
+                )}
+                error={errors.name?.message}
                 placeholder="Enter your full name"
             />
         
@@ -72,15 +137,14 @@ export default function AttendeeProfileForm({profile}: Props) {
                 type="text"
                 name="email"
                 disabled
-                defaultValue={profile?.email}
+                value={profile?.email}
             />
         
             <Input
                 className="p-2 sm:p-3 text-sm sm:text-base"
                 label="Username"
                 type="text"
-                name="username"
-                defaultValue={profile?.username}
+                {...register("username")}
                 placeholder="Username"
             />
                             
@@ -89,8 +153,16 @@ export default function AttendeeProfileForm({profile}: Props) {
                     className="p-2 sm:p-3 text-sm sm:text-base"
                     label="Phone number"
                     type="text"
-                    name="phonenumber"
-                    defaultValue={profile?.phone_number}
+                    {...register(
+                        "phonenumber",
+                        {
+                            required: "Phone number is required",
+                            validate: (value) => {
+                                return GetIsoFromPhoneNumber(value) ? true : "Invalid phone number";
+                            },
+                        },
+                    )}
+                    error={errors.phonenumber?.message}
                     placeholder="+1 (555) 000-0000"
                 />
         
@@ -100,7 +172,7 @@ export default function AttendeeProfileForm({profile}: Props) {
                     type="text"
                     name="country"
                     disabled
-                    defaultValue={profile?.country}
+                    value={profile?.country}
                 />
             </div>
         
@@ -113,8 +185,7 @@ export default function AttendeeProfileForm({profile}: Props) {
                 <textarea
                 rows={3}
                 className="w-full p-2 sm:p-3 text-sm sm:text-base rounded-xl bg-gray-200 outline-none resize-none"                         
-                name="address" 
-                defaultValue={profile?.address}
+                {...register("address")}
                 placeholder="Enter your residential address"
                 />
             </div>
@@ -122,14 +193,17 @@ export default function AttendeeProfileForm({profile}: Props) {
             <div className="flex flex-col sm:flex-row 
                             gap-6 sm:gap-6 justify-end">
                 <Button
-                type="button" 
                 className="rounded-md px-4 text-[#0040A1] bg-white hover:bg-[#FAFAFA] "
                 onClick={goBackHome}
                 >
                     Back To Home
                 </Button>
         
-                <Button className="rounded-md px-4">
+                <Button
+                type="submit" 
+                className="rounded-md px-4"
+                disabled={!isDirty || isProfilePending}
+                >
                     Save Changes
                 </Button>
             </div>

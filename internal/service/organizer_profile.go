@@ -57,8 +57,8 @@ var organizerCache []string = []string{
 func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProfileReq) error {
 	validateReq := &dto.ValidateFileReq{
 		Photo: profile.PhotoProfile,
-		NPWP:  profile.CompanyDetail.NPWPFile,
-		NIB:   profile.CompanyDetail.NIBFile,
+		NPWP:  *profile.CompanyDetail.NPWPFile,
+		NIB:   *profile.CompanyDetail.NIBFile,
 	}
 
 	// Validate files
@@ -113,8 +113,8 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 
 	// Save npwp & nib file
 	fileReq := &dto.SaveNPWPAndNIBFileReq{
-		NPWP:     &profile.CompanyDetail.NPWPFile,
-		NIB:      &profile.CompanyDetail.NIBFile,
+		NPWP:     profile.CompanyDetail.NPWPFile,
+		NIB:      profile.CompanyDetail.NIBFile,
 		NPWPPath: npwpFilePath,
 		NIBPath:  nibFilePath,
 	}
@@ -340,139 +340,135 @@ func (s *OrganizerProfileService) UpdatePhotoProfile(file *multipart.FileHeader,
 	return 0, nil
 }
 
-func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOrganizerProfileReq) (int, error) {
+func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOrganizerProfileReq) (int, bool, error) {
 	profile, err := s.OrganizerRepo.FindByUserID(userID)
 	if err != nil {
-		return fiber.StatusNotFound, errors.New("profile not found")
+		return fiber.StatusNotFound, false, errors.New("profile not found")
 	}
 
-	// Only validate user can update
+	// Authorization
 	if userID != profile.UserID && profile.User.Role != helper.StrPointerIfNotEmpty(string(model.Admin)) {
-		return fiber.StatusUnauthorized, errors.New("unauthorized action")
+		return fiber.StatusUnauthorized, false, errors.New("unauthorized action")
 	}
 
 	admins, err := s.UserRepo.FindByRole("admin")
 	if err != nil {
-		return fiber.StatusBadRequest, err
+		return fiber.StatusBadRequest, false, err
 	}
 
-	// Validate phone number
+	// Validate phone
 	phonenumber, country, err := utils.ValidatePhoneCode(req.PhoneNumber, req.ISO)
 	if err != nil {
-		return fiber.StatusBadRequest, err
+		return fiber.StatusBadRequest, false, err
 	}
 
-	// Track whether critical field changed
+	// Detect critical changes
 	criticalChanged := false
 
-	// Only check critical fields if currently approved
-	if profile.Status.Status == "approved" {
-
-		if profile.Name != req.Name {
-			criticalChanged = true
-		}
-
-		if profile.Country != country {
-			criticalChanged = true
-		}
-
-		if profile.CompanyDetail.NPWPNumber != req.CompanyDetail.NPWP {
-			criticalChanged = true
-		}
-
-		if profile.CompanyDetail.NIBNumber != req.CompanyDetail.NIB {
-			criticalChanged = true
-		}
-
-		if criticalChanged {
-			profile.Status.Status = "pending"
-		}
+	if profile.Name != req.Name ||
+		profile.Country != country ||
+		profile.CompanyDetail.NPWPNumber != req.CompanyDetail.NPWP ||
+		profile.CompanyDetail.NIBNumber != req.CompanyDetail.NIB {
+		criticalChanged = true
 	}
 
-	// Update allowed fields
-	profile.Name = req.Name
-	profile.PhoneNumber = fmt.Sprintf("+%s", phonenumber)
-	profile.Country = country
-	profile.Address = req.Address
-	profile.SocialMedias.Email = req.SocialMedia.Email
-	profile.SocialMedias.Instagram = req.SocialMedia.Instagram
-	profile.CompanyDetail.Description = req.CompanyDetail.Description
+	// =============================
+	// HANDLE FILE UPLOAD (STAGING)
+	// =============================
+	var npwpFile, nibFile string
 
-	// Only allow NPWP & NIB change if not approved
-	if profile.Status.Status != "approved" {
-		profile.CompanyDetail.NPWPNumber = req.CompanyDetail.NPWP
-		profile.CompanyDetail.NIBNumber = req.CompanyDetail.NIB
-
-		criticalChanged = true
-
-		// Save new NPWP & NIB file in staging
+	if req.CompanyDetail.NPWPFile != nil && req.CompanyDetail.NIBFile != nil {
 		fileReq := &dto.SaveNPWPAndNIBFileReq{
-			NPWP:     &req.CompanyDetail.NPWPFile,
-			NIB:      &req.CompanyDetail.NIBFile,
+			NPWP:     req.CompanyDetail.NPWPFile,
+			NIB:      req.CompanyDetail.NIBFile,
 			NPWPPath: npwpStagePath,
 			NIBPath:  nibStagePath,
 		}
 
-		npwpFile, nibFile, err := saveNPWPAndNIBFile(fileReq)
+		npwpFile, nibFile, err = saveNPWPAndNIBFile(fileReq)
 		if err != nil {
-			return fiber.StatusBadRequest, err
+			return fiber.StatusBadRequest, false, err
 		}
 
-		profile.CompanyDetail.NPWPDocument = npwpFile
-		profile.CompanyDetail.NIBDocument = nibFile
+		criticalChanged = true
 	}
 
-	profile.UpdatedAt = time.Now().UTC()
+	// Only update if you already approve
+	if profile.Status.Status == string(model.UpdatePending) && criticalChanged {
+		return fiber.StatusBadRequest, false, errors.New("Profile still under verification from admin")
+	}
 
+	// =============================
+	// IF CRITICAL → SAVE TO STAGING
+	// =============================
 	if criticalChanged {
-		// Save profile update to staging
-		// Keep it in staging first if the change is critical
-		// This way the new data will have to wait for validation from admin
+
 		profileUpdate := &model.OrganizerProfilesUpdates{
 			ProfileID:    profile.ID,
 			Name:         req.Name,
 			PhoneNumber:  fmt.Sprintf("+%s", phonenumber),
+			Status:       string(model.UpdatePending),
 			Country:      country,
 			NPWPNumber:   req.CompanyDetail.NPWP,
-			NPWPDocument: profile.CompanyDetail.NPWPDocument,
 			NIBNumber:    req.CompanyDetail.NIB,
-			NIBDocument:  profile.CompanyDetail.NIBDocument,
+			NPWPDocument: npwpFile,
+			NIBDocument:  nibFile,
 		}
 
 		if err := s.OrganizerUpdateRepo.Create(profileUpdate); err != nil {
-			return fiber.StatusBadRequest, err
+			return fiber.StatusBadRequest, false, err
 		}
 
-		// Send email to organizer
-		organizerpayload := &model.EmailPayload{
-			To:   profile.User.Email,
-			Name: profile.Name,
-		}
+		// Update status → pending
+		profile.Status.Status = "pending"
 
-		s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerpayload)
-
-		// Send email to admin
-		for _, admin := range admins {
-			adminPayload := &model.EmailPayload{
-				To:        admin.Email,
-				Name:      profile.Name,
-				UserEmail: profile.User.Email,
-				Action:    "updated",
-			}
-
-			s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
-		}
-	} else {
-		// Only update if there is no critical change
 		if err := s.OrganizerRepo.Update(profile); err != nil {
-			return fiber.StatusBadRequest, err
+			return fiber.StatusBadRequest, false, err
+		}
+
+		// Send email async
+		go func() {
+			// Organizer email
+			organizerPayload := &model.EmailPayload{
+				To:   profile.User.Email,
+				Name: profile.Name,
+			}
+			s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerPayload)
+
+			// Admin email
+			for _, admin := range admins {
+				adminPayload := &model.EmailPayload{
+					To:        admin.Email,
+					Name:      profile.Name,
+					UserEmail: profile.User.Email,
+					Action:    "updated",
+				}
+				s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
+			}
+		}()
+
+	} else {
+		// =============================
+		// NON-CRITICAL → DIRECT UPDATE
+		// =============================
+		profile.Name = req.Name
+		profile.PhoneNumber = fmt.Sprintf("+%s", phonenumber)
+		profile.Country = country
+		profile.Address = req.Address
+		profile.SocialMedias.Email = req.SocialMedia.Email
+		profile.SocialMedias.Instagram = req.SocialMedia.Instagram
+		profile.CompanyDetail.Description = req.CompanyDetail.Description
+		profile.UpdatedAt = time.Now().UTC()
+
+		if err := s.OrganizerRepo.Update(profile); err != nil {
+			return fiber.StatusBadRequest, false, err
 		}
 	}
 
-	// Invalidate cache after update
+	// Invalidate cache
 	utils.InvalidateCache(s.rdb, organizerCache)
 
-	return fiber.StatusOK, nil
+	return fiber.StatusOK, criticalChanged, nil
 }
 
 func validateFile(req *dto.ValidateFileReq) error {

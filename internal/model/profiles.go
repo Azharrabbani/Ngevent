@@ -45,7 +45,7 @@ type OrganizerProfilesUpdates struct {
 	NIBDocument  string    `json:"nib_document"`
 	CreatedAt    time.Time `json:"created_at" gorm:"default:now()"`
 	UpdatedAt    time.Time `json:"updated_at" gorm:"default:now()"`
-	User         Users     `gorm:"foreignKey:UserID"`
+	User         Users     `gorm:"foreignKey:ProfileID"`
 }
 
 type OrganizerStatus struct {

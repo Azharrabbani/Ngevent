@@ -46,7 +46,7 @@ export default function Input({
           {...rest}
           className={cn(
             "w-full p-2 rounded-xl bg-gray-200 outline-none",
-            leftIcon && "pl=10",
+            leftIcon && "pl-10",
             rightIcon && "pr-10",
             error && "border border-red-500",
             className,

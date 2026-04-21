@@ -1,6 +1,6 @@
 import { api } from "../../../lib/api";
 import type { successResponse } from "../../../types/apiResponse";
-import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq } from "../types/profileRequest";
+import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq, UpdatePhotoReq, UpdateAttendeeProfileReq, UpdateOrganizerProfileReq } from "../types/profileRequest";
 import type { AttendeeResponse, OrganizerResponse } from "../types/profileResponse";
 
 export const createAttendeeProfileApi = async (payload: CreateAttendeeProfileReq) => {
@@ -48,6 +48,7 @@ export const CreateOrganizerProfileApi = async (payload: CreateOrganizerProfileR
     return res.data;
 };
 
+// Attendee profile api
 export const GetAttendeeProfilePhotoApi = async(payload: string) => {
     const res = await api.get(`/attendee/photo/${payload}`);
     return res.data;
@@ -58,7 +59,69 @@ export const GetCurrentAttendeeProfileApi = async() => {
     return res.data;
 }
 
+export const updateAttendeePhotoApi = async(payload: UpdatePhotoReq) => {
+    const formData = new FormData();
+
+    formData.append("photo", payload.photo);
+
+    const res = await api.put<successResponse<string>>(
+        "/attendee/photo", 
+        formData
+    );
+
+    return res.data;
+}
+
+export const updateAttendeeProfile = async(payload: UpdateAttendeeProfileReq) => {
+    const res = await api.put<successResponse<string>>("/attendee", payload);
+    return res.data;
+}
+
+// Organizer profile api
 export const GetCurrentOrganizerProfileApi = async() => {
     const res = await api.get<successResponse<OrganizerResponse>>("/organizer");
+    return res.data;
+}
+
+export const UpdateOrganizerPhotoApi = async (payload: UpdatePhotoReq) => {
+    const formData = new FormData()
+
+    formData.append("photo", payload.photo);
+
+    const res = await api.put<successResponse<string>>(
+        "/organizer/photo",
+        formData,
+    );
+
+    return res.data;
+}
+
+export const UpdateOrganizerProfileApi = async (payload: UpdateOrganizerProfileReq) => {
+    const formData = new FormData();
+
+    formData.append("name", payload.name);
+    formData.append("phonenumber", payload.phonenumber);
+    formData.append("iso", payload.iso);
+    formData.append("address", payload.address || "");
+    formData.append("nib_number", payload.nib);
+    formData.append("npwp_number", payload.npwp);
+
+    if (payload.npwpFile) {
+      formData.append("npwp_file", payload.npwpFile);
+    }
+
+    if (payload.nibFile) {
+      formData.append("nib_file", payload.nibFile);
+    }
+
+    formData.append("description", payload.description);
+    formData.append("email", payload.email);
+    formData.append("instagram", payload.instagram);
+
+    const res = await api.put<successResponse<string>>(
+        "/organizer",
+        formData,
+    );
+
     return res.data;
 }

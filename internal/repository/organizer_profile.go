@@ -141,7 +141,7 @@ func (r *OrganizerRepository) Update(profile *model.OrganizerProfiles) error {
 
 // UpdatePhotoProfile implements OrganizerProfileRepo.
 func (r *OrganizerRepository) UpdatePhotoProfile(userID string, photo string) error {
-	return r.db.Model(&model.AttendeeProfiles{}).
+	return r.db.Model(&model.OrganizerProfiles{}).
 		Where("user_id = ?", userID).
 		Updates(&model.OrganizerProfiles{
 			PhotoProfile: &photo,

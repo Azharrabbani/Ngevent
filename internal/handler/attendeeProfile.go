@@ -211,6 +211,6 @@ func (h *AttendeeProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 		fiber.StatusOK,
 		"success",
 		"success",
-		"update success",
+		"Profile updated",
 	))
 }

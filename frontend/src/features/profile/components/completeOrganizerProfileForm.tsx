@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Input from "../../../components/input";
 import Button from "../../../components/Button";
 import type { CreateOrganizerProfileReq } from "../types/profileRequest";
-import { GetIsoFromPhoneNumber } from "../../../utils/phoneNumber";
+import { GetIsoFromPhoneNumber } from "../utils/phoneNumber";
 import UploadPhoto from "../../../components/uploadPhoto";
 
 interface Props {

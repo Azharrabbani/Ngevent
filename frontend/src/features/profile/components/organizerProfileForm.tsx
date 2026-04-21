@@ -3,18 +3,72 @@ import Button from "../../../components/Button";
 import Input from "../../../components/input";
 import UploadPhoto from "../../../components/uploadPhoto";
 import type { OrganizerResponse } from "../types/profileResponse";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import UploadFile from "../../../components/uploadFile";
+import { useUpdateOrganizerPhoto } from "../hooks/useUpdateOrganizerPhoto";
+import { useForm } from "react-hook-form";
+import { useUpdateOrganizerProfile } from "../hooks/useUpdateOrganizerProfile";
+import { GetIsoFromPhoneNumber } from "../utils/phoneNumber";
+import toast from "react-hot-toast";
 
 
 interface Props {
-    profile: OrganizerResponse | null
+    profile: OrganizerResponse | undefined
  };
 
 export default function OrganizerProfileForm({profile}: Props) {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewNpwp, setPreviewNpwp] = useState(false);
     const [previewNib, setPreviewNib] = useState(false);
+    const [npwpPreview, setNpwpPreview] = useState<string | undefined>();
+    const [nibPreview, setNibPreview] = useState<string | undefined>();
+
+    type FormValues = {
+        name: string;
+        description: string;
+        address: string;
+        phonenumber: string;
+        email: string;
+        instagram: string;
+        npwp: string;
+        npwpFile?: File;  
+        nib: string;
+        nibFile?: File;  
+    };
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        setValue,
+        formState: {isDirty, errors}
+    } = useForm<FormValues>();
+
+    useEffect(() => {
+        if (profile) {
+            reset({
+                name: profile.name,
+                description: profile.company_detail.description,
+                address: profile.address,
+                phonenumber: profile.phone_number,
+                email: profile.social_media.email,
+                instagram: profile.social_media.instagram,
+                npwp: profile.company_detail.npwp,
+                nib: profile.company_detail.nib,
+            });
+        }
+    }, [profile, reset])
+
+    const {mutateAsync: updatePhoto, isPending: isPhotoPending} =  useUpdateOrganizerPhoto()
+    const {mutateAsync: updateProfile, isPending: isProfilePending} = useUpdateOrganizerProfile();
+
+    const handleUpdatePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+
+        if (!file) return;
+
+        await updatePhoto({photo: file});
+    }
 
     const navigate = useNavigate();
 
@@ -22,12 +76,59 @@ export default function OrganizerProfileForm({profile}: Props) {
         navigate("/dashboard");
     };
 
+    const handleNpwpFile = (file: File) => {
+        setValue("npwpFile", file, { shouldDirty: true });
+
+        const previewUrl = URL.createObjectURL(file);
+        setNpwpPreview(previewUrl);
+    };
+
+    const handleNibFile = (file: File) => {
+        setValue("nibFile", file, { shouldDirty: true });
+
+        const previewUrl = URL.createObjectURL(file);
+        setNibPreview(previewUrl);
+    };
+
+    const handleUpdateProfile = async (data: FormValues) => {
+        const iso = GetIsoFromPhoneNumber(data.phonenumber);
+        if (!iso) {
+            toast.error("Invalid phone number");
+            return;
+        }
+
+        const payload: any = {
+            name: data.name,
+            description: data.description,
+            phonenumber: data.phonenumber,
+            address: data.address,
+            email: data.email,
+            instagram: data.instagram,
+            npwp: data.npwp,
+            nib: data.nib,
+            iso,
+        };
+
+        if (data.npwpFile) {
+            payload.npwpFile = data.npwpFile;
+        }
+
+        if (data.nibFile) {
+            payload.nibFile = data.nibFile;
+        }
+
+        await updateProfile(payload);
+    };
+
     return(
-        <form 
+        <form
+            onSubmit={handleSubmit(handleUpdateProfile)} 
             className="flex flex-col gap-4 sm:gap-5 md:gap-6">
                 <UploadPhoto
                     className="mt-3 relative z-10 w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full"
                     onClickImage={() => setPreviewOpen(true)}
+                    onChange={handleUpdatePhoto}
+                    disabled={isPhotoPending}
                     showEditIcon
                 >
                     
@@ -62,8 +163,11 @@ export default function OrganizerProfileForm({profile}: Props) {
                     className="p-2 sm:p-3 text-sm sm:text-base"
                     label="Name"
                     type="text"
-                    name="name"
-                    defaultValue={profile?.name}
+                    {...register(
+                        "name",
+                        {required: "Name is required"} 
+                    )}
+                    error={errors.name?.message}
                     placeholder="Enter your full name"
                 />
         
@@ -76,8 +180,7 @@ export default function OrganizerProfileForm({profile}: Props) {
                     <textarea
                     rows={3}
                     className="w-full p-2 sm:p-3 text-sm sm:text-base rounded-xl bg-gray-200 outline-none resize-none"                         
-                    name="address" 
-                    defaultValue={profile?.company_detail?.description}
+                    {...register("description")}
                     placeholder="Enter your residential address"
                     />
                 </div>
@@ -91,8 +194,7 @@ export default function OrganizerProfileForm({profile}: Props) {
                     <textarea
                     rows={3}
                     className={`w-full p-2 rounded-xl bg-gray-200 outline-none resize-none`}                         
-                    name="address" 
-                    defaultValue={profile?.address}
+                    {...register("address")}
                     placeholder="Enter your residential address"
                     />
                 </div>
@@ -102,8 +204,11 @@ export default function OrganizerProfileForm({profile}: Props) {
                         className="p-2 sm:p-3 text-sm sm:text-base"
                         label="Phone number"
                         type="text"
-                        name="phonenumber"
-                        defaultValue={profile?.phone_number}
+                        {...register(
+                            "phonenumber",
+                            {required: "Phone number is required"}
+                        )}
+                        error={errors.phonenumber?.message}
                         placeholder="+1 (555) 000-0000"
                     />
                         
@@ -112,8 +217,34 @@ export default function OrganizerProfileForm({profile}: Props) {
                         label="Country"
                         type="text"
                         name="country"
-                        defaultValue={profile?.country}
+                        value={profile?.country}
                         disabled
+                    />
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                    <Input
+                        className="p-2 sm:p-3 text-sm sm:text-base"
+                        label="Instagram"
+                        type="text"
+                        {...register("instagram", {
+                            validate: (value) => {
+                              if (!value) return true;
+                            
+                              const isValidUrl = /^https?:\/\/(www\.)?instagram\.com\/.+/.test(value);
+                              return isValidUrl || "Must be a valid Instagram link";
+                            },
+                        })}
+                        error={errors.instagram?.message}
+                        placeholder="https://instagram.com/username"
+                    />
+                        
+                    <Input
+                        className="p-2 sm:p-3 text-sm sm:text-base"
+                        label="Email"
+                        type="text"
+                        {...register("email")}
+                        placeholder="Email"
                     />
                 </div>
 
@@ -122,8 +253,10 @@ export default function OrganizerProfileForm({profile}: Props) {
                         className="p-2 sm:p-3 text-sm sm:text-base"
                         label="NPWP number"
                         type="text"
-                        name="npwp"
-                        defaultValue={profile?.company_detail?.npwp}
+                        {...register(
+                            "npwp",
+                            {required: "NPWP number is required"}
+                        )}
                         placeholder="00-000-000-00"
                     />
             
@@ -131,8 +264,10 @@ export default function OrganizerProfileForm({profile}: Props) {
                         className="p-2 sm:p-3 text-sm sm:text-base"
                         label="NIB number"
                         type="text"
-                        name="nib"
-                        defaultValue={profile?.company_detail?.nib}
+                        {...register(
+                            "nib",
+                            {required: "NIB number is required"}
+                        )}
                         placeholder="00-000-000-00"
                     />
                 </div>
@@ -144,6 +279,7 @@ export default function OrganizerProfileForm({profile}: Props) {
                     uniqueId="npwp-upload"
                     file={profile?.company_detail?.npwp_file}
                     onClickFile={() => setPreviewNpwp(true)}
+                    onChange={handleNpwpFile}
                    >
                         NPWP File
                    </UploadFile>
@@ -158,7 +294,7 @@ export default function OrganizerProfileForm({profile}: Props) {
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <iframe
-                                    src={profile?.company_detail?.npwp_file}
+                                    src={npwpPreview || profile?.company_detail?.npwp_file}
                                     className="w-full h-full"
                                 />
                             </div>
@@ -170,6 +306,7 @@ export default function OrganizerProfileForm({profile}: Props) {
                     uniqueId="nib-upload"
                     file={profile?.company_detail?.nib_file}
                     onClickFile={() => setPreviewNib(true)}
+                    onChange={handleNibFile}
                    >
                         NIB File
                    </UploadFile>
@@ -184,7 +321,7 @@ export default function OrganizerProfileForm({profile}: Props) {
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <iframe
-                                    src={profile?.company_detail?.nib_file}
+                                    src={nibPreview || profile?.company_detail?.nib_file}
                                     className="w-full h-full"
                                 />
                             </div>
@@ -202,8 +339,11 @@ export default function OrganizerProfileForm({profile}: Props) {
                         Back To Home
                     </Button>
             
-                    <Button className="bg-[#312E81] hover:bg-[#432E81] rounded-md px-4">
-                        Save Changes
+                    <Button 
+                    type="submit"
+                    disabled={!isDirty || isProfilePending}
+                    className="bg-[#312E81] hover:bg-[#432E81] rounded-md px-4">
+                        {isProfilePending ? "Updating..." : "Save Changes"}   
                     </Button>
                 </div>
         </form>

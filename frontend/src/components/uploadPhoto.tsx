@@ -1,10 +1,9 @@
-import { useRef } from "react";
+import { useRef, type InputHTMLAttributes } from "react";
 import { cn } from "../utils/cn"
 
-interface Props {
+interface Props extends InputHTMLAttributes<HTMLInputElement>{
     className?: string
     children: React.ReactNode
-    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
     onClickImage?: () => void;
     showEditIcon?: boolean
 };
@@ -12,9 +11,9 @@ interface Props {
 export default function UploadPhoto({
     className="",
     children,
-    onChange,
     onClickImage,
-    showEditIcon = false
+    showEditIcon = false,
+    ...rest
 }: Props) {
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -30,7 +29,7 @@ export default function UploadPhoto({
                 accept=".jpg, .jpeg, .png"
                 name="photo"
                 className="hidden"
-                onChange={onChange} 
+                {...rest} 
             />
                     
             <div

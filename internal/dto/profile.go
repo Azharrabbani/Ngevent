@@ -31,14 +31,14 @@ type CreateOrganizerProfileReq struct {
 	Name          string `form:"name" validate:"required"`
 	PhoneNumber   string `form:"phone_number" validate:"required"`
 	ISO           string
-	Address       *string `form:"address" validate:"required"`
+	Address       *string                 `form:"address" validate:"required"`
 	SocialMedia   OrganizerSocialMediaReq `validate:"required"`
-	CompanyDetail OrganizerCompDetailReq `validate:"required"`
+	CompanyDetail OrganizerCompDetailReq  `validate:"required"`
 }
 
 type OrganizerSocialMediaReq struct {
-	Email     *string `form:"email,omitempty"`
-	Instagram *string `form:"instagram,omitempty"`
+	Email     *string `json:"email,omitempty" form:"email,omitempty"`
+	Instagram *string `json:"instagram,omitempty" form:"instagram,omitempty"`
 }
 
 type FilterReq struct {
@@ -46,11 +46,11 @@ type FilterReq struct {
 }
 
 type OrganizerCompDetailReq struct {
-	Description *string              `form:"description,omitempty"`
-	NPWP        string               `form:"npwp" validate:"required"`
-	NPWPFile    multipart.FileHeader `form:"npwp_file" validate:"required"`
-	NIB         string               `form:"nib" validate:"required"`
-	NIBFile     multipart.FileHeader `form:"nib_file" validate:"required"`
+	Description *string               `form:"description,omitempty"`
+	NPWP        string                `form:"npwp" validate:"required"`
+	NPWPFile    *multipart.FileHeader `form:"npwp_file"`
+	NIB         string                `form:"nib" validate:"required"`
+	NIBFile     *multipart.FileHeader `form:"nib_file"`
 }
 
 type UpdateOrganizerProfileReq struct {
@@ -108,7 +108,7 @@ type AttendeeProfilesResponse struct {
 	Email        string  `json:"email"`
 	Name         string  `json:"name"`
 	Username     *string `json:"username,omitempty"`
-	PhotoProfile string `json:"photo_profile"`
+	PhotoProfile string  `json:"photo_profile"`
 	PhoneNumber  string  `json:"phone_number"`
 	Country      string  `json:"country"`
 	Address      *string `json:"address,omitempty"`
@@ -122,7 +122,7 @@ type OrganizerProfilesResponse struct {
 	IsVerified    bool                    `json:"is_verified"`
 	Email         string                  `json:"email"`
 	Name          string                  `json:"name"`
-	PhotoProfile  string                 `json:"photo_profile,omitempty"`
+	PhotoProfile  string                  `json:"photo_profile,omitempty"`
 	PhoneNumber   string                  `json:"phone_number"`
 	Country       string                  `json:"country"`
 	Address       *string                 `json:"address,omitempty"`
