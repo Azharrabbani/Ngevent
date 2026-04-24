@@ -5,11 +5,11 @@ import UploadPhoto from "../../../components/uploadPhoto";
 import type { OrganizerResponse } from "../types/profileResponse";
 import { useEffect, useState } from "react";
 import UploadFile from "../../../components/uploadFile";
-import { useUpdateOrganizerPhoto } from "../hooks/useUpdateOrganizerPhoto";
 import { useForm } from "react-hook-form";
-import { useUpdateOrganizerProfile } from "../hooks/useUpdateOrganizerProfile";
+import { useUpdateOrganizerProfile } from "../hooks/organizer/useUpdateOrganizerProfile";
 import { GetIsoFromPhoneNumber } from "../utils/phoneNumber";
 import toast from "react-hot-toast";
+import { useUpdateOrganizerPhoto } from "../hooks/organizer/useUpdateOrganizerPhoto";
 
 
 interface Props {

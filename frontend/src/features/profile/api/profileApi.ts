@@ -1,8 +1,15 @@
 import { api } from "../../../lib/api";
-import type { successResponse } from "../../../types/apiResponse";
-import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq, UpdatePhotoReq, UpdateAttendeeProfileReq, UpdateOrganizerProfileReq } from "../types/profileRequest";
+import type { PaginatedResponse, successResponse } from "../../../types/apiResponse";
+import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq, UpdatePhotoReq, UpdateAttendeeProfileReq, UpdateOrganizerProfileReq, UserQueryParams, FilterAttendeeReq } from "../types/profileRequest";
 import type { AttendeeResponse, OrganizerResponse } from "../types/profileResponse";
 
+export const CheckProfile = async () => {
+    const res = await api.get<successResponse<boolean>>("/attendee/check-profile");
+    return res.data;
+};
+
+
+// Attendee profile api
 export const createAttendeeProfileApi = async (payload: CreateAttendeeProfileReq) => {
     const formData = new FormData();
 
@@ -20,35 +27,25 @@ export const createAttendeeProfileApi = async (payload: CreateAttendeeProfileReq
 
     return res.data;
 };
-export const CheckProfile = async () => {
-    const res = await api.get<successResponse<boolean>>("/attendee/check-profile");
-    return res.data;
-};
 
-
-export const CreateOrganizerProfileApi = async (payload: CreateOrganizerProfileReq) => {
-    const formData = new FormData();
-
-    formData.append("photo", payload.photo)
-    formData.append("name", payload.name);
-    formData.append("phonenumber", payload.phonenumber);
-    formData.append("iso", payload.iso);
-    formData.append("address", payload.address || "");
-    formData.append("nib_number", payload.nib);
-    formData.append("npwp_number", payload.npwp);
-    formData.append("npwp_file", payload.npwpFile);
-    formData.append("nib_file", payload.nibFile);
-    formData.append("description", payload.description);
-
-    const res = await api.post<successResponse<string>>(
-        "/organizer",
-        formData
-    );
+export const GetAttendeesProfileApi = async(params: FilterAttendeeReq) => {
+    const res = await api.get<PaginatedResponse<AttendeeResponse>>("/attendee", { 
+        params: {
+            filter: params.filter,
+            page: params.pagination?.page,
+            limit: params.pagination?.limit,
+            sort: params.pagination?.sort,
+        },
+    });
 
     return res.data;
-};
+}
 
-// Attendee profile api
+export const GetAttendeeDetailProfileApi = async(id: string) => {
+    const res = await api.get<successResponse<AttendeeResponse>>(`/attendee/${id}`);
+    return res.data;
+}
+
 export const GetAttendeeProfilePhotoApi = async(payload: string) => {
     const res = await api.get(`/attendee/photo/${payload}`);
     return res.data;
@@ -78,6 +75,28 @@ export const updateAttendeeProfile = async(payload: UpdateAttendeeProfileReq) =>
 }
 
 // Organizer profile api
+export const CreateOrganizerProfileApi = async (payload: CreateOrganizerProfileReq) => {
+    const formData = new FormData();
+
+    formData.append("photo", payload.photo)
+    formData.append("name", payload.name);
+    formData.append("phonenumber", payload.phonenumber);
+    formData.append("iso", payload.iso);
+    formData.append("address", payload.address || "");
+    formData.append("nib_number", payload.nib);
+    formData.append("npwp_number", payload.npwp);
+    formData.append("npwp_file", payload.npwpFile);
+    formData.append("nib_file", payload.nibFile);
+    formData.append("description", payload.description);
+
+    const res = await api.post<successResponse<string>>(
+        "/organizer",
+        formData
+    );
+
+    return res.data;
+};
+
 export const GetCurrentOrganizerProfileApi = async() => {
     const res = await api.get<successResponse<OrganizerResponse>>("/organizer");
     return res.data;
@@ -125,3 +144,11 @@ export const UpdateOrganizerProfileApi = async (payload: UpdateOrganizerProfileR
 
     return res.data;
 }
+
+// Get profile api
+export const ListUsersApi = async (params: UserQueryParams) => {
+    const res = await api.get("/user", {
+        params,
+    });
+    return res.data;
+};

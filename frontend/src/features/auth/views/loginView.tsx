@@ -6,21 +6,25 @@ import { useLogin } from "../hooks/useLogin";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginView() {
-    const baseUrlPort = import.meta.env.VITE_URL_PORT
+    const baseUrlPort = import.meta.env.VITE_URL_PORT;
 
-    const navigate = useNavigate()
+    const navigate = useNavigate();
 
-    const {login, loading, error, errors} = useLogin()
+    const {login, loading, error, errors} = useLogin();
 
     const handleLogin = async(email: string, password: string) => {
-        const user = await login({email, password})
+        const user = await login({email, password});
 
-        if (!user) return
+        if (!user) return;
 
         if (user.role == null) {
-            navigate("/select-role")
+            navigate("/select-role");
+        } 
+
+        if (user.role === "admin") {
+            navigate("/admin/dashboard");
         } else {
-            navigate("/dashboard")
+            navigate("/dashboard");
         }
 
     }

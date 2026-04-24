@@ -4,10 +4,10 @@ import Input from "../../../components/input";
 import UploadPhoto from "../../../components/uploadPhoto";
 import type { AttendeeResponse } from "../types/profileResponse";
 import { useNavigate } from "react-router-dom";
-import { useUpdateAttendeePhoto } from "../hooks/useUpdateAttendeePhoto";
+import { useUpdateAttendeePhoto } from "../hooks/attendee/useUpdateAttendeePhoto";
 import { useForm } from "react-hook-form";
 import { GetIsoFromPhoneNumber } from "../utils/phoneNumber";
-import { useUpdateAttendeeProfile } from "../hooks/useUpdateAttendeeProfile";
+import { useUpdateAttendeeProfile } from "../hooks/attendee/useUpdateAttendeeProfile";
 
 
 interface Props {

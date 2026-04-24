@@ -1,9 +1,10 @@
-import { GetCurrentAttendeeProfileApi } from "../api/profileApi"
 import { useQuery } from "@tanstack/react-query";
+import { GetCurrentAttendeeProfileApi } from "../../api/profileApi";
+import { attendeeKeys } from "../../utils/cacheKey";
 
 export const useGetCurrentAttendeeProfile = (enabled: boolean) => {
     return useQuery({
-        queryKey: ["attendee-profile"],
+        queryKey: attendeeKeys.me(),
         queryFn: async () => {
             const res = await GetCurrentAttendeeProfileApi();
             return res.data;

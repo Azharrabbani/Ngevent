@@ -1,21 +1,21 @@
 import { useState } from "react"
-import type { CreateAttendeeProfileReq } from "../types/profileRequest"
-import { createAttendeeProfileApi } from "../api/profileApi"
+import type { CreateOrganizerProfileReq } from "../../types/profileRequest"
+import { CreateOrganizerProfileApi } from "../../api/profileApi"
 
-export const UseCreateAttendeeProfile = () => {
+export const useCreateOrganizerProfile = () => {
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [errors, setErrors] = useState<Record<string, string>>({})
 
-    const createProfile = async(payload: CreateAttendeeProfileReq) => {
+    const createProfile = async(payload: CreateOrganizerProfileReq) => {
         try {
             setLoading(true);
             setError(null);
             setErrors({});
             setMessage(null);
 
-            const res = await createAttendeeProfileApi(payload);
+            const res = await CreateOrganizerProfileApi(payload);
 
             setMessage(res.data);
         } catch(err: any) {
@@ -28,6 +28,7 @@ export const UseCreateAttendeeProfile = () => {
                     formatedError[e.field] = e.message;
                 })
                 setErrors(formatedError);
+                console.log("errors: ", formatedError);
             } else {
                 setError(err.response?.data?.error || "Failed create the profile")
             }

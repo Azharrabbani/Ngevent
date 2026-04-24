@@ -144,6 +144,10 @@ func toUsersResponse(users []*model.Users) ([]*dto.UsersResponse, error) {
 	}
 
 	for _, user := range users {
+		var deletedAt int64
+		if user.DeletedAt != nil {
+			deletedAt = helper.ConvertDatetoUnix(user.DeletedAt.Format(time.RFC3339))
+		}
 		usersResp = append(usersResp, &dto.UsersResponse{
 			ID:         user.ID,
 			Email:      user.Email,
@@ -151,7 +155,7 @@ func toUsersResponse(users []*model.Users) ([]*dto.UsersResponse, error) {
 			IsVerified: user.IsVerified,
 			CreatedAt:  helper.ConvertDatetoUnix(user.CreatedAt.Format(time.RFC3339)),
 			UpdatedAt:  helper.ConvertDatetoUnix(user.UpdatedAt.Format(time.RFC3339)),
-			DeletedAt:  helper.ConvertDatetoUnix(user.DeletedAt.Format(time.RFC3339)),
+			DeletedAt:  deletedAt,
 		})
 	}
 

@@ -9,6 +9,7 @@ import (
 
 type AttendeeProfilesRepo interface {
 	Create(profile *model.AttendeeProfiles) error
+	FindAll(pagination model.Pagination, filter *dto.FilterAttendeeReq) (*model.PaginationRow[*dto.AttendeeProfilesResponse], error)
 	HasProfile(userID string) (bool, error)
 	FindByID(id string) (*model.AttendeeProfiles, error)
 	FindByUserID(id string) (*model.AttendeeProfiles, error)

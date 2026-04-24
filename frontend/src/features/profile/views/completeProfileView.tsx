@@ -1,19 +1,27 @@
 import { useNavigate } from "react-router-dom";
 import CompleteProfileContainer from "../components/container";
-import { UseCreateAttendeeProfile } from "../hooks/useCreateAttendeeProfile";
+import { useCreateAttendeeProfile } from "../hooks/attendee/useCreateAttendeeProfile";
 import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq } from "../types/profileRequest";
 import { useAuth } from "../../../lib/auth";
-import { useCreateOrganizerProfile } from "../hooks/useCreateOrganizerProfile";
+import { useCreateOrganizerProfile } from "../hooks/organizer/useCreateOrganizerProfile";
 import CompleteAttendeeProfileForm from "../components/completeAttendeeProfileForm";
 import CompleteOrganizerProfileForm from "../components/completeOrganizerProfileForm";
 
 export default function CompleteProfileView() {
-    const { 
-        createProfile: attendee, 
-        loading: attendeeLoading, 
-        message: attendeeMessage, 
-        error: attendeeError, 
-        errors: attendeeErrors } = UseCreateAttendeeProfile();
+    const { mutateAsync: attendee, isPending: attendeePending, error: attendeeErrors } = useCreateAttendeeProfile();
+
+    const mapValidationErrors = (error: any) => {
+        const validationError = error?.response?.data?.error;
+
+        if (!Array.isArray(validationError)) return {};
+
+        return validationError.reduce((acc: any, e: any) => {
+            acc[e.field] = e.message;
+            return acc;
+        }, {});
+    };
+
+    const validationErrors = mapValidationErrors(attendeeErrors);
     
     const {
         createProfile: organizer,
@@ -53,17 +61,9 @@ export default function CompleteProfileView() {
                         </h1>    
                         <CompleteAttendeeProfileForm 
                             onSubmit={handleCreateAttendeeProfile} 
-                            loading={attendeeLoading} 
-                            errors={attendeeErrors}
+                            loading={attendeePending} 
+                            errors={validationErrors}
                         />
-
-                        {attendeeError && (
-                            <p className="text-red-500 text-center mt-3">{attendeeError}</p>
-                        )}
-
-                        {attendeeMessage && (
-                            <p className="text-green-500 text-center mt-3">{attendeeMessage}</p>
-                        )}
                     </>
                 ) : (
                     <>

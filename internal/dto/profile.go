@@ -16,6 +16,10 @@ type CreateAttendeeProfileReq struct {
 	Address      *string `json:"address"`
 }
 
+type FilterAttendeeReq struct {
+	Filter *string `json:"filter" query:"filter"`
+}
+
 type UpdateAttendeeProfileReq struct {
 	Name        string  `json:"name" validate:"required"`
 	Username    *string `json:"username"`

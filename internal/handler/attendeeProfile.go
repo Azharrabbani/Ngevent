@@ -2,6 +2,7 @@ package handler
 
 import (
 	"ngevent/internal/dto"
+	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
 
@@ -80,6 +81,53 @@ func (h *AttendeeProfileHandler) CreateProfile(c *fiber.Ctx) error {
 	))
 }
 
+func (h *AttendeeProfileHandler) GetAllProfiles(c *fiber.Ctx) error {
+	filter := new(dto.FilterAttendeeReq)
+
+	if err := c.QueryParser(filter); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"error",
+			"error",
+			err.Error(),
+		))
+	}
+
+	paginate := new(model.Pagination)
+
+	if err := c.QueryParser(paginate); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"error",
+			"error",
+			err.Error(),
+		))
+	}
+
+	page := &model.Pagination{
+		Page:  paginate.Page,
+		Limit: paginate.Limit,
+		Sort:  paginate.Sort,
+	}
+
+	attendess, err := h.AttendeeProfileService.FindAll(*page, filter)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		attendess,
+	))
+}
+
 func (h *AttendeeProfileHandler) HasProfile(c *fiber.Ctx) error {
 	userId := c.Locals("user_id").(string)
 
@@ -113,8 +161,8 @@ func (h *AttendeeProfileHandler) GetProfileByID(c *fiber.Ctx) error {
 		))
 	}
 
-	return c.Status(fiber.StatusFound).JSON(dto.Success(
-		fiber.StatusFound,
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
 		"success",
 		"success",
 		profile,

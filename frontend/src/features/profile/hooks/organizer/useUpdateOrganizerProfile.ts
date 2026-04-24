@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { UpdateOrganizerProfileApi } from "../api/profileApi";
+import { UpdateOrganizerProfileApi } from "../../api/profileApi";
 import toast from "react-hot-toast";
 
 export const useUpdateOrganizerProfile = () => {

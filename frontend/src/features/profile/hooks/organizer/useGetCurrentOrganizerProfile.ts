@@ -1,4 +1,4 @@
-import { GetCurrentOrganizerProfileApi } from "../api/profileApi";
+import { GetCurrentOrganizerProfileApi } from "../../api/profileApi";
 import { useQuery } from "@tanstack/react-query";
 
 export const useGetCurrentOrganizerProfile = (enabled: boolean) => {

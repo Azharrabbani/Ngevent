@@ -52,7 +52,7 @@ func (s *FiberServer) RegisterUserRoutes(h *handler.UserHandler) {
 	user.Use(middleware.AuthMiddleware())
 	{
 		user.Get("/me", h.FindCurrentUser)
-		user.Get("/", middleware.AuthorizeRoles("admin"), h.ListUsers)
+		user.Get("/", middleware.AuthorizeRoles(string(model.Admin)), h.ListUsers)
 		user.Put("/role", h.SelectRole)
 		user.Get("/id", h.FindUserByID)
 	}
@@ -67,12 +67,13 @@ func (s *FiberServer) RegisterAttendeeProfileRoutes(h *handler.AttendeeProfileHa
 	profile.Static("/photo", "./storage/profiles")
 	profile.Use(middleware.AuthMiddleware())
 	{
-		profile.Post("/", middleware.AuthorizeRoles("user"), h.CreateProfile)
+		profile.Post("/", middleware.AuthorizeRoles(string(model.Attendee)), h.CreateProfile)
+		profile.Get(("/"), middleware.AuthorizeRoles(string(model.Admin)), h.GetAllProfiles)
 		profile.Get("/:id", h.GetProfileByID)
 		profile.Get("/", h.GetProfileByUserID)
 		profile.Get("/check-profile", h.HasProfile)
-		profile.Put("/photo", middleware.AuthorizeRoles("user"), h.UpdateProfilePhoto)
-		profile.Put("/", middleware.AuthorizeRoles("user"), h.UpdateProfile)
+		profile.Put("/photo", middleware.AuthorizeRoles(string(model.Attendee)), h.UpdateProfilePhoto)
+		profile.Put("/", middleware.AuthorizeRoles(string(model.Attendee)), h.UpdateProfile)
 	}
 }
 
@@ -83,23 +84,23 @@ func (s *FiberServer) RegisterOrganizerProfileRoutes(h *handler.OrganizerProfile
 	profile.Static("/nib", "./storage/nib")
 	profile.Use(middleware.AuthMiddleware())
 	{
-		profile.Post("/", middleware.AuthorizeRoles("event organizer"), h.CreateProfile)
+		profile.Post("/", middleware.AuthorizeRoles(string(model.Organizer)), h.CreateProfile)
 		profile.Get("/", h.GetProfileByUserID)
 		profile.Get("/:id", h.GetProfileByID)
 		profile.Get("/profiles", h.GetAllProfile)
 		profile.Get("/filter", h.FilterProfile)
-		profile.Put("/photo", middleware.AuthorizeRoles("event organizer", "admin"), h.UpdatePhotoProfile)
-		profile.Put("/", middleware.AuthorizeRoles("event organizer", "admin"), h.UpdateProfile)
-		profile.Put("/approve/:id", middleware.AuthorizeRoles("admin"), h.ApprovedProfile)
-		profile.Put("/reject/:id", middleware.AuthorizeRoles("admin"), h.RejectProfile)
+		profile.Put("/photo", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.UpdatePhotoProfile)
+		profile.Put("/", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.UpdateProfile)
+		profile.Put("/approve/:id", middleware.AuthorizeRoles(string(model.Admin)), h.ApprovedProfile)
+		profile.Put("/reject/:id", middleware.AuthorizeRoles(string(model.Admin)), h.RejectProfile)
 	}
 }
 
 func (s *FiberServer) RegisterOrganizerUpdateRoutes(h *handler.OrganizerUpdateHandler) {
 	update := v1.Group("/staging-organizer")
-	update.Use(middleware.AuthMiddleware())
+	update.Use(middleware.AuthMiddleware(), middleware.AuthorizeRoles(string(model.Admin)))
 	{
-		update.Put("/:id", middleware.AuthorizeRoles("admin"), h.ValidateUpdate)
+		update.Put("/:id", h.ValidateUpdate)
 		update.Get("/:id", h.FindUpdateByID)
 		update.Get("/", h.FindUpdateByProfileID)
 	}
@@ -109,11 +110,11 @@ func (s *FiberServer) RegisterCategoriesRoutes(h *handler.CategoriesHandler) {
 	category := v1.Group("/category")
 	category.Use(middleware.AuthMiddleware())
 	{
-		category.Post("/", middleware.AuthorizeRoles("admin"), h.CreateCategory)
+		category.Post("/", middleware.AuthorizeRoles(string(model.Admin)), h.CreateCategory)
 		category.Get("/", h.ListCategories)
 		category.Get("/filter", h.ListByCatName)
-		category.Put("/:id", middleware.AuthorizeRoles("admin"), h.UpdateCategory)
-		category.Delete("/:id", middleware.AuthorizeRoles("admin"), h.DeleteCategory)
+		category.Put("/:id", middleware.AuthorizeRoles(string(model.Admin)), h.UpdateCategory)
+		category.Delete("/:id", middleware.AuthorizeRoles(string(model.Admin)), h.DeleteCategory)
 	}
 }
 

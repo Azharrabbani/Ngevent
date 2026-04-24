@@ -1,9 +1,10 @@
 import ProfileContainer from "../components/profileContainer"
-import { useGetCurrentAttendeeProfile } from "../hooks/useGetCurrentAttendeeProfiel"
+
 import AttendeeProfileForm from "../components/attendeeProfileForm";
 import OrganizerProfileForm from "../components/organizerProfileForm";
-import { useGetCurrentOrganizerProfile } from "../hooks/useGetCurrentOrganizerProfile";
+import { useGetCurrentOrganizerProfile } from "../hooks/organizer/useGetCurrentOrganizerProfile";
 import { useAuth } from "../../../lib/auth";
+import { useGetCurrentAttendeeProfile } from "../hooks/attendee/useGetCurrentAttendeeProfiel";
 
 export default function ProfileView() {
     const { user, loading } = useAuth()
