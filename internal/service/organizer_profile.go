@@ -57,8 +57,8 @@ var organizerCache []string = []string{
 func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProfileReq) error {
 	validateReq := &dto.ValidateFileReq{
 		Photo: profile.PhotoProfile,
-		NPWP:  profile.CompanyDetail.NPWPFile,
-		NIB:   profile.CompanyDetail.NIBFile,
+		NPWP:  *profile.CompanyDetail.NPWPFile,
+		NIB:   *profile.CompanyDetail.NIBFile,
 	}
 
 	// Validate files
@@ -113,8 +113,8 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 
 	// Save npwp & nib file
 	fileReq := &dto.SaveNPWPAndNIBFileReq{
-		NPWP:     &profile.CompanyDetail.NPWPFile,
-		NIB:      &profile.CompanyDetail.NIBFile,
+		NPWP:     profile.CompanyDetail.NPWPFile,
+		NIB:      profile.CompanyDetail.NIBFile,
 		NPWPPath: npwpFilePath,
 		NIBPath:  nibFilePath,
 	}
@@ -184,11 +184,11 @@ func (s *OrganizerProfileService) FindByUserID(userID string) (*dto.OrganizerPro
 	return organizer, nil
 }
 
-func (s *OrganizerProfileService) FindAll(pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
+func (s *OrganizerProfileService) FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
 	var organizers *model.PaginationRow[*dto.OrganizerProfilesResponse]
 
 	// Genereate cache key
-	cacheKey := fmt.Sprintf("organizer:all:%d:%d:%s", pagination.Limit, pagination.Page, pagination.Sort)
+	cacheKey := fmt.Sprintf("organizer:all:%d:%d:%s:%s:%s", pagination.Limit, pagination.Page, pagination.Sort, filter.Filter, filter.Status)
 
 	// Tru get from cache
 	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
@@ -198,7 +198,7 @@ func (s *OrganizerProfileService) FindAll(pagination model.Pagination) (*model.P
 
 	if organizers == nil {
 		// if cache miss, get from db
-		organizers, err = s.OrganizerRepo.FindAll(pagination)
+		organizers, err = s.OrganizerRepo.FindAll(pagination, filter)
 		if err != nil {
 			return nil, err
 		}
@@ -340,139 +340,136 @@ func (s *OrganizerProfileService) UpdatePhotoProfile(file *multipart.FileHeader,
 	return 0, nil
 }
 
-func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOrganizerProfileReq) (int, error) {
+func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOrganizerProfileReq) (int, bool, error) {
 	profile, err := s.OrganizerRepo.FindByUserID(userID)
 	if err != nil {
-		return fiber.StatusNotFound, errors.New("profile not found")
+		return fiber.StatusNotFound, false, errors.New("profile not found")
 	}
 
-	// Only validate user can update
+	// Authorization
 	if userID != profile.UserID && profile.User.Role != helper.StrPointerIfNotEmpty(string(model.Admin)) {
-		return fiber.StatusUnauthorized, errors.New("unauthorized action")
+		return fiber.StatusUnauthorized, false, errors.New("unauthorized action")
 	}
 
 	admins, err := s.UserRepo.FindByRole("admin")
 	if err != nil {
-		return fiber.StatusBadRequest, err
+		return fiber.StatusBadRequest, false, err
 	}
 
-	// Validate phone number
+	// Validate phone
 	phonenumber, country, err := utils.ValidatePhoneCode(req.PhoneNumber, req.ISO)
 	if err != nil {
-		return fiber.StatusBadRequest, err
+		return fiber.StatusBadRequest, false, err
 	}
 
-	// Track whether critical field changed
+	// Detect critical changes
 	criticalChanged := false
 
-	// Only check critical fields if currently approved
-	if profile.Status.Status == "approved" {
-
-		if profile.Name != req.Name {
-			criticalChanged = true
-		}
-
-		if profile.Country != country {
-			criticalChanged = true
-		}
-
-		if profile.CompanyDetail.NPWPNumber != req.CompanyDetail.NPWP {
-			criticalChanged = true
-		}
-
-		if profile.CompanyDetail.NIBNumber != req.CompanyDetail.NIB {
-			criticalChanged = true
-		}
-
-		if criticalChanged {
-			profile.Status.Status = "pending"
-		}
+	if profile.Name != req.Name ||
+		profile.PhoneNumber != req.PhoneNumber ||
+		profile.Country != country ||
+		profile.CompanyDetail.NPWPNumber != req.CompanyDetail.NPWP ||
+		profile.CompanyDetail.NIBNumber != req.CompanyDetail.NIB {
+		criticalChanged = true
 	}
 
-	// Update allowed fields
-	profile.Name = req.Name
-	profile.PhoneNumber = fmt.Sprintf("+%s", phonenumber)
-	profile.Country = country
-	profile.Address = req.Address
-	profile.SocialMedias.Email = req.SocialMedia.Email
-	profile.SocialMedias.Instagram = req.SocialMedia.Instagram
-	profile.CompanyDetail.Description = req.CompanyDetail.Description
+	// =============================
+	// HANDLE FILE UPLOAD (STAGING)
+	// =============================
+	var npwpFile, nibFile string
 
-	// Only allow NPWP & NIB change if not approved
-	if profile.Status.Status != "approved" {
-		profile.CompanyDetail.NPWPNumber = req.CompanyDetail.NPWP
-		profile.CompanyDetail.NIBNumber = req.CompanyDetail.NIB
-
-		criticalChanged = true
-
-		// Save new NPWP & NIB file in staging
+	if req.CompanyDetail.NPWPFile != nil && req.CompanyDetail.NIBFile != nil {
 		fileReq := &dto.SaveNPWPAndNIBFileReq{
-			NPWP:     &req.CompanyDetail.NPWPFile,
-			NIB:      &req.CompanyDetail.NIBFile,
+			NPWP:     req.CompanyDetail.NPWPFile,
+			NIB:      req.CompanyDetail.NIBFile,
 			NPWPPath: npwpStagePath,
 			NIBPath:  nibStagePath,
 		}
 
-		npwpFile, nibFile, err := saveNPWPAndNIBFile(fileReq)
+		npwpFile, nibFile, err = saveNPWPAndNIBFile(fileReq)
 		if err != nil {
-			return fiber.StatusBadRequest, err
+			return fiber.StatusBadRequest, false, err
 		}
 
-		profile.CompanyDetail.NPWPDocument = npwpFile
-		profile.CompanyDetail.NIBDocument = nibFile
+		criticalChanged = true
 	}
 
-	profile.UpdatedAt = time.Now().UTC()
 
+	// =============================
+	// IF CRITICAL → SAVE TO STAGING
+	// =============================
 	if criticalChanged {
-		// Save profile update to staging
-		// Keep it in staging first if the change is critical
-		// This way the new data will have to wait for validation from admin
+
 		profileUpdate := &model.OrganizerProfilesUpdates{
 			ProfileID:    profile.ID,
 			Name:         req.Name,
 			PhoneNumber:  fmt.Sprintf("+%s", phonenumber),
+			Status:       string(model.UpdatePending),
 			Country:      country,
+			Email:        req.SocialMedia.Email,
+			Instagram:    req.SocialMedia.Instagram,
+			Address:      req.Address,
+			Description:  req.CompanyDetail.Description,
 			NPWPNumber:   req.CompanyDetail.NPWP,
-			NPWPDocument: profile.CompanyDetail.NPWPDocument,
 			NIBNumber:    req.CompanyDetail.NIB,
-			NIBDocument:  profile.CompanyDetail.NIBDocument,
+			NPWPDocument: npwpFile,
+			NIBDocument:  nibFile,
 		}
 
 		if err := s.OrganizerUpdateRepo.Create(profileUpdate); err != nil {
-			return fiber.StatusBadRequest, err
+			return fiber.StatusBadRequest, false, err
 		}
 
-		// Send email to organizer
-		organizerpayload := &model.EmailPayload{
-			To:   profile.User.Email,
-			Name: profile.Name,
-		}
+		// Update status → pending
+		profile.Status.Status = "pending"
 
-		s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerpayload)
-
-		// Send email to admin
-		for _, admin := range admins {
-			adminPayload := &model.EmailPayload{
-				To:        admin.Email,
-				Name:      profile.Name,
-				UserEmail: profile.User.Email,
-				Action:    "updated",
-			}
-
-			s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
-		}
-	} else {
-		// Only update if there is no critical change
 		if err := s.OrganizerRepo.Update(profile); err != nil {
-			return fiber.StatusBadRequest, err
+			return fiber.StatusBadRequest, false, err
+		}
+
+		// Send email async
+		go func() {
+			// Organizer email
+			organizerPayload := &model.EmailPayload{
+				To:   profile.User.Email,
+				Name: profile.Name,
+			}
+			s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerPayload)
+
+			// Admin email
+			for _, admin := range admins {
+				adminPayload := &model.EmailPayload{
+					To:        admin.Email,
+					Name:      profile.Name,
+					UserEmail: profile.User.Email,
+					Action:    "updated",
+				}
+				s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
+			}
+		}()
+
+	} else {
+		// =============================
+		// NON-CRITICAL → DIRECT UPDATE
+		// =============================
+		profile.Name = req.Name
+		profile.PhoneNumber = fmt.Sprintf("+%s", phonenumber)
+		profile.Country = country
+		profile.Address = req.Address
+		profile.SocialMedias.Email = req.SocialMedia.Email
+		profile.SocialMedias.Instagram = req.SocialMedia.Instagram
+		profile.CompanyDetail.Description = req.CompanyDetail.Description
+		profile.UpdatedAt = time.Now().UTC()
+
+		if err := s.OrganizerRepo.Update(profile); err != nil {
+			return fiber.StatusBadRequest, false, err
 		}
 	}
 
-	// Invalidate cache after update
+	// Invalidate cache
 	utils.InvalidateCache(s.rdb, organizerCache)
 
-	return fiber.StatusOK, nil
+	return fiber.StatusOK, criticalChanged, nil
 }
 
 func validateFile(req *dto.ValidateFileReq) error {
@@ -495,6 +492,10 @@ func validateFile(req *dto.ValidateFileReq) error {
 }
 
 func saveNPWPAndNIBFile(req *dto.SaveNPWPAndNIBFileReq) (string, string, error) {
+	if req.NIB == nil || req.NPWP == nil {
+		return "", "", errors.New("NPWP and NIB file required")
+	}
+
 	npwpPath, npwpFile, err := helper.SaveToLocal(req.NPWP, req.NPWPPath)
 	if err != nil {
 		return "", "", err
@@ -546,7 +547,12 @@ func saveNPWPAndNIBFile(req *dto.SaveNPWPAndNIBFileReq) (string, string, error) 
 }
 
 func toOrganizerProfileResponse(profile *model.OrganizerProfiles) *dto.OrganizerProfilesResponse {
-	reviewedAt := helper.ConvertDatetoUnix(profile.Status.ReviewedAt.Format(time.RFC3339))
+	var reviewedAt int64
+
+	if profile.Status.ReviewedAt != nil {
+		reviewedAt = helper.ConvertDatetoUnix(profile.Status.ReviewedAt.Format(time.RFC3339))
+	}
+
 	return &dto.OrganizerProfilesResponse{
 		ID:     profile.ID,
 		UserID: profile.UserID,
@@ -558,7 +564,7 @@ func toOrganizerProfileResponse(profile *model.OrganizerProfiles) *dto.Organizer
 		},
 		Email:        profile.User.Email,
 		Name:         profile.Name,
-		PhotoProfile: profile.PhotoProfile,
+		PhotoProfile: fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", helper.StringValue(profile.PhotoProfile)),
 		PhoneNumber:  profile.PhoneNumber,
 		Country:      profile.Country,
 		Address:      profile.Address,
@@ -569,9 +575,11 @@ func toOrganizerProfileResponse(profile *model.OrganizerProfiles) *dto.Organizer
 		CompanyDetail: dto.OrganizerCompDetailRes{
 			Description: profile.CompanyDetail.Description,
 			NPWP:        profile.CompanyDetail.NPWPNumber,
-			NPWPFile:    profile.CompanyDetail.NPWPDocument,
+			NPWPFile:    fmt.Sprintf("http://localhost:8080/api/v1/organizer/npwp/%s", profile.CompanyDetail.NPWPDocument),
 			NIB:         profile.CompanyDetail.NIBNumber,
-			NIBFile:     profile.CompanyDetail.NIBDocument,
+			NIBFile:     fmt.Sprintf("http://localhost:8080/api/v1/organizer/nib/%s", profile.CompanyDetail.NIBDocument),
 		},
+		CreatedAt: profile.CreatedAt.Unix(),
+		UpdatedAt: profile.UpdatedAt.Unix(),
 	}
 }

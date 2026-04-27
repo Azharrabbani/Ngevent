@@ -22,6 +22,8 @@ type NewTaskUnverifiedUser interface {
 
 type UserService struct {
 	UserRepo           repository.UsersRepo
+	AttendeeRepo       repository.AttendeeProfilesRepo
+	OrganizerRepo      repository.OrganizerProfileRepo
 	OtpRepo            repository.OtpRepo
 	UserTaskPublisher  NewTaskUnverifiedUser
 	OtpTaskPublisher   NewTaskOTP
@@ -31,6 +33,8 @@ type UserService struct {
 
 func NewUserService(
 	userRepo repository.UsersRepo,
+	attendeeRepo repository.AttendeeProfilesRepo,
+	organizerRepo repository.OrganizerProfileRepo,
 	otpRepo repository.OtpRepo,
 	userTaskPublisher NewTaskUnverifiedUser,
 	otpTaskPublisher NewTaskOTP,
@@ -39,6 +43,8 @@ func NewUserService(
 ) *UserService {
 	return &UserService{
 		UserRepo:           userRepo,
+		AttendeeRepo:       attendeeRepo,
+		OrganizerRepo:      organizerRepo,
 		OtpRepo:            otpRepo,
 		UserTaskPublisher:  userTaskPublisher,
 		OtpTaskPublisher:   otpTaskPublisher,
@@ -217,7 +223,39 @@ func (s *UserService) FindUserByID(id string) (*dto.UsersResponse, error) {
 		return nil, err
 	}
 
+	role := helper.StringValue(user.Role)
+
+	if role == string(model.Attendee) {
+		// Check if user has profile
+		profile, _ := s.AttendeeRepo.FindByUserID(user.ID)
+		if profile != nil {
+			userResp.HasProfile = helper.BoolPtr(true)
+		} else {
+			userResp.HasProfile = helper.BoolPtr(false)
+		}
+	} else {
+		profile, _ := s.OrganizerRepo.FindByUserID(user.ID)
+		if profile != nil {
+			userResp.HasProfile = helper.BoolPtr(true)
+		} else {
+			userResp.HasProfile = helper.BoolPtr(false)
+		}
+	}
+
+	if role == string(model.Organizer) {
+
+	}
+
 	return userResp, nil
+}
+
+func (s *UserService) FindUser(id string) (*model.Users, error) {
+	user, err := s.UserRepo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	return user, nil
 }
 
 func (s *UserService) DeleteUnverifiedUser(id string) error {

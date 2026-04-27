@@ -21,6 +21,10 @@ func BoolValue(b *bool) string {
 	return fmt.Sprintf("%t", *b)
 }
 
+func BoolPtr(b bool) *bool {
+	return &b
+}
+
 func StrPointerIfNotEmpty(s string) *string {
 	if s == "" {
 		return nil

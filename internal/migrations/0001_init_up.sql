@@ -96,6 +96,10 @@ CREATE TABLE "public"."organizer_profiles_updates"(
 	"name" VARCHAR(255) NOT NULL,
 	"phone_number" VARCHAR(100) NOT NULL,
 	"country" VARCHAR(120) NOT NULL,
+	"email" VARCHAR(255),
+	"instagram" VARCHAR(255),
+	"address" TEXT,
+	"description" TEXT,
 	"npwp_number" VARCHAR(100) NOT NULL,
 	"npwp_document" TEXT NOT NULL,
 	"nib_number" VARCHAR(100) NOT NULL,
@@ -103,7 +107,7 @@ CREATE TABLE "public"."organizer_profiles_updates"(
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	CONSTRAINT "organizer_profiles_updates_pk" PRIMARY KEY("id"),
-	CONSTRAINT "fk_organizer_profiles_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE
+	CONSTRAINT "fk_organizer_profiles_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."organizer_profiles" ("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."categories"(

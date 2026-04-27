@@ -9,11 +9,16 @@ import (
 type CreateAttendeeProfileReq struct {
 	UserID       string
 	PhotoProfile *multipart.FileHeader
-	Name         string
-	Username     *string
-	PhoneNumber  string
+	Name         string  `json:"name" validate:"required"`
+	Username     *string `json:"username"`
+	PhoneNumber  string  `json:"phone_number" validate:"required"`
 	ISO          string
-	Address      *string
+	Address      *string `json:"address"`
+}
+
+type FilterProfileReq struct {
+	Filter *string `json:"filter" query:"filter"`
+	Status *string `json:"status" query:"status"`
 }
 
 type UpdateAttendeeProfileReq struct {
@@ -28,17 +33,17 @@ type UpdateAttendeeProfileReq struct {
 type CreateOrganizerProfileReq struct {
 	UserID        string
 	PhotoProfile  *multipart.FileHeader
-	Name          string
-	PhoneNumber   string
+	Name          string `form:"name" validate:"required"`
+	PhoneNumber   string `form:"phone_number" validate:"required"`
 	ISO           string
-	Address       *string
-	SocialMedia   OrganizerSocialMediaReq
-	CompanyDetail OrganizerCompDetailReq
+	Address       *string                 `form:"address" validate:"required"`
+	SocialMedia   OrganizerSocialMediaReq `validate:"required"`
+	CompanyDetail OrganizerCompDetailReq  `validate:"required"`
 }
 
 type OrganizerSocialMediaReq struct {
-	Email     *string `json:"email,omitempty"`
-	Instagram *string `json:"instagram,omitempty"`
+	Email     *string `json:"email,omitempty" form:"email,omitempty"`
+	Instagram *string `json:"instagram,omitempty" form:"instagram,omitempty"`
 }
 
 type FilterReq struct {
@@ -46,11 +51,11 @@ type FilterReq struct {
 }
 
 type OrganizerCompDetailReq struct {
-	Description *string              `json:"description,omitempty"`
-	NPWP        string               `json:"npwp" validate:"required"`
-	NPWPFile    multipart.FileHeader `json:"npwp_file" validate:"required"`
-	NIB         string               `json:"nib" validate:"required"`
-	NIBFile     multipart.FileHeader `json:"nib_file" validate:"required"`
+	Description *string               `form:"description,omitempty"`
+	NPWP        string                `form:"npwp" validate:"required"`
+	NPWPFile    *multipart.FileHeader `form:"npwp_file"`
+	NIB         string                `form:"nib" validate:"required"`
+	NIBFile     *multipart.FileHeader `form:"nib_file"`
 }
 
 type UpdateOrganizerProfileReq struct {
@@ -108,7 +113,7 @@ type AttendeeProfilesResponse struct {
 	Email        string  `json:"email"`
 	Name         string  `json:"name"`
 	Username     *string `json:"username,omitempty"`
-	PhotoProfile *string `json:"photo_profile,omitempty"`
+	PhotoProfile string  `json:"photo_profile"`
 	PhoneNumber  string  `json:"phone_number"`
 	Country      string  `json:"country"`
 	Address      *string `json:"address,omitempty"`
@@ -119,10 +124,9 @@ type OrganizerProfilesResponse struct {
 	ID            string                  `json:"id"`
 	UserID        string                  `json:"user_id"`
 	Status        OrganizerStatusResp     `json:"status,omitempty"`
-	IsVerified    bool                    `json:"is_verified"`
 	Email         string                  `json:"email"`
 	Name          string                  `json:"name"`
-	PhotoProfile  *string                 `json:"photo_profile,omitempty"`
+	PhotoProfile  string                  `json:"photo_profile,omitempty"`
 	PhoneNumber   string                  `json:"phone_number"`
 	Country       string                  `json:"country"`
 	Address       *string                 `json:"address,omitempty"`
@@ -130,4 +134,23 @@ type OrganizerProfilesResponse struct {
 	CompanyDetail OrganizerCompDetailRes  `json:"company_detail"`
 	CreatedAt     int64                   `json:"created_at"`
 	UpdatedAt     int64                   `json:"updated_at"`
+}
+
+type OrganizerUpdatesResponse struct {
+	ID           string `json:"id"`
+	ProfileID    string `json:"profile_id"`
+	Status       string `json:"status"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	Description  string `json:"description"`
+	Address      string `json:"address"`
+	Instagram    string `json:"instagram"`
+	PhoneNumber  string `json:"phone_number"`
+	Country      string `json:"country"`
+	NPWPNumber   string `json:"npwp_number"`
+	NPWPDocument string `json:"npwp_document"`
+	NIBNumber    string `json:"nib_number"`
+	NIBDocument  string `json:"nib_document"`
+	CreatedAt    int64  `json:"created_at"`
+	UpdatedAt    int64  `json:"updated_at"`
 }

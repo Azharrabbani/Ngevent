@@ -42,7 +42,18 @@ func (r *OrganizerProfileUpdateRepository) FindByID(id string) (*model.Organizer
 }
 
 // FindByProfileID implements OrganizerProfileUpdateRepo.
-func (r *OrganizerProfileUpdateRepository) FindByProfileID(pagination model.Pagination, profileID string) (*model.PaginationRow[*model.OrganizerProfilesUpdates], error) {
+func (r *OrganizerProfileUpdateRepository) FindByProfileID(id string) (*model.OrganizerProfilesUpdates, error) {
+	var update *model.OrganizerProfilesUpdates
+
+	if err := r.db.Where("profile_id = ? AND status = ?", id, "pending").First(&update).Error; err != nil {
+		return nil, err
+	}
+
+	return update, nil
+}
+
+// FindByProfileID implements OrganizerProfileUpdateRepo.
+func (r *OrganizerProfileUpdateRepository) FindUpdatesByProfileID(pagination model.Pagination, profileID string) (*model.PaginationRow[*model.OrganizerProfilesUpdates], error) {
 	var profileUpdates []*model.OrganizerProfilesUpdates
 
 	if err := r.db.Scopes(Paginate(profileID, &pagination, r.db)).Where("profile_id = ?", profileID).Error; err != nil {

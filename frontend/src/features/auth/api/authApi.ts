@@ -37,3 +37,8 @@ export const selectRoleApi = async(payload: SelectRoleRequest) => {
     const res = await api.put<successResponse<string>>("/user/role", payload);
     return res.data;
 };
+
+export const logoutApi = async() => {
+    const res = await api.post<successResponse<string>>("/logout");
+    return res.data;
+}

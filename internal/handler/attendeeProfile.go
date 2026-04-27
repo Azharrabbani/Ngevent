@@ -2,6 +2,7 @@ package handler
 
 import (
 	"ngevent/internal/dto"
+	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
 
@@ -53,6 +54,16 @@ func (h *AttendeeProfileHandler) CreateProfile(c *fiber.Ctx) error {
 		Address:      &address,
 	}
 
+	if err := h.Validate.Struct(req); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"validation-error",
+			msg,
+		))
+	}
+
 	if err := h.AttendeeProfileService.Create(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -70,6 +81,73 @@ func (h *AttendeeProfileHandler) CreateProfile(c *fiber.Ctx) error {
 	))
 }
 
+func (h *AttendeeProfileHandler) GetAllProfiles(c *fiber.Ctx) error {
+	filter := new(dto.FilterProfileReq)
+
+	if err := c.QueryParser(filter); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"error",
+			"error",
+			err.Error(),
+		))
+	}
+
+	paginate := new(model.Pagination)
+
+	if err := c.QueryParser(paginate); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"error",
+			"error",
+			err.Error(),
+		))
+	}
+
+	page := &model.Pagination{
+		Page:  paginate.Page,
+		Limit: paginate.Limit,
+		Sort:  paginate.Sort,
+	}
+
+	attendess, err := h.AttendeeProfileService.FindAll(*page, filter)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		attendess,
+	))
+}
+
+func (h *AttendeeProfileHandler) HasProfile(c *fiber.Ctx) error {
+	userId := c.Locals("user_id").(string)
+
+	hasProfile, err := h.AttendeeProfileService.HasProfile(userId)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(dto.Error(
+			fiber.StatusInternalServerError,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		hasProfile,
+	))
+}
 func (h *AttendeeProfileHandler) GetProfileByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -83,8 +161,8 @@ func (h *AttendeeProfileHandler) GetProfileByID(c *fiber.Ctx) error {
 		))
 	}
 
-	return c.Status(fiber.StatusFound).JSON(dto.Success(
-		fiber.StatusFound,
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
 		"success",
 		"success",
 		profile,
@@ -104,8 +182,8 @@ func (h *AttendeeProfileHandler) GetProfileByUserID(c *fiber.Ctx) error {
 		))
 	}
 
-	return c.Status(fiber.StatusFound).JSON(dto.Success(
-		fiber.StatusFound,
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
 		"success",
 		"success",
 		profile,
@@ -181,6 +259,6 @@ func (h *AttendeeProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 		fiber.StatusOK,
 		"success",
 		"success",
-		"update success",
+		"Profile updated",
 	))
 }

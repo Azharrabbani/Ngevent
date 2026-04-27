@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"fmt"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/utils/helper"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -27,17 +29,30 @@ func (r *OrganizerRepository) Create(profile *model.OrganizerProfiles) error {
 	return r.db.Create(profile).Error
 }
 
+// HasProfile implements OrganizerProfileRepo.
+func (r *OrganizerRepository) HasProfile(userID string) (bool, error) {
+	if err := r.db.
+		Where("user_id = ?", userID).
+		First(&model.OrganizerProfiles{}).Error; err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // Delete implements OrganizerProfileRepo.
 func (r *OrganizerRepository) Delete(id string) error {
 	return r.db.Where("id = ?", id).Delete(&model.OrganizerProfiles{}).Error
 }
 
 // FindAll implements OrganizerProfileRepo.
-func (r *OrganizerRepository) FindAll(pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
+func (r *OrganizerRepository) FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
 	var profiles []*model.OrganizerProfiles
 
-	if err := r.db.Preload("User").
-		Scopes(Paginate(profiles, &pagination, r.db)).
+	query := r.db.Scopes(filterOrganizer(filter))
+
+	if err := query.Preload("User").
+		Scopes(Paginate(profiles, &pagination, query)).
 		Find(&profiles).Error; err != nil {
 		return nil, err
 	}
@@ -130,23 +145,49 @@ func (r *OrganizerRepository) Update(profile *model.OrganizerProfiles) error {
 
 // UpdatePhotoProfile implements OrganizerProfileRepo.
 func (r *OrganizerRepository) UpdatePhotoProfile(userID string, photo string) error {
-	return r.db.Model(&model.AttendeeProfiles{}).
+	return r.db.Model(&model.OrganizerProfiles{}).
 		Where("user_id = ?", userID).
 		Updates(&model.OrganizerProfiles{
 			PhotoProfile: &photo,
 			UpdatedAt:    time.Now().UTC()}).Error
 }
 
+func filterOrganizer(filter *dto.FilterProfileReq) func(*gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		if filter.Filter != nil {
+			query := "%" + strings.ToLower(*filter.Filter) + "%"
+			db = db.Joins("JOIN users ON users.id = organizer_profiles.user_id").
+				Where(
+					db.Where("LOWER(users.email) LIKE ?", query).
+						Or("LOWER(organizer_profiles.name) LIKE ?", query).
+						Or("LOWER(organizer_profiles.country) LIKE ?", query),
+				)
+		}
+
+		if filter.Status != nil {
+			db = db.Where("status = ?", filter.Status)
+		}
+
+		return db
+	}
+}
+
 func toOrganizerResponse(profiles []*model.OrganizerProfiles) []*dto.OrganizerProfilesResponse {
 	var organizers []*dto.OrganizerProfilesResponse
 
 	for _, profile := range profiles {
+		var reviewedAt int64
+
+		if profile.Status.ReviewedAt != nil {
+			reviewedAt = helper.ConvertDatetoUnix(profile.Status.ReviewedAt.Format(time.RFC3339))
+		}
+
 		createdAt := helper.ConvertDatetoUnix(profile.CreatedAt.Format(time.RFC3339))
 		updatedAt := helper.ConvertDatetoUnix(profile.UpdatedAt.Format(time.RFC3339))
 
-		reviewedAt := helper.ConvertDatetoUnix(profile.Status.ReviewedAt.Format(time.RFC3339))
 		organizers = append(organizers, &dto.OrganizerProfilesResponse{
-			ID: profile.ID,
+			ID:     profile.ID,
+			UserID: profile.UserID,
 			Status: dto.OrganizerStatusResp{
 				Status:         profile.Status.Status,
 				RejectedReason: profile.Status.RejectedReason,
@@ -155,7 +196,7 @@ func toOrganizerResponse(profiles []*model.OrganizerProfiles) []*dto.OrganizerPr
 			},
 			Name:         profile.Name,
 			Email:        profile.User.Email,
-			PhotoProfile: profile.PhotoProfile,
+			PhotoProfile: fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", helper.StringValue(profile.PhotoProfile)),
 			PhoneNumber:  profile.PhoneNumber,
 			Country:      profile.Country,
 			Address:      profile.Address,
@@ -166,8 +207,9 @@ func toOrganizerResponse(profiles []*model.OrganizerProfiles) []*dto.OrganizerPr
 			CompanyDetail: dto.OrganizerCompDetailRes{
 				Description: profile.CompanyDetail.Description,
 				NPWP:        profile.CompanyDetail.NPWPNumber,
-				NPWPFile:    profile.CompanyDetail.NPWPDocument,
-				NIB:         profile.CompanyDetail.NIBDocument,
+				NPWPFile:    fmt.Sprintf("http://localhost:8080/api/v1/organizer/npwp/%s", profile.CompanyDetail.NPWPDocument),
+				NIB:         profile.CompanyDetail.NIBNumber,
+				NIBFile:     fmt.Sprintf("http://localhost:8080/api/v1/organizer/nib/%s", profile.CompanyDetail.NIBDocument),
 			},
 			CreatedAt: createdAt,
 			UpdatedAt: updatedAt,

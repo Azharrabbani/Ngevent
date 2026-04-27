@@ -12,10 +12,7 @@ export default function RegisterView() {
     const handleRegister = async(email: string, password: string, confirm_password: string) => {
         const user = await register({email, password, confirm_password})
 
-        if (user) {
-            console.log("Register success: ", user)
-
-            // Redirect user to verified email page
+        if (user) {    
             window.open(`http://localhost:${baseUrlPort}/verified-email`)
         }
     }

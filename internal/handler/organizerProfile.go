@@ -48,7 +48,7 @@ func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 				fiber.StatusBadRequest,
 				"failed",
 				"error",
-				"file is too big",
+				"File is too big",
 			))
 		}
 	} else {
@@ -102,10 +102,20 @@ func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 		CompanyDetail: dto.OrganizerCompDetailReq{
 			Description: &desc,
 			NPWP:        npwpNumber,
-			NPWPFile:    *npwpFile,
+			NPWPFile:    npwpFile,
 			NIB:         nibNumber,
-			NIBFile:     *nibFile,
+			NIBFile:     nibFile,
 		},
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"validation-error",
+			msg,
+		))
 	}
 
 	if err := h.OrganizerService.CreateProfile(req); err != nil {
@@ -138,8 +148,8 @@ func (h *OrganizerProfileHandler) GetProfileByID(c *fiber.Ctx) error {
 		))
 	}
 
-	return c.Status(fiber.StatusFound).JSON(dto.Success(
-		fiber.StatusFound,
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
 		"success",
 		"success",
 		profile,
@@ -159,8 +169,8 @@ func (h *OrganizerProfileHandler) GetProfileByUserID(c *fiber.Ctx) error {
 		))
 	}
 
-	return c.Status(fiber.StatusFound).JSON(dto.Success(
-		fiber.StatusFound,
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
 		"success",
 		"success",
 		profile,
@@ -168,6 +178,17 @@ func (h *OrganizerProfileHandler) GetProfileByUserID(c *fiber.Ctx) error {
 }
 
 func (h *OrganizerProfileHandler) GetAllProfile(c *fiber.Ctx) error {
+	filter := new(dto.FilterProfileReq)
+
+	if err := c.QueryParser(filter); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"error",
+			"error",
+			err.Error(),
+		))
+	}
+
 	paginate := new(model.Pagination)
 
 	if err := c.QueryParser(paginate); err != nil {
@@ -185,7 +206,7 @@ func (h *OrganizerProfileHandler) GetAllProfile(c *fiber.Ctx) error {
 		Sort:  paginate.Sort,
 	}
 
-	organizers, err := h.OrganizerService.FindAll(*page)
+	organizers, err := h.OrganizerService.FindAll(*page, filter)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -293,35 +314,9 @@ func (h *OrganizerProfileHandler) UpdatePhotoProfile(c *fiber.Ctx) error {
 func (h *OrganizerProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
-	npwpFile, err := c.FormFile("npwp_file")
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
-		))
-	}
-
-	nibFile, err := c.FormFile("nib_file")
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
-		))
-	}
-
-	// Check if npwp or nib null
-	if nibFile == nil || npwpFile == nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			"NPWP and NIB must be uploaded.",
-		))
-	}
+	// OPTIONAL FILE
+	npwpFile, _ := c.FormFile("npwp_file")
+	nibFile, _ := c.FormFile("nib_file")
 
 	name := c.FormValue("name")
 	phoneNumber := c.FormValue("phonenumber")
@@ -346,12 +341,12 @@ func (h *OrganizerProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 			Description: &desc,
 			NPWP:        npwpNumber,
 			NIB:         nibNumber,
-			NPWPFile:    *npwpFile,
-			NIBFile:     *nibFile,
+			NPWPFile:    npwpFile,
+			NIBFile:     nibFile,
 		},
 	}
 
-	status, err := h.OrganizerService.UpdateProfile(userID, req)
+	status, isCritical, err := h.OrganizerService.UpdateProfile(userID, req)
 	if err != nil {
 		return c.Status(status).JSON(dto.Error(
 			status,
@@ -361,11 +356,20 @@ func (h *OrganizerProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 		))
 	}
 
+	if isCritical {
+		return c.Status(fiber.StatusOK).JSON(dto.Success(
+			fiber.StatusOK,
+			"success",
+			"success",
+			"Update will be reviewed",
+		))
+	}
+
 	return c.Status(fiber.StatusOK).JSON(dto.Success(
 		fiber.StatusOK,
 		"success",
 		"success",
-		"update success",
+		"Profile updated",
 	))
 }
 

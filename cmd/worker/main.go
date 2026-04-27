@@ -19,11 +19,13 @@ func main() {
 	// Init repository
 	userRepo := repository.NewUsersRepository(worker.DB)
 	sessionRepo := repository.NewSessionRepository(worker.DB)
+	attendeeProfileRepo := repository.NewAttendeeProfileRepository(worker.DB)
+	organizerProfileRepo := repository.NewOrganizerRepository(worker.DB)
 	otpRepo := repository.NewOtpRepository(worker.DB)
 
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, nil, nil, nil)
-	userService := service.NewUserService(userRepo, otpRepo, nil, nil, nil, nil)
+	userService := service.NewUserService(userRepo, attendeeProfileRepo, organizerProfileRepo, otpRepo, nil, nil, nil, nil)
 
 	// Init tasks handler
 	userTaskHandler := tasks.NewUserTaskHandler(userService)

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -14,19 +16,28 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/redis/go-redis/v9"
 )
 
 type AttendeeProfileService struct {
 	AttendeeRepo repository.AttendeeProfilesRepo
+	rdb          *redis.Client
 }
 
-func NewAttendeeProfileService(attendeeRepo repository.AttendeeProfilesRepo) *AttendeeProfileService {
-	return &AttendeeProfileService{AttendeeRepo: attendeeRepo}
+func NewAttendeeProfileService(attendeeRepo repository.AttendeeProfilesRepo, rdb *redis.Client) *AttendeeProfileService {
+	return &AttendeeProfileService{
+		AttendeeRepo: attendeeRepo,
+		rdb:          rdb,
+	}
 }
 
 var (
 	profileUploadPath = "./storage/profiles"
 )
+
+var attendeeCache []string = []string{
+	"attendee:all:*",
+}
 
 func (s *AttendeeProfileService) Create(profile *dto.CreateAttendeeProfileReq) error {
 	// Validate image
@@ -62,7 +73,50 @@ func (s *AttendeeProfileService) Create(profile *dto.CreateAttendeeProfileReq) e
 	}
 
 	// Save Profile
-	return s.AttendeeRepo.Create(newProfile)
+	if err := s.AttendeeRepo.Create(newProfile); err != nil {
+		return err
+	}
+
+	// Invalidate cache after update
+	utils.InvalidateCache(s.rdb, attendeeCache)
+
+	return nil
+}
+
+func (s *AttendeeProfileService) FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) (*model.PaginationRow[*dto.AttendeeProfilesResponse], error) {
+	var attendess *model.PaginationRow[*dto.AttendeeProfilesResponse]
+
+	cacheKey := fmt.Sprintf("attendee:all:%d:%d:%s:%s", pagination.Limit, pagination.Page, pagination.Sort, filter.Filter)
+
+	// Tru get from cache
+	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
+	if err == nil {
+		json.Unmarshal([]byte(val), &attendess)
+	}
+
+	if attendess == nil {
+		// if cache miss, get from db
+		attendess, err = s.AttendeeRepo.FindAll(pagination, filter)
+		if err != nil {
+			return nil, err
+		}
+
+		// Set cache with 15 minute TTL
+		if data, err := json.Marshal(attendess); err == nil {
+			s.rdb.Set(context.Background(), cacheKey, data, 15*time.Minute)
+		}
+	}
+
+	return attendess, nil
+}
+
+func (s *AttendeeProfileService) HasProfile(userID string) (bool, error) {
+	hasProfile, err := s.AttendeeRepo.HasProfile(userID)
+	if err != nil {
+		return false, err
+	}
+
+	return hasProfile, nil
 }
 
 func (s *AttendeeProfileService) FindByID(id string) (*dto.AttendeeProfilesResponse, error) {
@@ -121,6 +175,9 @@ func (s *AttendeeProfileService) UpdatePhotoProfile(file *multipart.FileHeader, 
 		log.Printf("failed to remove file from local %v\n", err)
 	}
 
+	// Invalidate cache after update
+	utils.InvalidateCache(s.rdb, attendeeCache)
+
 	return 0, nil
 }
 
@@ -153,6 +210,9 @@ func (s *AttendeeProfileService) UpdateProfile(userID string, req *dto.UpdateAtt
 		return fiber.StatusBadRequest, nil
 	}
 
+	// Invalidate cache after update
+	utils.InvalidateCache(s.rdb, attendeeCache)
+
 	return 0, nil
 }
 
@@ -163,10 +223,9 @@ func toAttendeeProfileResponse(profile *model.AttendeeProfiles) *dto.AttendeePro
 		Email:        profile.User.Email,
 		Name:         profile.Name,
 		Username:     profile.Username,
-		PhotoProfile: profile.PhotoProfile,
+		PhotoProfile: fmt.Sprintf("http://localhost:8080/api/v1/attendee/photo/%s", helper.StringValue(profile.PhotoProfile)),
 		PhoneNumber:  profile.PhoneNumber,
 		Country:      profile.Country,
 		Address:      profile.Address,
 	}
-
 }

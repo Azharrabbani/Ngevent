@@ -13,7 +13,8 @@ export const useSelectRole = () => {
             setError(null);
             setMessage(null)
 
-            const res = await selectRoleApi(payload);
+            const res = await selectRoleApi(payload); 
+            
 
             setMessage(res.data);
         } catch(err: any) {
