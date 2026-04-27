@@ -25,6 +25,12 @@ export interface FilterAttendeeReq {
 
 
 // Organizer data
+export interface FilterOrganizerReq {
+    filter?: string;
+    status?: string | null,
+    pagination?: PaginationParams;
+};
+
 export interface CreateOrganizerProfileReq {
     photo: File;
     name: string;
@@ -51,6 +57,15 @@ export interface UpdateOrganizerProfileReq {
     nib: string;
     nibFile: File;
 }
+
+export interface validateOrganizerReq {
+    status:   string;
+	reason:   string;
+};
+
+export interface rejectOrganizerReq {  
+    reason: string;
+};
 
 
 export interface UpdatePhotoReq {

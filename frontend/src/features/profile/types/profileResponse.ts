@@ -25,6 +25,26 @@ export interface OrganizerResponse {
     company_detail: OrganizerCompanyDetail;
 };
 
+export interface OrganizerUpdateResponse {
+    id: string;
+    profile_id: string;
+    status: string;
+    email: string;
+    name : string;
+    description: string;
+    photo_profile: string;
+    phone_number: string;
+    country: string;
+    address: string;
+    instagram: string;
+    npwp_number: string;
+    nib_number: string;
+    npwp_document: string;
+    nib_document: string;
+    created_at: number;
+    updated_at: number;
+};
+
 type OrganizerStatus = {
     status: string;
     rejected_reason: string;

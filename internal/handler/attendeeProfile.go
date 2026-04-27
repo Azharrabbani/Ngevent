@@ -82,7 +82,7 @@ func (h *AttendeeProfileHandler) CreateProfile(c *fiber.Ctx) error {
 }
 
 func (h *AttendeeProfileHandler) GetAllProfiles(c *fiber.Ctx) error {
-	filter := new(dto.FilterAttendeeReq)
+	filter := new(dto.FilterProfileReq)
 
 	if err := c.QueryParser(filter); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(

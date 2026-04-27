@@ -48,7 +48,7 @@ func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 				fiber.StatusBadRequest,
 				"failed",
 				"error",
-				"file is too big",
+				"File is too big",
 			))
 		}
 	} else {
@@ -148,8 +148,8 @@ func (h *OrganizerProfileHandler) GetProfileByID(c *fiber.Ctx) error {
 		))
 	}
 
-	return c.Status(fiber.StatusFound).JSON(dto.Success(
-		fiber.StatusFound,
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
 		"success",
 		"success",
 		profile,
@@ -178,6 +178,17 @@ func (h *OrganizerProfileHandler) GetProfileByUserID(c *fiber.Ctx) error {
 }
 
 func (h *OrganizerProfileHandler) GetAllProfile(c *fiber.Ctx) error {
+	filter := new(dto.FilterProfileReq)
+
+	if err := c.QueryParser(filter); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"error",
+			"error",
+			err.Error(),
+		))
+	}
+
 	paginate := new(model.Pagination)
 
 	if err := c.QueryParser(paginate); err != nil {
@@ -195,7 +206,7 @@ func (h *OrganizerProfileHandler) GetAllProfile(c *fiber.Ctx) error {
 		Sort:  paginate.Sort,
 	}
 
-	organizers, err := h.OrganizerService.FindAll(*page)
+	organizers, err := h.OrganizerService.FindAll(*page, filter)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,

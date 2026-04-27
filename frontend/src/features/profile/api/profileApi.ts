@@ -1,7 +1,7 @@
 import { api } from "../../../lib/api";
 import type { PaginatedResponse, successResponse } from "../../../types/apiResponse";
-import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq, UpdatePhotoReq, UpdateAttendeeProfileReq, UpdateOrganizerProfileReq, UserQueryParams, FilterAttendeeReq } from "../types/profileRequest";
-import type { AttendeeResponse, OrganizerResponse } from "../types/profileResponse";
+import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq, UpdatePhotoReq, UpdateAttendeeProfileReq, UpdateOrganizerProfileReq, UserQueryParams, FilterAttendeeReq, FilterOrganizerReq, validateOrganizerReq, rejectOrganizerReq } from "../types/profileRequest";
+import type { AttendeeResponse, OrganizerResponse, OrganizerUpdateResponse } from "../types/profileResponse";
 
 export const CheckProfile = async () => {
     const res = await api.get<successResponse<boolean>>("/attendee/check-profile");
@@ -97,6 +97,25 @@ export const CreateOrganizerProfileApi = async (payload: CreateOrganizerProfileR
     return res.data;
 };
 
+export const GetOrganizersProfileApi = async(params: FilterOrganizerReq) => {
+    const res = await api.get<PaginatedResponse<OrganizerResponse>>("/organizer/profiles", { 
+        params: {
+            filter: params.filter,
+            status: params.status,
+            page: params.pagination?.page,
+            limit: params.pagination?.limit,
+            sort: params.pagination?.sort,
+        },
+    });
+
+    return res.data;
+}
+
+export const GetOrganizerDetailProfileApi = async(id: string) => {
+    const res = await api.get<successResponse<OrganizerResponse>>(`/organizer/${id}`);
+    return res.data;
+}
+
 export const GetCurrentOrganizerProfileApi = async() => {
     const res = await api.get<successResponse<OrganizerResponse>>("/organizer");
     return res.data;
@@ -142,6 +161,26 @@ export const UpdateOrganizerProfileApi = async (payload: UpdateOrganizerProfileR
         formData,
     );
 
+    return res.data;
+}
+
+export const GetUpdateOrganizerReqApi = async (id : string) => {
+    const res = await api.get<successResponse<OrganizerUpdateResponse>>(`/staging-organizer/update/${id}`);
+    return res.data;
+}
+
+export const ApproveOrganizerApi = async (id: string) => {
+    const res = await api.put<successResponse<string>>(`/organizer/approve/${id}`);
+    return res.data;
+}
+
+export const RejectOrganizerApi = async (id: string, payload: rejectOrganizerReq ) => {
+    const res = await api.put<successResponse<string>>(`/organizer/reject/${id}`, payload);
+    return res.data;
+}
+
+export const ValidateOrganizerUpdateApi = async (id: string | null, payload: validateOrganizerReq) => {
+    const res = await api.put<successResponse<string>>(`/staging-organizer/${id}`, payload);
     return res.data;
 }
 

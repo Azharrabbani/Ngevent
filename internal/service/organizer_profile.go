@@ -184,11 +184,11 @@ func (s *OrganizerProfileService) FindByUserID(userID string) (*dto.OrganizerPro
 	return organizer, nil
 }
 
-func (s *OrganizerProfileService) FindAll(pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
+func (s *OrganizerProfileService) FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
 	var organizers *model.PaginationRow[*dto.OrganizerProfilesResponse]
 
 	// Genereate cache key
-	cacheKey := fmt.Sprintf("organizer:all:%d:%d:%s", pagination.Limit, pagination.Page, pagination.Sort)
+	cacheKey := fmt.Sprintf("organizer:all:%d:%d:%s:%s:%s", pagination.Limit, pagination.Page, pagination.Sort, filter.Filter, filter.Status)
 
 	// Tru get from cache
 	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
@@ -198,7 +198,7 @@ func (s *OrganizerProfileService) FindAll(pagination model.Pagination) (*model.P
 
 	if organizers == nil {
 		// if cache miss, get from db
-		organizers, err = s.OrganizerRepo.FindAll(pagination)
+		organizers, err = s.OrganizerRepo.FindAll(pagination, filter)
 		if err != nil {
 			return nil, err
 		}
@@ -366,6 +366,7 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 	criticalChanged := false
 
 	if profile.Name != req.Name ||
+		profile.PhoneNumber != req.PhoneNumber ||
 		profile.Country != country ||
 		profile.CompanyDetail.NPWPNumber != req.CompanyDetail.NPWP ||
 		profile.CompanyDetail.NIBNumber != req.CompanyDetail.NIB {
@@ -393,10 +394,6 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 		criticalChanged = true
 	}
 
-	// Only update if you already approve
-	if profile.Status.Status == string(model.UpdatePending) && criticalChanged {
-		return fiber.StatusBadRequest, false, errors.New("Profile still under verification from admin")
-	}
 
 	// =============================
 	// IF CRITICAL → SAVE TO STAGING
@@ -409,6 +406,10 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 			PhoneNumber:  fmt.Sprintf("+%s", phonenumber),
 			Status:       string(model.UpdatePending),
 			Country:      country,
+			Email:        req.SocialMedia.Email,
+			Instagram:    req.SocialMedia.Instagram,
+			Address:      req.Address,
+			Description:  req.CompanyDetail.Description,
 			NPWPNumber:   req.CompanyDetail.NPWP,
 			NIBNumber:    req.CompanyDetail.NIB,
 			NPWPDocument: npwpFile,
@@ -491,6 +492,10 @@ func validateFile(req *dto.ValidateFileReq) error {
 }
 
 func saveNPWPAndNIBFile(req *dto.SaveNPWPAndNIBFileReq) (string, string, error) {
+	if req.NIB == nil || req.NPWP == nil {
+		return "", "", errors.New("NPWP and NIB file required")
+	}
+
 	npwpPath, npwpFile, err := helper.SaveToLocal(req.NPWP, req.NPWPPath)
 	if err != nil {
 		return "", "", err

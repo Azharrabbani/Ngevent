@@ -47,7 +47,7 @@ export default function CompleteProfileView() {
 
     const handleCreateOrganizerProfile = async(payload: CreateOrganizerProfileReq) => {
         await organizer(payload);
-        navigate("/dashboard");
+        navigate("/profile");
     }
 
     return(

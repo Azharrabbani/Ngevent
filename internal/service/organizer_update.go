@@ -11,6 +11,7 @@ import (
 	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -69,41 +70,60 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 	}
 
 	// Get profile
-	profile, err := s.OrganizerProfileRepo.FindByUserID(updateData.ProfileID)
+	profile, err := s.OrganizerProfileRepo.FindByID(updateData.ProfileID)
 	if err != nil {
 		return errors.New("profile not found")
 	}
+
+	isFilesUpdates := updateData.NIBDocument != "" && updateData.NPWPDocument != ""
+
+	oldNPWPFile := fmt.Sprintf("%s/%s", npwpFilePath, profile.CompanyDetail.NPWPDocument)
+	oldNIBFile := fmt.Sprintf("%s/%s", nibFilePath, profile.CompanyDetail.NIBDocument)
 
 	// Determine the status
 	switch status := req.Status; status {
 	case "approved":
 		// 1. When approves update the profile with the update data in staging
 		profile.Name = updateData.Name
+		profile.Status.Status = status
 		profile.PhoneNumber = updateData.PhoneNumber
 		profile.Country = updateData.Country
+		profile.CompanyDetail.Description = updateData.Description
+		profile.Address = updateData.Address
+		profile.SocialMedias.Email = updateData.Email
+		profile.SocialMedias.Instagram = updateData.Instagram
 		profile.CompanyDetail.NPWPNumber = updateData.NPWPNumber
 		profile.CompanyDetail.NIBNumber = updateData.NIBNumber
 
-		// 2. Copy file from staging to destination path
-		npwpSrcPath := fmt.Sprintf("%s/%s", npwpStagePath, updateData.NPWPDocument)
-		nibSrcPath := fmt.Sprintf("%s/%s", nibStagePath, updateData.NIBDocument)
+		// 2. [Opt] Copy file from staging to destination path
+		if isFilesUpdates {
+			npwpSrcPath := fmt.Sprintf("%s/%s", npwpStagePath, updateData.NPWPDocument)
+			nibSrcPath := fmt.Sprintf("%s/%s", nibStagePath, updateData.NIBDocument)
 
-		npwpFile, err := helper.CopyFile(npwpSrcPath, npwpFilePath)
-		if err != nil {
-			return err
+			fileName := filepath.Base(updateData.NPWPDocument)
+			dstPath := fmt.Sprintf("%s/%s", npwpFilePath, fileName)
+
+			npwpFile, err := helper.CopyFile(npwpSrcPath, dstPath)
+			if err != nil {
+				return err
+			}
+
+			nibFileName := filepath.Base(updateData.NIBDocument)
+			nibDstPath := fmt.Sprintf("%s/%s", nibFilePath, nibFileName)
+
+			nibFile, err := helper.CopyFile(nibSrcPath, nibDstPath)
+			if err != nil {
+				return err
+			}
+
+			profile.CompanyDetail.NPWPDocument = npwpFile
+			profile.CompanyDetail.NIBDocument = nibFile
 		}
-
-		nibFile, err := helper.CopyFile(nibSrcPath, nibFilePath)
-		if err != nil {
-			return err
-		}
-
-		profile.CompanyDetail.NPWPDocument = npwpFile
-		profile.CompanyDetail.NIBDocument = nibFile
 
 		// 3. Update the data
 		if err := profileX.Save(profile).Error; err != nil {
 			profileX.Rollback()
+			updateX.Rollback()
 			return err
 		}
 
@@ -115,20 +135,19 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 			return errors.New("validate failed")
 		}
 
-		// 5. Remove old files
-		oldNPWP := fmt.Sprintf("%s/%s", npwpFilePath, profile.CompanyDetail.NPWPDocument)
-		oldNIB := fmt.Sprintf("%s/%s", nibFilePath, profile.CompanyDetail.NIBDocument)
+		// 5. [Opt] Remove old files
+		if isFilesUpdates {
+			if err := os.Remove(oldNPWPFile); err != nil {
+				profileX.Rollback()
+				updateX.Rollback()
+				return err
+			}
 
-		if err := os.Remove(oldNPWP); err != nil {
-			profileX.Rollback()
-			updateX.Rollback()
-			return err
-		}
-
-		if err := os.Remove(oldNIB); err != nil {
-			profileX.Rollback()
-			updateX.Rollback()
-			return err
+			if err := os.Remove(oldNIBFile); err != nil {
+				profileX.Rollback()
+				updateX.Rollback()
+				return err
+			}
 		}
 
 		// 6. Send email to user
@@ -181,7 +200,18 @@ func (s *OrganizerUpdateService) FindByID(id string) (*model.OrganizerProfilesUp
 	return s.OrganizerUpdateRepo.FindByID(id)
 }
 
-func (s *OrganizerUpdateService) FindByProfileID(id string, pagination model.Pagination) (*model.PaginationRow[*model.OrganizerProfilesUpdates], error) {
+func (s *OrganizerUpdateService) FindByProfileID(id string) (*dto.OrganizerUpdatesResponse, error) {
+	organizerUpdate, err := s.OrganizerUpdateRepo.FindByProfileID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := toOrganizerUpdateResponse(organizerUpdate)
+
+	return resp, nil
+}
+
+func (s *OrganizerUpdateService) FindUpdatesByProfileID(id string, pagination model.Pagination) (*model.PaginationRow[*model.OrganizerProfilesUpdates], error) {
 	var organizerUpdate *model.PaginationRow[*model.OrganizerProfilesUpdates]
 
 	// Generate cache key
@@ -195,7 +225,7 @@ func (s *OrganizerUpdateService) FindByProfileID(id string, pagination model.Pag
 
 	if organizerUpdate == nil {
 		// If cache miss, get from db
-		organizerUpdate, err = s.OrganizerUpdateRepo.FindByProfileID(pagination, id)
+		organizerUpdate, err = s.OrganizerUpdateRepo.FindUpdatesByProfileID(pagination, id)
 		if err != nil {
 			return nil, err
 		}
@@ -207,4 +237,36 @@ func (s *OrganizerUpdateService) FindByProfileID(id string, pagination model.Pag
 	}
 
 	return organizerUpdate, nil
+}
+
+func toOrganizerUpdateResponse(organizerUpdate *model.OrganizerProfilesUpdates) *dto.OrganizerUpdatesResponse {
+	var npwp string
+	var nib string
+
+	if organizerUpdate.NPWPDocument != "" {
+		npwp = fmt.Sprintf("http://localhost:8080/api/v1/staging-organizer/npwp/%s", organizerUpdate.NPWPDocument)
+	}
+
+	if organizerUpdate.NIBDocument != "" {
+		nib = fmt.Sprintf("http://localhost:8080/api/v1/staging-organizer/nib/%s", organizerUpdate.NIBDocument)
+	}
+
+	return &dto.OrganizerUpdatesResponse{
+		ID:           organizerUpdate.ID,
+		ProfileID:    organizerUpdate.ProfileID,
+		Status:       organizerUpdate.Status,
+		Name:         organizerUpdate.Name,
+		Email:        helper.StringValue(organizerUpdate.Email),
+		Instagram:    helper.StringValue(organizerUpdate.Instagram),
+		Description:  helper.StringValue(organizerUpdate.Description),
+		Address:      helper.StringValue(organizerUpdate.Address),
+		PhoneNumber:  organizerUpdate.PhoneNumber,
+		Country:      organizerUpdate.Country,
+		NPWPNumber:   organizerUpdate.NPWPNumber,
+		NPWPDocument: npwp,
+		NIBNumber:    organizerUpdate.NIBNumber,
+		NIBDocument:  nib,
+		CreatedAt:    helper.ConvertDatetoUnix(organizerUpdate.CreatedAt.Format(time.RFC3339)),
+		UpdatedAt:    helper.ConvertDatetoUnix(organizerUpdate.UpdatedAt.Format(time.RFC3339)),
+	}
 }

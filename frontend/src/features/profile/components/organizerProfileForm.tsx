@@ -146,6 +146,11 @@ export default function OrganizerProfileForm({profile}: Props) {
                         </div>
                     )}
                 </UploadPhoto>
+                {profile?.status.status === "pending" ? 
+                    <p className="italic text-sm text-center">your profile is being review by the admin</p> :
+                    profile?.status.status === "rejected" ? 
+                    <p className="italic text-sm text-center">your profile is being review by the admin</p> : ""
+                }
 
                 {previewOpen && (
                     <div

@@ -44,8 +44,8 @@ export default function AppRoutes() {
                 <Route path="/admin" element={<ProtectedRoute />}>
                     <Route element={<RoleGuard allowedRoles={["admin"]} />}>
                         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                        <Route path="/admin/attendee-list" element={<AttendeeList />} />
                         <Route path="/admin/organizer-list" element={<OrganizerList />} />
+                        <Route path="/admin/attendee-list" element={<AttendeeList />} />
                         <Route path="/admin/events-active" element={<ActiveEventList />} />
                         <Route path="/admin/events-pending" element={<PendingEventList />} />
                     </Route>

@@ -85,9 +85,9 @@ func (s *FiberServer) RegisterOrganizerProfileRoutes(h *handler.OrganizerProfile
 	profile.Use(middleware.AuthMiddleware())
 	{
 		profile.Post("/", middleware.AuthorizeRoles(string(model.Organizer)), h.CreateProfile)
+		profile.Get("/profiles", h.GetAllProfile)
 		profile.Get("/", h.GetProfileByUserID)
 		profile.Get("/:id", h.GetProfileByID)
-		profile.Get("/profiles", h.GetAllProfile)
 		profile.Get("/filter", h.FilterProfile)
 		profile.Put("/photo", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.UpdatePhotoProfile)
 		profile.Put("/", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.UpdateProfile)
@@ -98,11 +98,14 @@ func (s *FiberServer) RegisterOrganizerProfileRoutes(h *handler.OrganizerProfile
 
 func (s *FiberServer) RegisterOrganizerUpdateRoutes(h *handler.OrganizerUpdateHandler) {
 	update := v1.Group("/staging-organizer")
+	update.Static("/npwp", "./storage/npwp/stage")
+	update.Static("/nib", "./storage/nib/stage")
 	update.Use(middleware.AuthMiddleware(), middleware.AuthorizeRoles(string(model.Admin)))
 	{
 		update.Put("/:id", h.ValidateUpdate)
+		update.Get("/update/:id", h.FindByProfileID)
+		update.Get("/updates", h.FindUpdatesByProfileID)
 		update.Get("/:id", h.FindUpdateByID)
-		update.Get("/", h.FindUpdateByProfileID)
 	}
 }
 

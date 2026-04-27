@@ -83,7 +83,7 @@ func (s *AttendeeProfileService) Create(profile *dto.CreateAttendeeProfileReq) e
 	return nil
 }
 
-func (s *AttendeeProfileService) FindAll(pagination model.Pagination, filter *dto.FilterAttendeeReq) (*model.PaginationRow[*dto.AttendeeProfilesResponse], error) {
+func (s *AttendeeProfileService) FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) (*model.PaginationRow[*dto.AttendeeProfilesResponse], error) {
 	var attendess *model.PaginationRow[*dto.AttendeeProfilesResponse]
 
 	cacheKey := fmt.Sprintf("attendee:all:%d:%d:%s:%s", pagination.Limit, pagination.Page, pagination.Sort, filter.Filter)

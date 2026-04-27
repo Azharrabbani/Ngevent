@@ -39,6 +39,10 @@ type OrganizerProfilesUpdates struct {
 	Name         string    `json:"name"`
 	PhoneNumber  string    `json:"phone_number"`
 	Country      string    `json:"country"`
+	Email        *string   `json:"email"`
+	Instagram    *string   `json:"instagram"`
+	Description  *string   `json:"description"`
+	Address      *string   `json:"address"`
 	NPWPNumber   string    `json:"npwp_number"`
 	NPWPDocument string    `json:"npwp_document"`
 	NIBNumber    string    `json:"nib"`

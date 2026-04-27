@@ -16,7 +16,7 @@ type AttendeeProfileRepository struct {
 }
 
 // FindAll implements AttendeeProfilesRepo.
-func (r *AttendeeProfileRepository) FindAll(pagination model.Pagination, filter *dto.FilterAttendeeReq) (*model.PaginationRow[*dto.AttendeeProfilesResponse], error) {
+func (r *AttendeeProfileRepository) FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) (*model.PaginationRow[*dto.AttendeeProfilesResponse], error) {
 	var profiles []*model.AttendeeProfiles
 
 	query := r.db.Scopes(filterAttendeeList(filter))
@@ -97,7 +97,7 @@ func (r *AttendeeProfileRepository) UpdatePhotoProfile(userID string, photo stri
 			UpdatedAt:    time.Now().UTC()}).Error
 }
 
-func filterAttendeeList(filter *dto.FilterAttendeeReq) func(*gorm.DB) *gorm.DB {
+func filterAttendeeList(filter *dto.FilterProfileReq) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if filter.Filter == nil {
 			return db

@@ -28,8 +28,10 @@ func NewOrganizerUpdateHandler(
 func (h *OrganizerUpdateHandler) ValidateUpdate(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	var req *dto.ValidateUpdateReq
+	var req dto.ValidateUpdateReq
+	
 	req.UpdateID = id
+
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -49,7 +51,7 @@ func (h *OrganizerUpdateHandler) ValidateUpdate(c *fiber.Ctx) error {
 		))
 	}
 
-	if err := h.OrganizerUpdateService.Validate(req); err != nil {
+	if err := h.OrganizerUpdateService.Validate(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"failed",
@@ -62,7 +64,7 @@ func (h *OrganizerUpdateHandler) ValidateUpdate(c *fiber.Ctx) error {
 		fiber.StatusOK,
 		"success",
 		"success",
-		nil,
+		"Update reviewed",
 	))
 }
 
@@ -79,15 +81,36 @@ func (h *OrganizerUpdateHandler) FindUpdateByID(c *fiber.Ctx) error {
 		))
 	}
 
-	return c.Status(fiber.StatusFound).JSON(dto.Success(
-		fiber.StatusFound,
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
 		"success",
 		"success",
 		update,
 	))
 }
 
-func (h *OrganizerUpdateHandler) FindUpdateByProfileID(c *fiber.Ctx) error {
+func (h *OrganizerUpdateHandler) FindByProfileID(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	update, err := h.OrganizerUpdateService.FindByProfileID(id)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		update,
+	))
+}
+
+func (h *OrganizerUpdateHandler) FindUpdatesByProfileID(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	paginate := new(model.Pagination)
@@ -106,7 +129,7 @@ func (h *OrganizerUpdateHandler) FindUpdateByProfileID(c *fiber.Ctx) error {
 		Sort:  paginate.Sort,
 	}
 
-	updates, err := h.OrganizerUpdateService.FindByProfileID(id, *page)
+	updates, err := h.OrganizerUpdateService.FindUpdatesByProfileID(id, *page)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,

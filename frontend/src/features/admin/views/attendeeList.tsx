@@ -4,8 +4,9 @@ import { IoIosSearch } from "react-icons/io";
 import { useListAttendee } from "../../profile/hooks/attendee/useListAttendee";
 import { defaultPagination } from "../../../utils/pagination";
 import { useAttendeeProfileDetail } from "../../profile/hooks/attendee/useAttendeeProfileDetail";
-import AttendeeProfileModal from "../components/attendeeProfileModal";
 import Pagination from "../../../components/pagination";
+import ProfileModal from "../components/profileModal";
+import AttendeeProfile from "../components/attendeeProfile";
 
 export default function AttendeeList() {
     const [filterAttendee, setFilterAttendee] = useState<string | undefined>();
@@ -17,9 +18,7 @@ export default function AttendeeList() {
     const { data, isLoading } = useListAttendee({
         filter: search,
         pagination: defaultPagination(currentPage),
-    })
-
-    console.log("data: ", data)
+    });
 
     const { data: profile, isLoading: loadingProfile } = useAttendeeProfileDetail(selectedUser);
 
@@ -29,7 +28,7 @@ export default function AttendeeList() {
         e.preventDefault();
         setSearch(filterAttendee);
         setCurrentPage(1);
-    }
+    };
 
     return (
         <AdminSidebar>
@@ -107,15 +106,16 @@ export default function AttendeeList() {
                     onCurrent={(page) => setCurrentPage(page)}
                 />
 
-               <AttendeeProfileModal
+               <ProfileModal
                     isOpen={isModalOpen}
                     onClose={() => {
                         setIsModalOpen(false)
                         setSelectedUser("")
                     }}
-                    profile={profile}
                     isLoading={loadingProfile}
-                />
+                > 
+                    <AttendeeProfile profile={profile}/>
+                </ProfileModal>
             </>
         </AdminSidebar>
     )

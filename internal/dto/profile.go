@@ -16,8 +16,9 @@ type CreateAttendeeProfileReq struct {
 	Address      *string `json:"address"`
 }
 
-type FilterAttendeeReq struct {
+type FilterProfileReq struct {
 	Filter *string `json:"filter" query:"filter"`
+	Status *string `json:"status" query:"status"`
 }
 
 type UpdateAttendeeProfileReq struct {
@@ -123,7 +124,6 @@ type OrganizerProfilesResponse struct {
 	ID            string                  `json:"id"`
 	UserID        string                  `json:"user_id"`
 	Status        OrganizerStatusResp     `json:"status,omitempty"`
-	IsVerified    bool                    `json:"is_verified"`
 	Email         string                  `json:"email"`
 	Name          string                  `json:"name"`
 	PhotoProfile  string                  `json:"photo_profile,omitempty"`
@@ -134,4 +134,23 @@ type OrganizerProfilesResponse struct {
 	CompanyDetail OrganizerCompDetailRes  `json:"company_detail"`
 	CreatedAt     int64                   `json:"created_at"`
 	UpdatedAt     int64                   `json:"updated_at"`
+}
+
+type OrganizerUpdatesResponse struct {
+	ID           string `json:"id"`
+	ProfileID    string `json:"profile_id"`
+	Status       string `json:"status"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	Description  string `json:"description"`
+	Address      string `json:"address"`
+	Instagram    string `json:"instagram"`
+	PhoneNumber  string `json:"phone_number"`
+	Country      string `json:"country"`
+	NPWPNumber   string `json:"npwp_number"`
+	NPWPDocument string `json:"npwp_document"`
+	NIBNumber    string `json:"nib_number"`
+	NIBDocument  string `json:"nib_document"`
+	CreatedAt    int64  `json:"created_at"`
+	UpdatedAt    int64  `json:"updated_at"`
 }
