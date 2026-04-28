@@ -17,7 +17,7 @@ export default function LoginView() {
 
         if (!user) return;
 
-        if (user.role == null) {
+        if (user.role === null) {
             navigate("/select-role");
         } 
 

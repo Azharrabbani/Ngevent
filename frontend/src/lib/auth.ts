@@ -6,17 +6,19 @@ export const useAuth = () => {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        api.get("/user/me")
-        .then(res => {
-            setUser(res.data.data)
-        })
-        .catch(() => {
-            setUser(null)
-        })
-        .finally(() => {
-            setLoading(false)
-        })
-    }, [])
+        const fetchUser = async () => {
+            try {
+                const res = await api.get("/user/me");
+                setUser(res.data.data);
+            } catch {
+                setUser(null);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    return {user, loading}
+        fetchUser();
+    }, []);
+
+    return { user, loading };
 }
