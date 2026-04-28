@@ -39,7 +39,11 @@ export default function AdminSidebar({children}: Props) {
     }
 
     const menus = [
-        { title: "Home", icon: <IoHomeOutline />, path: "/admin/dashboard" },
+        { 
+            title: "Home", 
+            icon: <IoHomeOutline />, 
+            path: "/admin/dashboard" 
+        },
         {
             title: "Users",
             icon: <FaRegUser />,

@@ -16,6 +16,8 @@ import AttendeeList from "../features/admin/views/attendeeList"
 import OrganizerList from "../features/admin/views/organizerList"
 import ActiveEventList from "../features/admin/views/activeEventList"
 import PendingEventList from "../features/admin/views/pendingEventList"
+import Dashboard from "../features/events/organizer/views/dashboard"
+import OrganizerDashboard from "../layout/organizerDashboard"
 export default function AppRoutes() {
     return(
         <BrowserRouter>
@@ -25,6 +27,14 @@ export default function AppRoutes() {
                 <Route path="/forget" element={<ForgetPassword/>}/>
                 <Route path="/reset-password" element={<ResetPasswordView/>}/>
                 <Route path="/verified-email" element={<VerifiedEmailView/>}/>
+
+
+                <Route path="/organizer/dashboard" element={
+                    <OrganizerDashboard>
+                        <Dashboard/>
+                    </OrganizerDashboard>
+                }
+                />
 
                 <Route element={<ProtectedRoute/>}>
                     <Route path="/select-role" element={<SelectRoleView/>}/>
