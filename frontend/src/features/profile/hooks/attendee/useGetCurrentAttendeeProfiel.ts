@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { GetCurrentAttendeeProfileApi } from "../../api/profileApi";
-import { attendeeKeys } from "../../utils/cacheKey";
+import { attendeeKeys } from "../../../../utils/cacheKey";
 
 export const useGetCurrentAttendeeProfile = (enabled: boolean) => {
     return useQuery({

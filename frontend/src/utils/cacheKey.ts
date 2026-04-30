@@ -20,3 +20,21 @@ export const organizerUpdateKeys = {
     all: ["organizer-update"] as const,
     detail: (id: string) => [...organizerUpdateKeys.all, id] as const,
 };
+
+export const eventsKeys = {
+    all: ["events"] as const,
+    lists: () => [...eventsKeys.all, "list"] as const,
+    list: (params: any) => [...eventsKeys.lists(), params] as const,
+    details: () => [...eventsKeys.all, "detail"] as const,
+    detail: (id: string) => [...eventsKeys.details(), id] as const,
+    me: () => [...eventsKeys.all, "me"] as const,
+};
+
+export const categoriesKeys = {
+    all: ["categories"] as const,
+    lists: () => [...categoriesKeys.all, "list"] as const,
+    list: (params: any) => [...categoriesKeys.lists(), params] as const,
+    details: () => [...categoriesKeys.all, "detail"] as const,
+    detail: (id: string) => [...categoriesKeys.details(), id] as const,
+    me: () => [...categoriesKeys.all, "me"] as const,
+};

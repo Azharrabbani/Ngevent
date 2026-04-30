@@ -1,97 +1,258 @@
-import { useEffect, useState } from "react";
-import { IoIosArrowDown } from "react-icons/io";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { IoIosArrowDown, IoIosSearch } from "react-icons/io";
 import { IoAddOutline } from "react-icons/io5";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import type { categoriesResp } from "../../../categories/types/categoryResponse";
 
-export default function Header() {
+interface Props {
+    organizerName: string | undefined;
+    location: string | undefined;
+    setLocation: (val: string | undefined) => void;
+    event: string | undefined;
+    categories: categoriesResp[] | undefined;
+    categoriesLoading: boolean;
+    selectedCategories: number[];
+    status?: string | undefined;
+    setStatus?: Dispatch<SetStateAction<string | undefined>>;
+    setSelectedCategories: Dispatch<SetStateAction<number[]>>;
+    date: Date | null;
+    setDate: (val: Date | null) => void;
+    setEvent: (val: string | undefined) => void;
+    onSearch: () => void;
+    toggleStatus: boolean
+};
+
+export default function Header({ 
+    organizerName,
+    location,
+    setLocation,
+    event,
+    categories,
+    categoriesLoading,
+    selectedCategories,
+    status,
+    setStatus,
+    date,
+    setDate,
+    setSelectedCategories,
+    setEvent,
+    onSearch,
+    toggleStatus,
+}: Props) {
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
-    
+
     const menus = [
         { title: "Location" },
-        {
-            title: "Category",
-            subMenu: ["Technology", "Business", "Design"]
-        },
-        {
-            title: "Status",
-            subMenu: ["draft", "active", "pending", "reject", "done", "cancel"]
-        }
+        { title: "Category" },
+        ...(toggleStatus
+        ? [
+            {
+                title: "Status",
+                subMenu: ["pending", "reject", "done"],
+            }
+        ]
+        : []),
+        { title: "Date"},
     ];
 
     const handleMenuClick = (title: string) => {
         setActiveMenu(prev => prev === title ? null : title);
     };
 
+    const toggleCategory = (id: number) => {
+        setSelectedCategories(prev =>
+            prev.includes(id)
+                ? prev.filter(c => c !== id)
+                : [...prev, id]
+        );
+    };
+
     useEffect(() => {
-      const handleClickOutside = () => setActiveMenu(null);
-      window.addEventListener("click", handleClickOutside);
-      return () => window.removeEventListener("click", handleClickOutside);
+        const handleClickOutside = () => setActiveMenu(null);
+        window.addEventListener("click", handleClickOutside);
+        return () => window.removeEventListener("click", handleClickOutside);
     }, []);
 
     return (
-        <div className="flex flex-col lg:flex-row justify-between gap-5
-                        bg-[#FDFEFF] p-5 md:p-10  w-full"
-        >
-            <div className="flex flex-col lg:flex-row md:items-center items-center gap-5 md:gap-10">
-                <h1 className="text-xl md:text-2xl text-[#0040A1] font-extrabold">Organizer name</h1>
+        <div className="flex flex-col xl:flex-row justify-between gap-5 bg-[#FDFEFF] p-5 md:p-10 w-full">
+
+            {/* Overlay (Mobile Only) */}
+            {activeMenu && (
+                <div 
+                    className="fixed inset-0 bg-black/20 z-40 md:hidden"
+                    onClick={() => setActiveMenu(null)}
+                />
+            )}
+
+            <div className="flex flex-col xl:flex-row md:items-center items-center gap-5 md:gap-10">
+                <h1 className="text-xl md:text-2xl text-[#0040A1] font-extrabold">
+                    {organizerName}
+                </h1>
+
                 <div className="flex flex-wrap gap-5 md:gap-10">
                     {menus.map((menu, index) => (
-                        <div 
-                            key={index} 
-                            className="relative"
-                        >
+                        <div key={index} className="relative">
+
+                            {/* MENU BUTTON */}
                             <h2 
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     handleMenuClick(menu.title);
                                 }}
-                                className="text-sm md:text-lg flex items-center gap-2 cursor-pointer pb-1
-                                            text-[#0040A1] font-semibold
-                                            hover:border-b-2 hover:border-blue-600"
+                                className="text-sm md:text-lg flex items-center gap-2 cursor-pointer pb-1 text-[#0040A1] font-semibold hover:border-b-2 hover:border-blue-600"
                             >
                                 {menu.title}
-                                <IoIosArrowDown className="text-sm"/>
+                                <IoIosArrowDown />
                             </h2>
 
+                            {/* DROPDOWN */}
                             {activeMenu === menu.title && (
-                                <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-md z-10 p-3">
-                                    {!menu.subMenu && (
-                                        <input 
-                                            type="text" 
-                                            placeholder="Enter location..."
-                                            className="w-full border px-2 py-1 rounded"
+                                <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="
+                                        fixed bottom-0 left-0 right-0 w-full z-50
+                                        md:absolute md:bottom-auto md:w-56
+
+                                        bg-white border border-gray-200 
+                                        rounded-t-2xl md:rounded-lg 
+                                        shadow-lg p-4
+                                        max-h-[60vh] overflow-y-auto
+                                    "
+                                >
+
+                                    {/* MOBILE HEADER */}
+                                    <div className="md:hidden mb-3 text-center font-semibold">
+                                        {menu.title}
+                                    </div>
+
+                                    {/* LOCATION */}
+                                    {menu.title === "Location" && (
+                                        <form
+                                            onSubmit={(e) => {
+                                                e.preventDefault();
+                                                onSearch();
+                                            }}
+                                            className="relative"
+                                        >
+                                            <input 
+                                                type="text"
+                                                placeholder="Enter Location..."
+                                                value={location}
+                                                onChange={(e) => setLocation(e.target.value)}
+                                                className="w-full border px-3 py-2 rounded-lg pr-10 focus:ring-2 focus:ring-blue-400"
+                                            />
+                                            <IoIosSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                                        </form>
+                                    )}
+
+                                    {/* DATE */}
+                                    {menu.title === "Date" && (
+                                        <DatePicker
+                                            selected={date}
+                                            onChange={(date: Date | null) => setDate(date)}
+                                            className="w-full border px-3 py-2 rounded-lg"
+                                            placeholderText="Select date"
+                                            portalId="root"
+                                            popperPlacement="bottom-start"
+                                            popperClassName="z-50"
+                                            calendarClassName="shadow-lg border rounded-xl"
                                         />
                                     )}
 
-                                    {menu.subMenu && (
-                                        <ul className="flex flex-col gap-2">
-                                            {menu.subMenu.map((item, i) => (
-                                                <li
-                                                    key={i}
-                                                    className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
-                                                >
-                                                    {item}
-                                                </li>
-                                            ))}
-                                        </ul>
+                                    {/* CATEGORY */}
+                                    {menu.title === "Category" && (
+                                        <div className="flex flex-col gap-2">
+                                            {categoriesLoading ? (
+                                                <p className="text-sm text-gray-400 text-center">
+                                                    Loading categories...
+                                                </p>
+                                            ) : !categories?.length ? (
+                                                <p className="text-sm text-gray-400 text-center">
+                                                    No categories
+                                                </p>
+                                            ) : (
+                                                categories.map(cat => {
+                                                    const isSelected = selectedCategories.includes(cat.id);
+
+                                                    return (
+                                                        <div
+                                                            key={cat.id}
+                                                            onClick={() => toggleCategory(cat.id)}
+                                                            className={`flex justify-between items-center px-2 py-1 rounded cursor-pointer
+                                                                ${isSelected 
+                                                                    ? "bg-blue-100 text-blue-600 font-medium"
+                                                                    : "hover:bg-gray-100"
+                                                                }`}
+                                                        >
+                                                            <span>{cat.name}</span>
+                                                            {isSelected && "✔"}
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {menu.title === "Status" && toggleStatus && (
+                                        <div className="flex flex-col gap-2">
+                                            {menu.subMenu?.map((item, i) => {
+                                                const isSelected = status === item;
+
+                                                return (
+                                                    <div
+                                                        key={i}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setStatus?.(prev => prev === item ? undefined : item);
+                                                            onSearch();
+                                                        }}
+                                                        className={`flex justify-between items-center px-2 py-1 rounded cursor-pointer
+                                                            ${isSelected 
+                                                                ? "bg-blue-100 text-blue-600 font-medium"
+                                                                : "hover:bg-gray-100"
+                                                            }`}
+                                                    >
+                                                        <span>{item}</span>
+                                                        {isSelected && "✔"}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     )}
 
                                 </div>
                             )}
-
                         </div>
-                    ))}                    
+                    ))}
                 </div>
             </div>
 
-            <button className="flex items-center justify-center gap-2
-                                bg-[#0040A1] rounded-full hover:shadow-xl 
-                                transition-all duration-200
-                                px-6 py-2 md:px-8 md:py-3
-                                text-white text-sm md:text-lg"
-            >                    
-                <IoAddOutline/>
-                Create Event
-            </button>
+            <div className="flex flex-col xl:flex-row items-center gap-3 w-full lg:w-auto">
+                <form 
+                    className="relative w-full xl:w-72"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        onSearch();
+                    }}
+                >
+                    <IoIosSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                    <input
+                        type="text"
+                        placeholder="Search events..."
+                        value={event}
+                        onChange={(e) => setEvent(e.target.value)}
+                        className="w-full border px-3 py-2 pl-10 rounded-full focus:ring-2 focus:ring-blue-400"
+                    />
+                </form>
+
+                <button className="flex items-center justify-center gap-2 
+                                    bg-[#0040A1] rounded-full hover:shadow-xl transition-all duration-200 
+                                    px-6 py-2 md:px-8 md:py-3 text-white text-sm md:text-lg">
+                    <IoAddOutline/>
+                    Create Event
+                </button>
+            </div>
         </div>
-    )
+    );
 }

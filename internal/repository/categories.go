@@ -21,17 +21,14 @@ func (r *CategoriesRepository) Delete(id string) error {
 }
 
 // FindAll implements CategoriesRepo.
-func (r *CategoriesRepository) FindAll(pagination model.Pagination) (*model.PaginationRow[*model.Categories], error) {
+func (r *CategoriesRepository) FindAll() ([]*model.Categories, error) {
 	var categories []*model.Categories
 
-	if err := r.db.Scopes(Paginate(categories, &pagination, r.db)).Find(&categories).Error; err != nil {
+	if err := r.db.Find(&categories).Error; err != nil {
 		return nil, err
 	}
 
-	return &model.PaginationRow[*model.Categories]{
-		Pagination: pagination,
-		Rows:       categories,
-	}, nil
+	return categories, nil
 }
 
 // FindByID implements CategoriesRepo.

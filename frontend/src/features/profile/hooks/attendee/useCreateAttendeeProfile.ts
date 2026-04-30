@@ -1,7 +1,7 @@
 import { createAttendeeProfileApi } from "../../api/profileApi"
 import toast from "react-hot-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { attendeeKeys } from "../../utils/cacheKey";
+import { attendeeKeys } from "../../../../utils/cacheKey";
 
 export const useCreateAttendeeProfile = () => {
     const queryClient = useQueryClient();

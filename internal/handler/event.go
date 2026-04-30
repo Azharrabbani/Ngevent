@@ -133,12 +133,11 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 
 	filter := &dto.EventFilter{
 		Title:    helper.StrPointerIfNotEmpty(title),
-		Category: helper.ArrayIntToPointer(filterReq.Category),
+		Category: filterReq.Category,
 		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
 		Start:    helper.TimeToPointer(start),
 		End:      helper.TimeToPointer(end),
-		City:     helper.StrPointerIfNotEmpty(filterReq.City),
-		Country:  helper.StrPointerIfNotEmpty(filterReq.Country),
+		Location:     helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 
 	pagination := new(model.Pagination)
@@ -270,12 +269,11 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 
 	filter := &dto.EventFilter{
 		Title:    helper.StrPointerIfNotEmpty(title),
-		Category: helper.ArrayIntToPointer(filterReq.Category),
+		Category: filterReq.Category,
 		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
 		Start:    helper.TimeToPointer(start),
 		End:      helper.TimeToPointer(end),
-		City:     helper.StrPointerIfNotEmpty(filterReq.City),
-		Country:  helper.StrPointerIfNotEmpty(filterReq.Country),
+		Location:     helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 
 	pagination := new(model.Pagination)

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { ValidateOrganizerUpdateApi } from "../../api/profileApi";
 import type { validateOrganizerReq } from "../../types/profileRequest";
-import { organizerKeys, organizerUpdateKeys } from "../../utils/cacheKey";
+import { organizerKeys, organizerUpdateKeys } from "../../../../utils/cacheKey";
 import toast from "react-hot-toast";
 
 export const useValidateOrganizerUpdate = () => {

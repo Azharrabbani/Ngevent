@@ -73,7 +73,7 @@ export default function OrganizerProfileForm({profile}: Props) {
     const navigate = useNavigate();
 
     const goBackHome = () => {
-        navigate("/dashboard");
+        navigate("/organizer/dashboard");
     };
 
     const handleNpwpFile = (file: File) => {

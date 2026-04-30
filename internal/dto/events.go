@@ -71,19 +71,17 @@ type EventFilterReq struct {
 	Category []int  `json:"category" query:"category"`
 	Status   string `json:"status" query:"status"`
 	Date     int64  `json:"date" query:"date"`
-	City     string `json:"city" query:"city"`
-	Country  string `json:"country" query:"country"`
+	Location string `json:"location" query:"location"`
 }
 
 type EventFilter struct {
 	ProfileID *string    `json:"profile_id"`
 	Title     *string    `json:"title" query:"title"`
-	Category  *[]int     `json:"category" query:"category"`
+	Category  []int     `json:"category" query:"category"`
 	Status    *string    `json:"status" query:"status"`
 	Start     *time.Time `json:"start" query:"start"`
 	End       *time.Time `json:"end" query:"end"`
-	City      *string    `json:"city" query:"city"`
-	Country   *string    `json:"country" query:"country"`
+	Location  *string    `json:"location" query:"location"`
 }
 
 type TicketsReq struct {

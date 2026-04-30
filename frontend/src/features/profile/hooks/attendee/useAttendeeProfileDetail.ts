@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { GetAttendeeDetailProfileApi } from "../../api/profileApi"
-import { attendeeKeys } from "../../utils/cacheKey";
+import { attendeeKeys } from "../../../../utils/cacheKey";
 
 export const useAttendeeProfileDetail = (id: string) => {
     return useQuery({

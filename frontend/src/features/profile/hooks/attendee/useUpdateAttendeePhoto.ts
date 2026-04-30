@@ -1,7 +1,7 @@
 import toast from "react-hot-toast";
 import { updateAttendeePhotoApi } from "../../api/profileApi"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { attendeeKeys } from "../../utils/cacheKey";
+import { attendeeKeys } from "../../../../utils/cacheKey";
 
 export const useUpdateAttendeePhoto = () => {
     const queryClient = useQueryClient();

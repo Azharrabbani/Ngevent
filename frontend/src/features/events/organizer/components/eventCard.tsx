@@ -1,6 +1,7 @@
 import { BsCalendar4 } from "react-icons/bs";
 import { GoDotFill } from "react-icons/go";
 import { MdOutlineLocationOn } from "react-icons/md";
+import { cn } from "../../../../utils/cn";
 
 type Ticket = {
   name: string;
@@ -14,10 +15,19 @@ interface EventCardProps{
   date: string;
   location: string;
   status: string;
-  image: string;
+  image: string | undefined;
   revenue: number;
   tickets: Ticket[];
 };
+
+const statusColorMap  = {
+  active: "text-[#0040A1]",
+  pending: "text-amber-600",
+  reject:  "text-red-600",
+  cancel:  "text-red-600",
+  done:  "text-green-600",
+  draft:  "text-gray-400",
+}
 
 export default function EventCard( { 
     title,
@@ -28,17 +38,20 @@ export default function EventCard( {
     revenue,
     tickets
 }: EventCardProps ) {
+    
     return (
-        <div className="bg-white w-full max-w-sm rounded-2xl shadow-sm hover:shadow-md transition overflow-hidden">
+        <div className="bg-white w-full max-w-sm rounded-2xl 
+        shadow-sm hover:shadow-lg hover:-translate-y-1 cursor-pointer transition overflow-hidden duration-200">
             <div className="relative">
-                <div className="absolute flex items-center gap-1 
-                                bg-white/90 px-3 py-1 top-3 left-3 
-                                rounded-full text-[#0040A1] text-sm">
+                <div className={cn(
+                    "absolute flex items-center gap-1 bg-white/90 px-3 py-1 top-3 left-3 rounded-full text-sm",
+                    statusColorMap[status as keyof typeof statusColorMap] || "text-gray-400"
+                )}>
                     <GoDotFill/>
-                    <p>{status}</p>
+                    <p className="capitalize">{status}</p>
                 </div>
                 <img 
-                    src={image}
+                    src={image === undefined ? "https://t4.ftcdn.net/jpg/16/79/44/21/360_F_1679442196_OEsi0AFKie6hYMBpvmXwwRgRYGV4U6Lz.jpg" : image}
                     alt="" 
                     className="w-full h-40 object-cover shrink-0 rounded-t-2xl"    
                 />

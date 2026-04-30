@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import type { FilterAttendeeReq } from "../../types/profileRequest"
 import { GetAttendeesProfileApi } from "../../api/profileApi"
-import { attendeeKeys } from "../../utils/cacheKey";
+import { attendeeKeys } from "../../../../utils/cacheKey";
 
 export const useListAttendee = (params: FilterAttendeeReq) => {
     return useQuery({

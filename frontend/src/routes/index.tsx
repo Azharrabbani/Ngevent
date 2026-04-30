@@ -16,8 +16,10 @@ import AttendeeList from "../features/admin/views/attendeeList"
 import OrganizerList from "../features/admin/views/organizerList"
 import ActiveEventList from "../features/admin/views/activeEventList"
 import PendingEventList from "../features/admin/views/pendingEventList"
-import Dashboard from "../features/events/organizer/views/dashboard"
 import OrganizerDashboard from "../layout/organizerDashboard"
+import CheckEvents from "../features/events/organizer/views/checkEvents"
+import CancelEvent from "../features/events/organizer/views/cancelEvent"
+import DraftEvents from "../features/events/organizer/views/draftEvent"
 export default function AppRoutes() {
     return(
         <BrowserRouter>
@@ -27,14 +29,6 @@ export default function AppRoutes() {
                 <Route path="/forget" element={<ForgetPassword/>}/>
                 <Route path="/reset-password" element={<ResetPasswordView/>}/>
                 <Route path="/verified-email" element={<VerifiedEmailView/>}/>
-
-
-                <Route path="/organizer/dashboard" element={
-                    <OrganizerDashboard>
-                        <Dashboard/>
-                    </OrganizerDashboard>
-                }
-                />
 
                 <Route element={<ProtectedRoute/>}>
                     <Route path="/select-role" element={<SelectRoleView/>}/>
@@ -58,6 +52,31 @@ export default function AppRoutes() {
                         <Route path="/admin/attendee-list" element={<AttendeeList />} />
                         <Route path="/admin/events-active" element={<ActiveEventList />} />
                         <Route path="/admin/events-pending" element={<PendingEventList />} />
+                    </Route>
+                </Route>
+
+                <Route path="/organizer" element={<ProtectedRoute/>}>
+                    <Route element={<RoleGuard allowedRoles={["event organizer"]}/>}>
+                        <Route path="dashboard" element={
+                            <OrganizerDashboard>
+                                <CheckEvents/>
+                            </OrganizerDashboard>
+                        }
+                        />
+
+                        <Route path="cancel-event" element={
+                            <OrganizerDashboard>
+                                <CancelEvent/>
+                            </OrganizerDashboard>
+                        }
+                        />
+
+                        <Route path="draft-event" element={
+                            <OrganizerDashboard>
+                                <DraftEvents/>
+                            </OrganizerDashboard>
+                        }
+                        />
                     </Route>
                 </Route>            
             </Routes>

@@ -64,24 +64,7 @@ func (h *CategoriesHandler) CreateCategory(c *fiber.Ctx) error {
 }
 
 func (h *CategoriesHandler) ListCategories(c *fiber.Ctx) error {
-	paginate := new(model.Pagination)
-
-	if err := c.QueryParser(paginate); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
-		))
-	}
-
-	page := &model.Pagination{
-		Page:  paginate.Page,
-		Limit: paginate.Limit,
-		Sort:  paginate.Sort,
-	}
-
-	categories, err := h.CategoriesService.FindAll(*page)
+	categories, err := h.CategoriesService.FindAll()
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,

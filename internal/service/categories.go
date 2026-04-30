@@ -49,11 +49,11 @@ func (s *CategoryService) Create(req *dto.CreateCatReq) error {
 	return nil
 }
 
-func (s *CategoryService) FindAll(pagination model.Pagination) (*model.PaginationRow[*model.Categories], error) {
-	var categories *model.PaginationRow[*model.Categories]
+func (s *CategoryService) FindAll() ([]*model.Categories, error) {
+	var categories []*model.Categories
 
 	// Generate cache key
-	cachekey := fmt.Sprintf("category:all:%d:%d:%s", pagination.Page, pagination.Limit, pagination.Sort)
+	cachekey := fmt.Sprintf("category:all")
 
 	// Try to get from cache
 	val, err := s.rdb.Get(context.Background(), cachekey).Result()
@@ -63,7 +63,7 @@ func (s *CategoryService) FindAll(pagination model.Pagination) (*model.Paginatio
 
 	if categories == nil {
 		// If cache miss, get from db
-		categories, err = s.CategoryRepo.FindAll(pagination)
+		categories, err = s.CategoryRepo.FindAll()
 		if err != nil {
 			return nil, err
 		}

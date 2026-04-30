@@ -2,10 +2,12 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/utils/helper"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -449,16 +451,14 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 			db = db.Where("LOWER(slug) LIKE LOWER(?)", "%"+*filter.Title+"%")
 		}
 
-		if filter.City != nil {
-			db = db.Where("LOWER(city) LIKE LOWER(?)", "%"+*filter.City+"%")
+		if filter.Location != nil {
+			location := "%" + strings.ToLower(*filter.Location) + "%"
+			db = db.Where("LOWER(city) LIKE LOWER(?)", location).Or("LOWER(country) LIKE LOWER(?)", location)
 		}
 
-		if filter.Country != nil {
-			db = db.Where("LOWER(country) LIKE LOWER(?)", "%"+*filter.Country+"%")
-		}
-
-		if filter.Category != nil {
-			db = db.InnerJoins("Categories", db.Where("(category_id) IN ?", filter.Category))
+		if len(filter.Category) > 0 {
+			db = db.Joins("JOIN event_categories ec ON ec.event_id = events.id").
+				Where("ec.category_id IN ?", filter.Category)
 		}
 
 		if filter.Start != nil {
@@ -503,15 +503,29 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 		eventsResp = append(eventsResp, &dto.EventsResp{
 			ID: event.ID,
 			EOProfile: dto.EOProfiles{
-				ID:           event.Profile.ID,
-				IsVerified:   event.Profile.User.IsVerified,
-				Email:        event.Profile.User.Email,
-				Name:         event.Profile.Name,
-				PhotoProfile: event.Profile.PhotoProfile,
-				PhoneNumber:  event.Profile.PhoneNumber,
+				ID:         event.Profile.ID,
+				IsVerified: event.Profile.User.IsVerified,
+				Email:      event.Profile.User.Email,
+				Name:       event.Profile.Name,
+				PhotoProfile: helper.StrPointerIfNotEmpty(
+					func() string {
+						if event.Profile.PhotoProfile == nil {
+							return ""
+						}
+						return fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", *event.Profile.PhotoProfile)
+					}(),
+				),
+				PhoneNumber: event.Profile.PhoneNumber,
 			},
 			Event: dto.EventDetail{
-				Banner:      event.Banner,
+				Banner: helper.StrPointerIfNotEmpty(
+					func() string {
+						if event.Banner == nil {
+							return ""
+						}
+						return fmt.Sprintf("http://localhost:8080/api/v1/event/banner/%s", *event.Banner)
+					}(),
+				),
 				Name:        event.Name,
 				Categories:  categories,
 				Tickets:     tickets,

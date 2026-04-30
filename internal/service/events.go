@@ -263,7 +263,7 @@ func (s *EventService) GetEventsByProfileID(userID string, filter *dto.EventFilt
 	hash := sha1.Sum(filterBytes)
 	filterHash := hex.EncodeToString(hash[:])
 
-	cacheKey := fmt.Sprintf("organizer_events:all:%d:%d:%s:%s:%s", pagination.Page, pagination.Limit, pagination.Sort, filterHash, profile.ID)
+	cacheKey := fmt.Sprintf("organizer_events:all:%d:%d:%s:%s:%s", pagination.Page, pagination.Limit, pagination.Sort, filterHash)
 
 	// Try to get from cache
 	val, err := s.rdb.Get(context.Background(), cacheKey).Result()

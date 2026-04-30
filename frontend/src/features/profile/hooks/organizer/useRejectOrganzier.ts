@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { rejectOrganizerReq } from "../../types/profileRequest";
 import { RejectOrganizerApi } from "../../api/profileApi";
 import toast from "react-hot-toast";
-import { organizerKeys } from "../../utils/cacheKey";
+import { organizerKeys } from "../../../../utils/cacheKey";
 
 export const useRejectOrganizer = (id: string) => {
     const queryClient = useQueryClient();

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { UpdateOrganizerProfileApi } from "../../api/profileApi";
 import toast from "react-hot-toast";
-import { organizerKeys } from "../../utils/cacheKey";
+import { organizerKeys } from "../../../../utils/cacheKey";
 
 export const useUpdateOrganizerProfile = () => {
     const queryClient = useQueryClient();
