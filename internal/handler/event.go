@@ -137,7 +137,7 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
 		Start:    helper.TimeToPointer(start),
 		End:      helper.TimeToPointer(end),
-		Location:     helper.StrPointerIfNotEmpty(filterReq.Location),
+		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 
 	pagination := new(model.Pagination)
@@ -273,7 +273,7 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
 		Start:    helper.TimeToPointer(start),
 		End:      helper.TimeToPointer(end),
-		Location:     helper.StrPointerIfNotEmpty(filterReq.Location),
+		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 
 	pagination := new(model.Pagination)
@@ -428,5 +428,26 @@ func (h *EventHandler) CancelEvent(c *fiber.Ctx) error {
 		"success",
 		"success",
 		"event canceled",
+	))
+}
+
+func (h *EventHandler) DeleteEvent(c *fiber.Ctx) error {
+	id := c.Params("id")
+	userID := c.Locals("user_id").(string)
+
+	if err := h.EventService.DeleteEvent(id, userID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"error",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+		fiber.StatusBadRequest,
+		"error",
+		"error",
+		"Event deleted",
 	))
 }

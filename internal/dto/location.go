@@ -5,6 +5,16 @@ type ReverseResponse struct {
 	Address     ReverseAddress `json:"address"`
 }
 
+type SearchReq struct {
+	Query string `json:"query" query:"query" validate:"required"`
+}
+
+type SearchResponse struct {
+	DisplayName string `json:"display_name"`
+	Lat         string `json:"lat"`
+	Lon         string `json:"lon"`
+}
+
 type ReverseAddress struct {
 	City    string `json:"city"`
 	Town    string `json:"town"`

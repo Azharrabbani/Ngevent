@@ -4,6 +4,7 @@ import { cn } from "../utils/cn";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  labelStyle?: string;
   error?: string;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
@@ -15,6 +16,7 @@ export default function Input({
   name,
   placeholder,
   className = "",
+  labelStyle = "",
   error,
   leftIcon,
   rightIcon,
@@ -24,7 +26,10 @@ export default function Input({
     <div className="w-full">
       {/* Label */}
       {label && (
-        <label className="block text-sm mb-1 font-medium">
+        <label className={cn(
+          "block text-sm mb-1 font-medium",
+          labelStyle
+        )}>
           {label}
         </label>
       )}

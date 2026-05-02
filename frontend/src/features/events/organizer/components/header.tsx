@@ -4,6 +4,7 @@ import { IoAddOutline } from "react-icons/io5";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import type { categoriesResp } from "../../../categories/types/categoryResponse";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
     organizerName: string | undefined;
@@ -40,6 +41,8 @@ export default function Header({
     onSearch,
     toggleStatus,
 }: Props) {
+    const navigate = useNavigate();
+
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
     const menus = [
@@ -246,9 +249,12 @@ export default function Header({
                     />
                 </form>
 
-                <button className="flex items-center justify-center gap-2 
-                                    bg-[#0040A1] rounded-full hover:shadow-xl transition-all duration-200 
-                                    px-6 py-2 md:px-8 md:py-3 text-white text-sm md:text-lg">
+                <button 
+                    className="flex items-center justify-center gap-2 
+                                bg-[#0040A1] rounded-full hover:shadow-xl transition-all duration-200 
+                                px-6 py-2 md:px-8 md:py-3 text-white text-sm md:text-lg"
+                    onClick={() => navigate("/organizer/create-event")}
+                >
                     <IoAddOutline/>
                     Create Event
                 </button>

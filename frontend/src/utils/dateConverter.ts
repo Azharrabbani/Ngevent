@@ -10,6 +10,14 @@ export const convertUnix = (unix: number): string => {
     return date;
 }
 
-export const converDate = (date: Date): number => {
-    return Math.floor(date.getTime() / 1000)
+export const converDate = (date: Date | null): number => {
+     if (!date) return 0;
+
+    const utc = Date.UTC(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+    );
+
+    return Math.floor(utc / 1000);
 }

@@ -38,3 +38,27 @@ func ReverseGeocode(lat, lon string) (*dto.ReverseResponse, error) {
 
 	return &result, nil
 }
+
+func SearchLocation(query string) (*[]dto.SearchResponse, error) {
+	url := fmt.Sprintf(
+		"https://nominatim.openstreetmap.org/search?q=%s&format=json",
+		query,
+	)
+
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("User-Agent", "ngevent-app/1.0")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result []dto.SearchResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}

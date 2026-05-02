@@ -20,6 +20,7 @@ import OrganizerDashboard from "../layout/organizerDashboard"
 import CheckEvents from "../features/events/organizer/views/checkEvents"
 import CancelEvent from "../features/events/organizer/views/cancelEvent"
 import DraftEvents from "../features/events/organizer/views/draftEvent"
+import CreateEvent from "../features/events/organizer/views/createEvent"
 export default function AppRoutes() {
     return(
         <BrowserRouter>
@@ -77,6 +78,9 @@ export default function AppRoutes() {
                             </OrganizerDashboard>
                         }
                         />
+
+
+                        <Route path="create-event" element={<CreateEvent/>}/>
                     </Route>
                 </Route>            
             </Routes>

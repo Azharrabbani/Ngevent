@@ -1,5 +1,6 @@
 import api from "../../../../lib/api"
-import type { PaginatedResponse } from "../../../../types/apiResponse";
+import type { PaginatedResponse, successResponse } from "../../../../types/apiResponse";
+import type { CreateEventReq } from "../../types/createEventRequst";
 import type { FilterEventsRequest } from "../../types/organizerRequest"
 import type { EventsResponse } from "../../types/organizerResponse"
 
@@ -19,3 +20,16 @@ export const GetEvents = async (params: FilterEventsRequest) => {
 
     return res.data;
 };
+
+export const CreateEventApi = async (payload: CreateEventReq, banner: File | null) => {
+    const formData = new FormData();
+
+    formData.append("data", JSON.stringify(payload));
+
+    if (banner) {
+        formData.append("banner", banner);
+    }
+
+    const res = await api.post<successResponse<string>>("/event", formData);
+    return res.data;
+}

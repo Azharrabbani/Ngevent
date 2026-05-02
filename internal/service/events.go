@@ -551,6 +551,24 @@ func (s *EventService) CancelEvent(id, userID string) error {
 	return nil
 }
 
+func (s *EventService) DeleteEvent(id, userID string) error {
+	event, err := s.EventRepo.FindByID(id)
+	if err != nil {
+		return errors.New("Event not found")
+	}
+
+	if event.Profile.User.ID != userID {
+		return errors.New("Unauthorized action")
+	}
+
+	// Only delete event with status draft
+	if event.Status != string(model.Draft) {
+		return s.EventRepo.Delete(id)
+	}
+
+	return nil
+}
+
 func (s *EventService) CreateUpdateEvent(banner *multipart.FileHeader, event *model.Events, req *dto.EventReq) error {
 	// Update only permitted 1 week before the event
 	if time.Until(event.Date) < 7*24*time.Hour {

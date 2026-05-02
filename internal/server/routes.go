@@ -134,6 +134,7 @@ func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 		event.Put("/cancel", middleware.AuthorizeRoles(string(model.Organizer)), h.CancelEvent)
 		event.Get("/:id", h.GetEventByID)
 		event.Put("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.UpdateEvent)
+		event.Delete("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.DeleteEvent)
 	}
 }
 
@@ -149,4 +150,9 @@ func (s *FiberServer) RegisterUpdatedEventRoutes(h *handler.UpdatedEventHandler)
 		updateEvent.Put("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.CancelUpdate)
 	}
 
+}
+
+func (s *FiberServer) RegisterLocationRoutes(h *handler.LocationHandler) {
+	location := v1.Group("/location")
+	location.Get("/", h.SearchLocation)
 }

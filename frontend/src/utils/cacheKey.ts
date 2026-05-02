@@ -38,3 +38,9 @@ export const categoriesKeys = {
     detail: (id: string) => [...categoriesKeys.details(), id] as const,
     me: () => [...categoriesKeys.all, "me"] as const,
 };
+
+export const locationKeys = {
+    all: ["locations"] as const,
+    lists: () => [...locationKeys.all, "list"] as const,
+    list: (params: any) => [...locationKeys.lists(), params] as const,
+};
