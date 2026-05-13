@@ -22,8 +22,8 @@ export default function CancelEvent() {
         title: event,
         location: location,
         category: selectedCategories.length ? selectedCategories : undefined,
-        status: "cancel",
-        date: date ? converDate(date) : undefined,
+        status: "cancelled",
+        start_time: date ? converDate(date) : undefined,
         pagination: defaultPagination(currentPage),
     });
 

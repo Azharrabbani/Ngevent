@@ -2,60 +2,75 @@ import { BsCalendar4 } from "react-icons/bs";
 import { GoDotFill } from "react-icons/go";
 import { MdOutlineLocationOn } from "react-icons/md";
 import { cn } from "../../../../utils/cn";
+import { useNavigate } from "react-router-dom";
+import { FiClock } from "react-icons/fi";
 
-type Ticket = {
-  name: string;
-  price: number;
-  sold: number;
-  total: number;
+
+interface EventCardProps {
+    id: string;
+    title: string;
+    startTime: number;
+    endTime: number;
+    location: string;
+    status: string;
+    image: string | undefined;
 };
 
-interface EventCardProps{
-  title: string;
-  date: string;
-  location: string;
-  status: string;
-  image: string | undefined;
-  revenue: number;
-  tickets: Ticket[];
-};
-
-const statusColorMap  = {
-  active: "text-[#0040A1]",
-  pending: "text-amber-600",
-  reject:  "text-red-600",
-  cancel:  "text-red-600",
-  done:  "text-green-600",
-  draft:  "text-gray-400",
+const statusColorMap = {
+    active: "text-[#0040A1]",
+    pending: "text-amber-600",
+    rejected: "text-red-600",
+    cancelled: "text-red-600",
+    done: "text-green-600",
+    draft: "text-gray-400",
 }
 
-export default function EventCard( { 
+export default function EventCard({
+    id,
     title,
-    date, 
+    startTime,
+    endTime,
     location,
     status,
     image,
-    revenue,
-    tickets
-}: EventCardProps ) {
-    
+}: EventCardProps) {
+    const navigate = useNavigate();
+
+    const start = new Date(Number(startTime) * 1000)
+    const end = new Date(Number(endTime) * 1000)
+
+    const options = { timeZone: "Asia/Jakarta" }
+
+    const date = start.toLocaleDateString("id-ID", {
+        ...options,
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    })
+
+    const timeRange = `${start.toLocaleTimeString("id-ID", { ...options, hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("id-ID", { ...options, hour: "2-digit", minute: "2-digit" })}`
+
     return (
-        <div className="bg-white w-full max-w-sm rounded-2xl 
-        shadow-sm hover:shadow-lg hover:-translate-y-1 cursor-pointer transition overflow-hidden duration-200">
+        <div
+            onClick={() => navigate(`/organizer/event/edit/${id}`)}
+            className="bg-white w-full max-w-sm rounded-2xl 
+        shadow-sm hover:shadow-lg hover:-translate-y-1 cursor-pointer transition overflow-hidden duration-200"
+        >
             <div className="relative">
                 <div className={cn(
                     "absolute flex items-center gap-1 bg-white/90 px-3 py-1 top-3 left-3 rounded-full text-sm",
                     statusColorMap[status as keyof typeof statusColorMap] || "text-gray-400"
                 )}>
-                    <GoDotFill/>
+                    <GoDotFill />
                     <p className="capitalize">{status}</p>
                 </div>
-                <img 
+                <img
                     src={image === undefined ? "https://t4.ftcdn.net/jpg/16/79/44/21/360_F_1679442196_OEsi0AFKie6hYMBpvmXwwRgRYGV4U6Lz.jpg" : image}
-                    alt="" 
-                    className="w-full h-40 object-cover shrink-0 rounded-t-2xl"    
+                    alt=""
+                    className="w-full h-40 object-cover shrink-0 rounded-t-2xl"
                 />
-            </div>                           
+            </div>
 
             <div className="p-5">
                 <h1 className="text-xl font-bold">
@@ -63,51 +78,24 @@ export default function EventCard( {
                 </h1>
 
                 <div className="mt-2 text-[#424654] text-sm space-y-1">
-                    <span className="flex items-center gap-2">
-                        <BsCalendar4 className="text-[#424654] font-semibold"/>
-                        <p>{date}</p>
+                    <span className="flex items-start gap-2">
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                                <BsCalendar4 className="text-[#424654] font-semibold mt-0.5 shrink-0" />
+                                <p>{date}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <FiClock className="text-[#424654] font-semibold mt-0.5 shrink-0" />
+                                <p>{timeRange} WIB</p>
+                            </div>
+                        </div>
                     </span>
                     <span className="flex items-center gap-2">
-                        <MdOutlineLocationOn className="text-[#424654] font-semibold"/>
+                        <MdOutlineLocationOn className="text-[#424654] font-semibold" />
                         <p>{location}</p>
                     </span>
                 </div>
-
-                <div className="p-3 my-4 bg-[#F2F3FE] rounded-lg">
-                    <p className="tex-sm text-[#424654] font-semibold">Total Revenue</p>
-                    <h2 className="text-xl text-[#0040A1] font-bold">IDR {revenue.toLocaleString()}</h2>
-                </div>
-
-                <div className="flex flex-col gap-4">
-                    {tickets.map((ticket, i) => {
-                        const percent = Math.round((ticket.sold / ticket.total) * 100);
-
-                        return (
-                            <div key={i}>
-                                <div className="flex justify-between">
-                                    <h2 className="font-semibold">{ticket.name}</h2>
-                                    <h2 className="text-[#0040A1] font-semibold">IDR {ticket.price.toLocaleString()}</h2>
-                                </div>
-
-                                <div className="w-full bg-gray-200 h-2 rounded-full mt-2">
-                                    <div
-                                        className="bg-[#0040A1] h-2 rounded-full transition-all"
-                                        style={{ width: `${percent}%` }}
-                                    >
-
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                    <span>{ticket.sold} / {ticket.total} Sold</span>
-                                    <span>{percent}%</span>
-                                </div>
-                            </div>
-                        );
-                    }
-                    )}
-                </div>
-            </div>    
+            </div>
         </div>
     );
 }

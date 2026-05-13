@@ -147,24 +147,14 @@ func (s *UpdatedEventService) GetUpdateEventByID(id, userID, role string) (*dto.
 		})
 	}
 
-	var tickets []dto.Tickets
-	for _, ticket := range event.Tickets {
-		tickets = append(tickets, dto.Tickets{
-			ID:         ticket.ID,
-			Name:       ticket.Name,
-			Price:      ticket.Price,
-			Quantity:   ticket.Quantity,
-			TicketType: ticket.TicketType,
-		})
-	}
-
-	date := helper.ConvertDatetoUnix(event.Date.Format(time.RFC3339))
+	startTime := helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339))
+	endTime := helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339))
 	req := &dto.UpdatedEventRespReq{
 		UpdatedEvent:    event,
 		EventID:         event.EventID,
 		EventCategories: categories,
-		Tickets:         tickets,
-		Date:            date,
+		StartTime:       startTime,
+		EndTime:         endTime,
 		CreatedAt:       helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
 		UpdatedAt:       helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
 		DeletedAt:       helper.TimePtrToUnix(event.DeletedAt),
@@ -193,7 +183,7 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		return errors.New("update event not found")
 	}
 
-	if updatedEvent.Status != string(model.UpdatePending) {
+	if updatedEvent.StatusID != int64(model.Pending) {
 		return errors.New(fmt.Sprintf("Updated already %s", updatedEvent.Status))
 	}
 
@@ -202,7 +192,7 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		return errors.New("event not found")
 	}
 
-	updatedEvent.Status = req.Status
+	updatedEvent.StatusID = helper.GetEventStatusID(req.Status)
 
 	// Review the update
 	if err := updatedX.Updates(updatedEvent).Error; err != nil {
@@ -213,7 +203,7 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 
 	// If the status approved
 	// Update the event with the updated event data
-	if req.Status == string(model.UpdateApprove) {
+	if req.Status == "approved" {
 		update := &dto.UpdateEvent{
 			EventTx:      eventX,
 			UpdatedEvent: updatedEvent,
@@ -258,7 +248,7 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		To:        organizer.User.Email,
 		EOName:    organizer.Name,
 		EventName: updatedEvent.Name,
-		Status:    updatedEvent.Status,
+		Status:    updatedEvent.Status.Status,
 	}
 
 	if err := s.EmailTaskPublisher.Enqueue(model.TypeEventUpdateNotification, payload); err != nil {
@@ -282,13 +272,9 @@ func (s *UpdatedEventService) CancelUpdate(id string) error {
 func updateEventWithUpdated(update *dto.UpdateEvent) (string, error) {
 	var oldBanner string
 
-	fmt.Println("updated banner: ", *update.UpdatedEvent.Banner)
-	fmt.Println("event banner: ", *update.Event.Banner)
-
 	// Save the update event
 	if update.UpdatedEvent.Banner != nil && update.Event.Banner != nil &&
 		*update.UpdatedEvent.Banner != *update.Event.Banner {
-		fmt.Println("Sama nih")
 		fileName := *update.UpdatedEvent.Banner
 
 		updatedBannerSrc := filepath.Join(updatedEventBannerPath, fileName)
@@ -311,7 +297,8 @@ func updateEventWithUpdated(update *dto.UpdateEvent) (string, error) {
 	update.Event.Country = update.UpdatedEvent.Country
 	update.Event.DetailAddress = update.UpdatedEvent.DetailAddress
 	update.Event.Coordinates = update.UpdatedEvent.Coordinates
-	update.Event.Date = update.UpdatedEvent.Date
+	update.Event.StartTime = update.UpdatedEvent.StartTime
+	update.Event.EndTime = update.UpdatedEvent.EndTime
 	update.Event.UpdatedAt = time.Now().UTC()
 
 	if err := update.EventTx.Updates(update.Event).Error; err != nil {

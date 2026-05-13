@@ -15,15 +15,15 @@ export default function DraftEvents() {
     const [event, setEvent] = useState<string | undefined>(undefined);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [date, setDate] = useState<Date | null>(null);
-    
+
     const organizer = useGetCurrentOrganizerProfile();
 
-    const { data, isLoading } = useGetEvents({    
+    const { data, isLoading } = useGetEvents({
         title: event,
         location: location,
         category: selectedCategories.length ? selectedCategories : undefined,
         status: "draft",
-        date: date ? converDate(date) : undefined,
+        start_time: date ? converDate(date) : undefined,
         pagination: defaultPagination(currentPage),
     });
 
@@ -66,7 +66,7 @@ export default function DraftEvents() {
                     onSearch={handleSearch}
                     toggleStatus={false}
                 />
-                
+
                 <EventsContent
                     data={data}
                     loading={isLoading}

@@ -1,5 +1,4 @@
 import type { PaginatedData } from "../../../../types/apiResponse"
-import { convertUnix } from "../../../../utils/dateConverter";
 import type { EventsResponse } from "../../types/organizerResponse"
 import EventCard from "./eventCard";
 
@@ -8,7 +7,7 @@ interface Props {
     loading: boolean;
 };
 
-export default function EventsContent( { data, loading }: Props ) {
+export default function EventsContent({ data, loading }: Props) {
     return (
         <div className="p-12">
             <div className="space-y-2 text-center md:text-start">
@@ -26,19 +25,15 @@ export default function EventsContent( { data, loading }: Props ) {
                 ) : (
                     data.rows.map((data) => (
                         <EventCard
+                            key={data.id}
+                            id={data.id}
                             title={data.event.name}
-                            date={convertUnix(data.date)}
+                            startTime={data.start_time}
+                            endTime={data.end_time}
                             location={data.event_address.city}
                             status={data.event.status}
                             image={data.event.banner}
-                            revenue={124000}
-                            tickets={data.event.tickets.map((ticket) => ({
-                                name: ticket.name,
-                                price: Number(ticket.price),
-                                sold: 0,
-                                total: ticket.quantity
-                            }))}
-                        />                    
+                        />
                     ))
                 )}
             </div>

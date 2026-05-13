@@ -4,25 +4,26 @@ import Input from "../../../components/input";
 import PasswordInput from "../../../components/passwordInput";
 
 interface Props {
-    onSubmit: (email: string, password: string, conFirmPassword: string) => void
+    onSubmit: (email: string, password: string, conFirmPassword: string, role: string) => void
     loading: boolean
     errors: Record<string, string>
 }
 
-export default function RegisterForm({onSubmit, loading, errors}: Props) {
+export default function RegisterForm({ onSubmit, loading, errors }: Props) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const role = "event organizer";
 
     const handleSubmit = ((e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(email, password, confirmPassword);
-    })
+        onSubmit(email, password, confirmPassword, role);
+    });
 
     return (
-        <form 
-        onSubmit={handleSubmit} 
-        className="flex flex-col gap-4 mb-2">
+        <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-4 mb-2">
             <Input
                 type="email"
                 name="email"
@@ -45,9 +46,9 @@ export default function RegisterForm({onSubmit, loading, errors}: Props) {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 error={errors.confirm_password}
             />
-            <Button 
-            disabled={loading}
-            type="submit">
+            <Button
+                disabled={loading}
+                type="submit">
                 {loading ? "loading..." : "Register"}
             </Button>
         </form>

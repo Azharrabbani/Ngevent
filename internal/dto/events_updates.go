@@ -27,7 +27,8 @@ type UpdatedEventRespReq struct {
 	EventID         string
 	EventCategories []EventCategories
 	Tickets         []Tickets
-	Date            int64
+	StartTime       int64
+	EndTime         int64
 	CreatedAt       int64
 	UpdatedAt       int64
 	DeletedAt       *int64
@@ -51,7 +52,6 @@ type EventsUpdatesResp struct {
 	UpdatedDetails    UpdatedDetails    `json:"updated_details"`
 	UpdatedAddress    UpdatedAddress    `json:"updated_address"`
 	UpdatedCategories []EventCategories `json:"updated_categories"`
-	UpdatedTickets    int               `json:"updated_tickets"`
 	CreatedAt         int64             `json:"created_at" gorm:"default:now()"`
 	UpdatedAt         int64             `json:"updated_at" gorm:"default:now()"`
 	DeletedAt         *int64            `json:"deleted_at,omitempty"`
@@ -64,7 +64,6 @@ type EventUpdatesResp struct {
 	UpdatedDetails    UpdatedDetails    `json:"updated_details"`
 	UpdatedAddress    UpdatedAddress    `json:"updated_address"`
 	UpdatedCategories []EventCategories `json:"updated_categories"`
-	UpdatedTickets    []Tickets         `json:"updated_tickets"`
 	CreatedAt         int64             `json:"created_at" gorm:"default:now()"`
 	UpdatedAt         int64             `json:"updated_at" gorm:"default:now()"`
 	DeletedAt         *int64            `json:"deleted_at,omitempty"`
@@ -74,7 +73,8 @@ type UpdatedDetails struct {
 	Banner      string `json:"banner,omitempty"`
 	Status      string `json:"status"`
 	Description string `json:"description"`
-	Date        int64  `json:"date"`
+	StartTime   int64  `json:"start_time"`
+	EndTime     int64  `json:"end_time"`
 }
 
 type UpdatedAddress struct {
@@ -96,9 +96,10 @@ func ToEventUpdateResp(req *UpdatedEventRespReq) (*EventUpdatesResp, error) {
 		EventTitle: req.UpdatedEvent.Name,
 		UpdatedDetails: UpdatedDetails{
 			Banner:      *req.UpdatedEvent.Banner,
-			Status:      req.UpdatedEvent.Status,
+			Status:      req.UpdatedEvent.Status.Status,
 			Description: req.UpdatedEvent.Description,
-			Date:        req.Date,
+			StartTime:   req.StartTime,
+			EndTime:     req.EndTime,
 		},
 		UpdatedAddress: UpdatedAddress{
 			Address:       req.UpdatedEvent.Address,
@@ -111,7 +112,6 @@ func ToEventUpdateResp(req *UpdatedEventRespReq) (*EventUpdatesResp, error) {
 			},
 		},
 		UpdatedCategories: req.EventCategories,
-		UpdatedTickets:    req.Tickets,
 		CreatedAt:         req.CreatedAt,
 		UpdatedAt:         req.UpdatedAt,
 		DeletedAt:         req.DeletedAt,

@@ -3,7 +3,8 @@ export interface EventsResponse {
     eo_profile: EoProfile;
     event: EventDetail;
     event_address: EventAddress;
-    date: number;
+    start_time: number;
+    end_time: number;
     created_at: number;
     updated_at: number;
     deleted_at?: number;

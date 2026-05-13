@@ -18,8 +18,8 @@ type EventReq struct {
 	UserID      string          `json:"user_id"`
 	Description string          `json:"description" validate:"required"`
 	Categories  []int64         `json:"categories" validate:"required,min=1"`
-	Tickets     []TicketsReq    `json:"tickets" validate:"required,min=1"`
-	Date        int64           `json:"date" validate:"required"`
+	StartTime   int64           `json:"start_time" validate:"required"`
+	EndTime     int64           `json:"end_time" validate:"required"`
 	Address     EventAddressReq `json:"address" validate:"required"`
 	Status      string          `json:"status" validate:"oneof=draft pending"`
 }
@@ -30,9 +30,9 @@ type NearestEventReq struct {
 }
 
 type NearestResult struct {
-	Haversine Haversine
-	Dijkstra  Dijkstra
-	Path      []string
+	Haversine Haversine   `json:"haversine"`
+	Dijkstra  Dijkstra    `json:"dijkstra"`
+	Path      []PathPoint `json:"Path"`
 }
 
 type Haversine struct {
@@ -49,47 +49,36 @@ type Dijkstra struct {
 	Accuracy string
 }
 
-type AccuracyReq struct {
-	Events        []model.Location
-	User          model.Location
-	NearestEvent  NearestResult
-	TotalErrorHav float64
-	TotalErrorDij float64
+type PathPoint struct {
+	Name string  `json:"name"`
+	Lat  float64 `json:"lat"`
+	Lon  float64 `json:"lon"`
 }
 
-type PerformenceResp struct {
-	HavResults map[string]float64
-	DistMap    map[string]float64
-	HavTime    time.Duration
-	DijTime    time.Duration
-	MinHav     float64
-	MinDij     float64
+type RouteResp struct {
+	Event    string      `json:"event"`
+	Distance string      `json:"distance"`
+	Path     []PathPoint `json:"path"`
 }
 
 type EventFilterReq struct {
-	Title    string `json:"title" query:"title"`
-	Category []int  `json:"category" query:"category"`
-	Status   string `json:"status" query:"status"`
-	Date     int64  `json:"date" query:"date"`
-	Location string `json:"location" query:"location"`
+	Title       string `json:"title" query:"title"`
+	Category    []int  `json:"category" query:"category"`
+	Status      string `json:"status" query:"status"`
+	WithDeleted bool   `json:"with_deleted" query:"with_deleted"`
+	StartTime   int64  `json:"start_time" query:"start_time"`
+	Location    string `json:"location" query:"location"`
 }
 
 type EventFilter struct {
-	ProfileID *string    `json:"profile_id"`
-	Title     *string    `json:"title" query:"title"`
-	Category  []int     `json:"category" query:"category"`
-	Status    *string    `json:"status" query:"status"`
-	Start     *time.Time `json:"start" query:"start"`
-	End       *time.Time `json:"end" query:"end"`
-	Location  *string    `json:"location" query:"location"`
-}
-
-type TicketsReq struct {
-	ID         *string `json:"id"`
-	Name       string  `json:"name" validate:"required"`
-	Price      string  `json:"price" validate:"required"`
-	Quantity   int     `json:"quantity" validate:"required"`
-	TicketType string  `json:"ticket_type" validate:"required,oneof=regular premium vip"`
+	ProfileID   *string    `json:"profile_id"`
+	Title       *string    `json:"title" query:"title"`
+	Category    []int      `json:"category" query:"category"`
+	Status      *string    `json:"status" query:"status"`
+	WithDeleted *bool      `json:"with_deleted" query:"with_deleted"`
+	Start       *time.Time `json:"start" query:"start"`
+	End         *time.Time `json:"end" query:"end"`
+	Location    *string    `json:"location" query:"location"`
 }
 
 type EventAddressReq struct {
@@ -114,7 +103,10 @@ type EventsResp struct {
 	EOProfile    EOProfiles   `json:"eo_profile"`
 	Event        EventDetail  `json:"event"`
 	EventAddress EventAddress `json:"event_address"`
-	Date         int64        `json:"date"`
+	StartTime    int64        `json:"start_time"`
+	EndTime      int64        `json:"end_time"`
+	Distance     string       `json:"distance,omitempty"`
+	Path         []PathPoint  `json:"path,omitempty"`
 	CreatedAt    int64        `json:"created_at" gorm:"default:now()"`
 	UpdatedAt    int64        `json:"updated_at" gorm:"default:now()"`
 	DeletedAt    *int64       `json:"deleted_at,omitempty"`
@@ -124,8 +116,12 @@ type EventRespReq struct {
 	Event           *model.Events
 	Organizer       *model.OrganizerProfiles
 	EventCategories []EventCategories
-	Tickets         []Tickets
-	Date            int64
+	StartTime       int64
+	EndTime         int64
+	UserLat         float64
+	UserLon         float64
+	Path            []PathPoint
+	Distance        string
 	CreatedAt       int64
 	UpdatedAt       int64
 	DeletedAt       *int64
@@ -144,7 +140,6 @@ type EventDetail struct {
 	Banner      *string           `json:"banner,omitempty"`
 	Name        string            `json:"name"`
 	Categories  []EventCategories `json:"categories"`
-	Tickets     []Tickets         `json:"tickets"`
 	Slug        string            `json:"slug"`
 	Status      string            `json:"status"`
 	Description string            `json:"description"`
@@ -195,9 +190,8 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 			Banner:      req.Event.Banner,
 			Name:        req.Event.Name,
 			Categories:  req.EventCategories,
-			Tickets:     req.Tickets,
 			Slug:        req.Event.Slug,
-			Status:      req.Event.Status,
+			Status:      req.Event.Status.Status,
 			Description: req.Event.Description,
 		},
 		EventAddress: EventAddress{
@@ -210,7 +204,10 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 				Lon: req.Event.Lon,
 			},
 		},
-		Date:      req.Date,
+		StartTime: req.StartTime,
+		EndTime:   req.EndTime,
+		Distance:  req.Distance,
+		Path:      req.Path,
 		CreatedAt: req.CreatedAt,
 		UpdatedAt: req.UpdatedAt,
 		DeletedAt: req.DeletedAt,

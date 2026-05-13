@@ -57,7 +57,7 @@ var userCache []string = []string{
 	"users:all:*",
 }
 
-func (s *UserService) CreateUser(email, password, confirmPassword string) (*dto.UsersResponse, error) {
+func (s *UserService) CreateUser(email, password, confirmPassword, role string) (*dto.UsersResponse, error) {
 	userX := s.UserRepo.GetDB().Begin()
 	otpX := s.OtpRepo.GetDB().Begin()
 
@@ -80,8 +80,32 @@ func (s *UserService) CreateUser(email, password, confirmPassword string) (*dto.
 		return nil, err
 	}
 
+	if role == string(model.Admin) {
+		user := &model.Users{
+			Email:      email,
+			IsVerified: true,
+			Role:       &role,
+			Password:   HashPassword,
+		}
+
+		newUser, err := s.UserRepo.Create(user)
+		if err != nil {
+			userX.Rollback()
+			return nil, errors.New("email already registred")
+		}
+
+		userResp, err := toUserResponse(newUser)
+		if err != nil {
+			userX.Rollback()
+			return nil, err
+		}
+
+		return userResp, nil
+	}
+
 	user := &model.Users{
 		Email:    email,
+		Role:     &role,
 		Password: HashPassword,
 	}
 
@@ -96,8 +120,6 @@ func (s *UserService) CreateUser(email, password, confirmPassword string) (*dto.
 		userX.Rollback()
 		return nil, err
 	}
-
-	fmt.Println("new user: ", userResp)
 
 	// Generate OTP
 	otpCode, err := helper.GenerateOTP()

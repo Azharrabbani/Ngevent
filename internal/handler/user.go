@@ -46,7 +46,7 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 	}
 
 	// Store new user
-	user, err := h.UserService.CreateUser(input.Email, input.Password, input.ConfirmPassword)
+	user, err := h.UserService.CreateUser(input.Email, input.Password, input.ConfirmPassword, input.Role)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,

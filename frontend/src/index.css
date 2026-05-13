@@ -1,8 +1,5 @@
 @import "tailwindcss";
 
-/* RESET DASAR */
-
-
 /* BODY */
 body {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -14,4 +11,94 @@ body {
 /* BUTTON */
 button {
   cursor: pointer;
+}
+
+/* Tiptap */
+.tiptap:focus {
+  outline: none;
+}
+
+.tiptap p {
+  margin: 0.25rem 0;
+}
+
+.tiptap h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.tiptap h2 {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.tiptap h3 {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.tiptap ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+}
+
+.tiptap ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+}
+
+/* Prose display styles (for rendering saved HTML) */
+.prose p {
+  margin: 0.5rem 0;
+}
+
+.prose h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0.75rem 0;
+}
+
+.prose h2 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin: 0.75rem 0;
+}
+
+.prose h3 {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin: 0.5rem 0;
+}
+
+.prose strong {
+  font-weight: bold;
+}
+
+.prose em {
+  font-style: italic;
+}
+
+.prose u {
+  text-decoration: underline;
+}
+
+.prose ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.prose ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.prose li {
+  margin: 0.25rem 0;
+}
+
+.prose a {
+  color: #003B95;
+  text-decoration: underline;
 }

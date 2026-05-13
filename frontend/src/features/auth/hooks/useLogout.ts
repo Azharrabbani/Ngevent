@@ -1,24 +1,13 @@
-import { useState } from "react"
 import { logoutApi } from "../api/authApi"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 export const useLogout = () => {
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const queryClient = useQueryClient();
 
-    const logout = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const res = await logoutApi();
-            return res.data;
-        } catch (err: any) {
-            setError(err.response?.data?.error || "Logout failed")
-            throw err; 
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    return { logout, loading, error };
+    return useMutation({
+        mutationFn: () => logoutApi(),
+        onSuccess: () => {
+            queryClient.clear();
+        },
+    })
 }

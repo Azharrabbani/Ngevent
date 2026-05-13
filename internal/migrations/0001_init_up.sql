@@ -119,25 +119,43 @@ CREATE TABLE "public"."categories"(
 	"deleted_at" TIMESTAMPTZ NULL
 );
 
+CREATE TABLE "public"."events_statuses"(
+	"id" SERIAL PRIMARY KEY,
+	"status" VARCHAR(50) NOT NULL,
+	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"deleted_at" TIMESTAMPTZ NULL
+);
+
+INSERT INTO "public"."events_statuses"("status")
+VALUES('draft'),
+	  ('pending'),
+	  ('active'),
+	  ('done'),
+	  ('rejected'),
+	  ('cancelled');
+
 CREATE TABLE "public"."events"(
 	"id" uuid DEFAULT uuid_generate_v4() NOT NULL,
 	"profile_id" uuid NOT NULL,
 	"banner" TEXT,
 	"name" VARCHAR(255) NOT NULL,
 	"slug" VARCHAR(255) NOT NULL,
-	"status" event_status NOT NULL DEFAULT 'pending',
+	"status_id" INT NOT NULL,
 	"description" TEXT NOT NULL,
 	"address" TEXT NOT NULL,
 	"city" VARCHAR(150) NOT NULL,
 	"country" VARCHAR(100) NOT NULL,
 	"detail_address" TEXT NOT NULL,
 	"coordinates" GEOGRAPHY(Point, 4326) NOT NULL,
-	"date" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"start_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"end_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"deleted_at" TIMESTAMPTZ DEFAULT NULL,
 	CONSTRAINT "events_pk" PRIMARY KEY("id"),
-	CONSTRAINT "fk_eo_profiles_id" FOREIGN KEY ("profile_id") REFERENCES "public"."organizer_profiles" ("id") ON DELETE CASCADE
+	CONSTRAINT "fk_eo_profiles_id" FOREIGN KEY ("profile_id") REFERENCES "public"."organizer_profiles" ("id") ON DELETE CASCADE,
+	CONSTRAINT "fk_event_status_id" FOREIGN KEY ("status_id") REFERENCES "public"."events_statuses" ("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."tickets"(
@@ -172,19 +190,21 @@ CREATE TABLE "public"."event_updates"(
 	"name" VARCHAR(255) NOT NULL,
 	"slug" VARCHAR(255) NOT NULL,
 	"banner" TEXT,
-	"status" event_update_status NOT NULL DEFAULT 'pending',
+	"status_id" integer NOT NULL,
 	"description" TEXT NOT NULL,
 	"address" TEXT NOT NULL,
 	"city" VARCHAR(150) NOT NULL,
 	"country" VARCHAR(100) NOT NULL,
 	"detail_address" TEXT NOT NULL,
 	"coordinates" GEOGRAPHY(Point, 4326) NOT NULL,
-	"date" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"start_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"end_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"deleted_at" TIMESTAMPTZ NULL,
 	CONSTRAINT "event_updates_pk" PRIMARY KEY("id"),
 	CONSTRAINT "fk_event_id" FOREIGN KEY ("event_id") REFERENCES "public"."events" ("id") ON DELETE CASCADE
+	CONSTRAINT "fk_status_id" FOREIGN KEY ("status_id") REFERENCES "public"."events_statuses" ("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."event_update_tickets"(
@@ -231,7 +251,7 @@ ON "public"."event_categories"("event_id", "category_id");
 
 CREATE UNIQUE INDEX "unique_event_updates"
 ON "public"."event_updates" ("event_id")
-WHERE status = 'pending';
+WHERE "status_id" = 2;
 
 CREATE UNIQUE INDEX "unique_ticket_type" 
 ON "public"."tickets"("event_id", "ticket_type");

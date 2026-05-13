@@ -24,7 +24,7 @@ interface Props {
     toggleStatus: boolean
 };
 
-export default function Header({ 
+export default function Header({
     organizerName,
     location,
     setLocation,
@@ -49,14 +49,14 @@ export default function Header({
         { title: "Location" },
         { title: "Category" },
         ...(toggleStatus
-        ? [
-            {
-                title: "Status",
-                subMenu: ["pending", "reject", "done"],
-            }
-        ]
-        : []),
-        { title: "Date"},
+            ? [
+                {
+                    title: "Status",
+                    subMenu: ["pending", "reject", "done"],
+                }
+            ]
+            : []),
+        { title: "Date" },
     ];
 
     const handleMenuClick = (title: string) => {
@@ -82,7 +82,7 @@ export default function Header({
 
             {/* Overlay (Mobile Only) */}
             {activeMenu && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/20 z-40 md:hidden"
                     onClick={() => setActiveMenu(null)}
                 />
@@ -90,7 +90,7 @@ export default function Header({
 
             <div className="flex flex-col xl:flex-row md:items-center items-center gap-5 md:gap-10">
                 <h1 className="text-xl md:text-2xl text-[#0040A1] font-extrabold">
-                    {organizerName}
+                    {organizerName ? organizerName : "Ngevent"}
                 </h1>
 
                 <div className="flex flex-wrap gap-5 md:gap-10">
@@ -98,7 +98,7 @@ export default function Header({
                         <div key={index} className="relative">
 
                             {/* MENU BUTTON */}
-                            <h2 
+                            <h2
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     handleMenuClick(menu.title);
@@ -138,14 +138,14 @@ export default function Header({
                                             }}
                                             className="relative"
                                         >
-                                            <input 
+                                            <input
                                                 type="text"
                                                 placeholder="Enter Location..."
                                                 value={location}
                                                 onChange={(e) => setLocation(e.target.value)}
                                                 className="w-full border px-3 py-2 rounded-lg pr-10 focus:ring-2 focus:ring-blue-400"
                                             />
-                                            <IoIosSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                                            <IoIosSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                         </form>
                                     )}
 
@@ -183,7 +183,7 @@ export default function Header({
                                                             key={cat.id}
                                                             onClick={() => toggleCategory(cat.id)}
                                                             className={`flex justify-between items-center px-2 py-1 rounded cursor-pointer
-                                                                ${isSelected 
+                                                                ${isSelected
                                                                     ? "bg-blue-100 text-blue-600 font-medium"
                                                                     : "hover:bg-gray-100"
                                                                 }`}
@@ -211,7 +211,7 @@ export default function Header({
                                                             onSearch();
                                                         }}
                                                         className={`flex justify-between items-center px-2 py-1 rounded cursor-pointer
-                                                            ${isSelected 
+                                                            ${isSelected
                                                                 ? "bg-blue-100 text-blue-600 font-medium"
                                                                 : "hover:bg-gray-100"
                                                             }`}
@@ -232,14 +232,14 @@ export default function Header({
             </div>
 
             <div className="flex flex-col xl:flex-row items-center gap-3 w-full lg:w-auto">
-                <form 
+                <form
                     className="relative w-full xl:w-72"
                     onSubmit={(e) => {
                         e.preventDefault();
                         onSearch();
                     }}
                 >
-                    <IoIosSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                    <IoIosSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                         type="text"
                         placeholder="Search events..."
@@ -249,13 +249,13 @@ export default function Header({
                     />
                 </form>
 
-                <button 
+                <button
                     className="flex items-center justify-center gap-2 
                                 bg-[#0040A1] rounded-full hover:shadow-xl transition-all duration-200 
                                 px-6 py-2 md:px-8 md:py-3 text-white text-sm md:text-lg"
-                    onClick={() => navigate("/organizer/create-event")}
+                    onClick={() => navigate("/organizer/event/new")}
                 >
-                    <IoAddOutline/>
+                    <IoAddOutline />
                     Create Event
                 </button>
             </div>

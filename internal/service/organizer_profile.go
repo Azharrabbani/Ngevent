@@ -404,7 +404,7 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 			ProfileID:    profile.ID,
 			Name:         req.Name,
 			PhoneNumber:  fmt.Sprintf("+%s", phonenumber),
-			Status:       string(model.UpdatePending),
+			Status:       "pending",
 			Country:      country,
 			Email:        req.SocialMedia.Email,
 			Instagram:    req.SocialMedia.Instagram,

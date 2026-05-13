@@ -17,10 +17,6 @@ export default function LoginView() {
 
         if (!user) return;
 
-        if (user.role === null) {
-            navigate("/select-role");
-        } 
-
         if (user.role === "admin") {
             navigate("/admin/dashboard");
         }
@@ -28,7 +24,6 @@ export default function LoginView() {
         if (user.role === "event organizer") {
             navigate("/organizer/dashboard");
         }
-
     }
 
     return(

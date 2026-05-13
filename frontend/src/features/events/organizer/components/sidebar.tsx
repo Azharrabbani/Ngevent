@@ -18,26 +18,26 @@ export default function Sidebar({ children, photoProfile }: Props) {
 
     const [isOpen, setIsOpen] = useState(false);
 
-    const location = useLocation();
+    const location = useLocation(); 
 
-    const {logout, loading, error} = useLogout();
-    
+    const { mutateAsync: logout, isPending, isError } = useLogout();
+
     const handleLogout = async () => {
         try {
             await logout();
             navigate("/login");
         } catch (err) {
-            if (error) {
-                return;    
+            if (isError) {
+                return;
             }
         }
     }
 
     const menus = [
-        { 
-            title: "Cancel", 
-            icon: <MdOutlineCancel />, 
-            path: "/organizer/cancel-event" 
+        {
+            title: "Cancel",
+            icon: <MdOutlineCancel />,
+            path: "/organizer/cancel-event"
         },
         {
             title: "Check",
@@ -57,9 +57,9 @@ export default function Sidebar({ children, photoProfile }: Props) {
             subMenu: true,
             path: "/profile"
         },
-        { 
-            title: "Logout", 
-            icon: <CgLogOut/>, 
+        {
+            title: "Logout",
+            icon: <CgLogOut />,
             action: "logout"
         }
     ];
@@ -70,7 +70,7 @@ export default function Sidebar({ children, photoProfile }: Props) {
         } else if (menu.path) {
             navigate(menu.path);
         }
-    
+
         setIsOpen(false);
     };
 
@@ -81,18 +81,18 @@ export default function Sidebar({ children, photoProfile }: Props) {
                 className="md:hidden fixed top-4 left-4 z-50 bg-white p-2 rounded-lg shadow"
                 onClick={() => setIsOpen(true)}
             >
-                <HiMenu className="text-2xl"/>
+                <HiMenu className="text-2xl" />
             </button>
 
             {isOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/40 z-40 md:hidden"
                     onClick={() => setIsOpen(false)}
                 />
 
             )}
 
-            <div 
+            <div
                 className={`
                     fixed md:fixed top-0 left-0 h-screen z-50
                     w-20 bg-[#EDEDF8] p-5 pt-12 flex flex-col gap-10
@@ -101,22 +101,22 @@ export default function Sidebar({ children, photoProfile }: Props) {
                     md:translate-x-0
                     `}
             >
-                <img 
+                <img
                     src={photoProfile}
-                    alt="organizer-photo-profile" 
+                    alt="organizer-photo-profile"
                     className="w-15 h-10 object-cover rounded-full mx-auto"
                 />
 
                 <ul className="flex flex-col gap-4">
                     {menus.map((menu, index) => (
-                        <li 
+                        <li
                             key={index}
-                           className={`flex flex-col px-3 py-4 rounded-2xl items-center gap-1
-                                ${location.pathname === menu.path 
-                                    ? "bg-[#0056D2] text-white shadow-xl" 
+                            className={`flex flex-col px-3 py-4 rounded-2xl items-center gap-1
+                                ${location.pathname === menu.path
+                                    ? "bg-[#0056D2] text-white shadow-xl"
                                     : "text-gray-600 hover:bg-[#0056D2] hover:text-white cursor-pointer transition-all duration-200"}
                             `}
-                            onClick={() => !loading && handleMenuClick(menu)}
+                            onClick={() => !isPending && handleMenuClick(menu)}
                         >
                             <span className="text-xl">{menu.icon}</span>
                             <h2 className="text-xs">{menu.title}</h2>

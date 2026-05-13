@@ -4,7 +4,8 @@ export interface FilterEventsRequest {
     title?: string;
     category?: number[];
     status?: string;
-    date?: number;
+    start_time?: number;
     location?: string;
+    with_deleted?: boolean;
     pagination?: PaginationParams;
 };

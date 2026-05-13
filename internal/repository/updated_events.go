@@ -20,7 +20,7 @@ func NewUpdatedEventsRepository(db *gorm.DB) EventsUpdateRepo {
 }
 
 // Create implements EventsUpdateRepo.
-func (r *UpdatedEventsRepository) Create(event *model.UpdatedEvents, categories []*model.Categories, tickets []*model.TicketsUpdate) error {
+func (r *UpdatedEventsRepository) Create(event *model.UpdatedEvents, categories []*model.Categories) error {
 	// Make transaction
 	tx := r.db.Begin()
 
@@ -52,17 +52,6 @@ func (r *UpdatedEventsRepository) Create(event *model.UpdatedEvents, categories 
 		}
 	}
 
-	// Create tickets
-	if len(tickets) > 0 {
-		for _, ticket := range tickets {
-			ticket.EventUpdateID = event.ID
-			if err := tx.Create(ticket).Error; err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
-	}
-
 	if err := tx.Commit().Error; err != nil {
 		return err
 	}
@@ -76,7 +65,7 @@ func (r *UpdatedEventsRepository) Cancel(id string) error {
 		Model(&model.UpdatedEvents{}).
 		Where("id = ?", id).
 		Updates(&model.UpdatedEvents{
-			Status:    string(model.UpdatedCanceled),
+			StatusID:  6,
 			DeletedAt: helper.TimeToPointer(time.Now().UTC()),
 		}).Error
 }
@@ -96,7 +85,6 @@ func (r *UpdatedEventsRepository) FindAll(filter *dto.UpdatedEventFilter, pagina
 		Scopes(Paginate(updatedEvents, &pagination, query)).
 		Preload("Event").
 		Preload("Categories.Category").
-		Preload("Tickets").
 		Find(&updatedEvents).Error; err != nil {
 		return nil, err
 	}
@@ -122,7 +110,6 @@ func (r *UpdatedEventsRepository) FindAllByEventID(filter *dto.UpdatedEventFilte
 		Scopes(Paginate(updatedEvents, &pagination, query)).
 		Preload("Event").
 		Preload("Categories.Category").
-		Preload("Tickets").
 		Find(&updatedEvents).Error; err != nil {
 		return nil, err
 	}
@@ -151,7 +138,6 @@ func (r *UpdatedEventsRepository) FindByID(id string) (*model.UpdatedEvents, err
 		Where("id = ?", id).
 		Preload("Event").
 		Preload("Categories.Category").
-		Preload("Tickets").
 		First(&updatedEvent).Error; err != nil {
 		return nil, err
 	}
@@ -176,7 +162,7 @@ func filterUpdatedEventList(filter *dto.UpdatedEventFilter) func(*gorm.DB) *gorm
 		}
 
 		if filter.Status != nil {
-			db = db.Where("status = ?", *filter.Status)
+			db = db.Where("status_id = ?", helper.GetEventStatusID(*filter.Status))
 		}
 
 		if filter.Title != nil {
@@ -217,9 +203,10 @@ func toUpdatedEventsResp(updatedEvents []*model.UpdatedEvents) ([]*dto.EventsUpd
 			EventTitle: event.Name,
 			UpdatedDetails: dto.UpdatedDetails{
 				Banner:      *event.Banner,
-				Status:      event.Status,
+				Status:      event.Status.Status,
 				Description: event.Description,
-				Date:        helper.ConvertDatetoUnix(event.Date.Format(time.RFC3339)),
+				StartTime:   helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339)),
+				EndTime:     helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339)),
 			},
 			UpdatedAddress: dto.UpdatedAddress{
 				Address:       event.Address,
@@ -232,7 +219,6 @@ func toUpdatedEventsResp(updatedEvents []*model.UpdatedEvents) ([]*dto.EventsUpd
 				},
 			},
 			UpdatedCategories: categories,
-			UpdatedTickets:    len(event.Tickets),
 			CreatedAt:         helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
 			UpdatedAt:         helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
 			DeletedAt:         helper.TimePtrToUnix(event.DeletedAt),

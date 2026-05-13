@@ -1,10 +1,10 @@
 import { FaBullhorn } from "react-icons/fa";
 import { GoArrowLeft } from "react-icons/go";
 import Input from "../../../../../components/input";
-import { LuSquarePlus, LuUpload } from "react-icons/lu";
+import { LuUpload } from "react-icons/lu";
 import { FiCalendar } from "react-icons/fi";
 import Button from "../../../../../components/Button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { toggleItem } from "../../../../../utils/toggleItem";
@@ -14,22 +14,17 @@ import DatePicker from "react-datepicker";
 import type { categoriesResp } from "../../../../categories/types/categoryResponse";
 import type { locationResp } from "../../../types/locationResponse";
 import MapPicker from "../../../../../components/map";
-import TicketForm from "./ticketForm";
 import { useForm } from "react-hook-form";
 import { useCreateEvent } from "../../hooks/useCreateEvent";
-import { converDate } from "../../../../../utils/dateConverter";
-
-type TicketType = "regular" | "premium" | "vip";
-
-type Ticket = {
-  tempID: string;
-  name: string;
-  quantity: string;
-  price: string;
-  type: TicketType
-};
+import { useUpdateEvent } from "../../hooks/useUpdateEvent";
+import type { EventsResponse } from "../../../types/organizerResponse";
+import RichTextEditor from "../../../../../components/richTextEditior";
+import { useCancelEvent } from "../../hooks/useCancelEvent";
+import { useDeleteEvent } from "../../hooks/useDeleteEvent";
 
 interface Props {
+    mode: "create" | "edit";
+    eventData?: EventsResponse;
     categories: categoriesResp[] | undefined;
     categoriesLoading: boolean;
     selectedCategories: number[];
@@ -43,6 +38,8 @@ interface Props {
 }
 
 export default function EventForm({
+    mode,
+    eventData,
     categories,
     categoriesLoading,
     selectedCategories,
@@ -54,79 +51,99 @@ export default function EventForm({
     selectedLocation,
     setSelectedLocation,
 }: Props) {
+    const { id } = useParams<{ id: string }>();
+    const isEditMode = mode === "edit";
+    const eventStatus = eventData?.event.status;
+
     type formValues = {
         name: string;
         detail_address: string;
         description: string;
-    }
+    };
 
     const {
         register,
         handleSubmit,
-        formState: {errors}
-    } = useForm<formValues>();
+        reset,
+        watch,
+        setValue,
+        formState: { errors },
+    } = useForm<formValues>({
+        defaultValues: {
+            description: ""
+        }
+    });
 
     const navigate = useNavigate();
 
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-    const [tickets, setTickets] = useState<Ticket[]>([
-        {
-          tempID: crypto.randomUUID(),
-          name: "",
-          quantity: "",
-          price: "",
-          type: "regular" as TicketType,
-        },
-    ]);
 
     const [banner, setBanner] = useState<File | null>(null);
     const [bannerPreview, setBannerPreview] = useState<string>("");
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [position, setPosition] = useState<[number, number]>([0,0]);
+    const [startTime, setStartTime] = useState<Date | null>(null)
+    const [endTime, setEndTime] = useState<Date | null>(null)
+    const [position, setPosition] = useState<[number, number]>([0, 0]);
     const [showDropdown, setShowDropdown] = useState<boolean>(false);
 
-
     const createEventMutation = useCreateEvent();
+    const updateEventMutation = useUpdateEvent();
+    const cancelEventMutation = useCancelEvent()
+    const deleteEventMutation = useDeleteEvent()
 
-    const toggleCategory = (id: number) => {
-        setSelectedCategories((prev) => toggleItem(prev, id));
-    };
+    const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null)
 
-    const addTicket = () => {
-        setTickets((prev) => [
-            ...prev,
-            {
-                tempID: crypto.randomUUID(),
-                name: "",
-                quantity: "",
-                price: "",
-                type: "regular" as TicketType,
-            },
-        ]);
-    };
+    const isPending = isEditMode
+        ? updateEventMutation.isPending
+        : createEventMutation.isPending;
 
-    const updateTicket = (
-        tempID: string,
-        field: keyof Ticket,
-        value: string
-    ) => {
-        setTickets((prev) => 
-            prev.map((ticket) => 
-                ticket.tempID === tempID ? { ...ticket, [field]: value} : ticket
-        ));
-    };
+    // Pre-populate form when in edit mode
+    useEffect(() => {
+        if (!isEditMode || !eventData) return;
 
-    const removeTicket = (id: string) => {
-        setTickets((prev) => prev.filter((ticket) => ticket.tempID !== id));
+        // Reset form fields
+        reset({
+            name: eventData.event.name,
+            detail_address: eventData.event_address.detail_address,
+            description: eventData.event.description,
+        });
+
+        // Set categories
+        const categoryIds = eventData.event.categories.map((c) => Number(c.id));
+        setSelectedCategories(categoryIds);
+
+        // Set date from unix timestamp
+        if (eventData.start_time) {
+            const start = new Date(eventData.start_time * 1000)
+            const end = new Date(eventData.end_time * 1000)
+            setSelectedDate(start)
+            setStartTime(start)
+            setEndTime(end)
+        }
+
+        // Set position from coordinates
+        const { lat, lon } = eventData.event_address.coordinates;
+        if (lat && lon) {
+            setPosition([lat, lon]);
+            setSearchQuery(eventData.event_address.address);
+        }
+
+        // Set banner preview from existing banner URL
+        if (eventData.event.banner) {
+            setBannerPreview(eventData.event.banner);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isEditMode, eventData]);
+
+    const toggleCategory = (catId: number) => {
+        setSelectedCategories((prev) => toggleItem(prev, catId));
     };
 
     const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-
         if (!file) return;
 
         const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-
         if (!allowedTypes.includes(file.type)) {
             toast.error("Only JPG, JPEG, PNG files are allowed");
             return;
@@ -136,105 +153,255 @@ export default function EventForm({
         setBannerPreview(URL.createObjectURL(file));
     };
 
-    const submitEvent = async (
-        eventStatus: "draft" | "pending",
-        data: formValues
-    ) => {
-        if (eventStatus === "pending" && !banner) {
+    const validateForm = (targetStatus: string): boolean => {
+        // Banner required when publishing (not draft)
+        if (targetStatus !== "draft" && !isEditMode && !banner) {
             toast.error("Banner required to publish event");
-            return;
+            return false;
         }
 
-        if (selectedCategories.length == 0) {
+        if (selectedCategories.length === 0) {
             toast.error("Please select a category");
-            return;
+            return false;
         }
 
         if (!selectedDate) {
             toast.error("Date is required");
-            return;
+            return false;
+        }
+
+        if (!startTime) {
+            toast.error("Start time is required")
+            return false
+        }
+
+        if (!endTime) {
+            toast.error("End time is required")
+            return false
+        }
+
+        if (endTime.getTime() <= startTime.getTime()) {
+            toast.error("End time must be after start time")
+            return false
         }
 
         if (position[0] === 0 || position[1] === 0) {
-            toast.error("Please input and select the correct addres");
-            return;
+            toast.error("Please input and select the correct address");
+            return false;
         }
 
-        for (const ticket of tickets) {
-            if (!ticket.name || !ticket.quantity || !ticket.type) {
-                toast.error("All tickets field required");
-                return;
-            }
+        return true;
+    };
+
+    const buildPayload = (targetStatus: string, data: formValues) => {
+        const mergeDateTime = (date: Date, time: Date) => {
+            const merged = new Date(date)
+            merged.setHours(time.getHours(), time.getMinutes(), 0, 0)
+            return Math.floor(merged.getTime() / 1000)
         }
-
-        const formattedTickets = tickets.map((ticket) => ({
-            name: ticket.name,
-            quantity: Number(ticket.quantity),
-            price: ticket.price,
-            ticket_type: ticket.type,
-        }));
-
-        const payload = {
+        return {
             ...data,
             categories: selectedCategories,
-            date: converDate(selectedDate),
-            tickets: formattedTickets,
-            status: eventStatus,
+            start_time: mergeDateTime(selectedDate!, startTime!),
+            end_time: mergeDateTime(selectedDate!, endTime!),
+            status: targetStatus,
             address: {
                 detail_address: data.detail_address,
                 lat: position[0].toString(),
                 long: position[1].toString(),
-            }
+            },
         };
+    };
+
+    // Create Mode Handler
+    const handleCreate = async (targetStatus: "draft" | "pending", data: formValues) => {
+        if (!validateForm(targetStatus)) return;
+        const payload = buildPayload(targetStatus, data);
 
         try {
-            await createEventMutation.mutateAsync({
-                payload,
-                banner,
-            });
-
-            navigate("/organizer/dashboard");
+            await createEventMutation.mutateAsync({ payload, banner });
+            navigate(-1);
         } catch (err) {
             console.error(err);
-            toast.error("Failed to create event");
         }
     };
 
-     useEffect(() => {
+    // Update Mode Handler
+    const handleUpdate = async (targetStatus: string, data: formValues) => {
+        if (!id) return;
+        if (!validateForm(targetStatus)) return;
+        const payload = buildPayload(targetStatus, data);
+
+        try {
+            await updateEventMutation.mutateAsync({ id, payload, banner });
+            navigate(-1);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleCancel = async () => {
+        if (!id) return
+        await cancelEventMutation.mutateAsync(id)
+        navigate(-1)
+    }
+
+    const handleDelete = async () => {
+        if (!id) return
+        await deleteEventMutation.mutateAsync(id)
+        navigate(-1)
+    }
+
+    useEffect(() => {
         return () => {
-            if (bannerPreview) {
+            if (bannerPreview && bannerPreview.startsWith("blob:")) {
                 URL.revokeObjectURL(bannerPreview);
             }
         };
     }, [bannerPreview]);
-    
+
+    // Button type depends on mode (create/update) and event status (draft/pending/active)
+    const renderButtons = () => {
+        if (!isEditMode) {
+            // Create mode: Draft + Create
+            return (
+                <>
+                    <Button
+                        type="button"
+                        onClick={handleSubmit((data) => handleCreate("draft", data))}
+                        disabled={isPending}
+                        className="w-full sm:w-auto rounded-md px-10 py-3 text-gray-800 font-semibold bg-gray-300 hover:bg-[#c7c7c7]"
+                    >
+                        {isPending ? "Loading..." : "Draft"}
+                    </Button>
+
+                    <Button
+                        type="button"
+                        onClick={handleSubmit((data) => handleCreate("pending", data))}
+                        disabled={isPending}
+                        className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-[#003B95] hover:bg-[#004ec2]"
+                    >
+                        {isPending ? "Loading..." : "Create"}
+                    </Button>
+                </>
+            );
+        }
+
+        if (eventStatus === "pending") {
+            return null; // No buttons available for pending events
+        }
+
+        if (eventStatus === "cancelled") {
+            return (
+                <>
+                    <Button
+                        type="button"
+                        onClick={handleSubmit((data) => handleUpdate("draft", data))}
+                        disabled={isPending}
+                        className="w-full sm:w-auto rounded-md px-10 py-3 text-gray-800 font-semibold bg-gray-300 hover:bg-[#c7c7c7]"
+                    >
+                        {isPending ? "Loading..." : "Save as Draft"}
+                    </Button>
+
+                    <Button
+                        type="button"
+                        onClick={handleSubmit((data) => handleUpdate("pending", data))}
+                        disabled={isPending}
+                        className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-[#003B95] hover:bg-[#004ec2]"
+                    >
+                        {isPending ? "Loading..." : "Republish"}
+                    </Button>
+                </>
+            )
+        }
+
+        if (eventStatus === "draft") {
+            // Edit draft: Update (keep draft) + Publish (pending)
+            return (
+                <>
+                    <Button
+                        type="button"
+                        onClick={() => setConfirmAction("delete")}
+                        disabled={deleteEventMutation.isPending}
+                        className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-red-500 hover:bg-red-600"
+                    >
+                        {deleteEventMutation.isPending ? "Deleting..." : "Delete"}
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={handleSubmit((data) => handleUpdate("draft", data))}
+                        disabled={isPending}
+                        className="w-full sm:w-auto rounded-md px-10 py-3 text-gray-800 font-semibold bg-gray-300 hover:bg-[#c7c7c7]"
+                    >
+                        {isPending ? "Loading..." : "Update"}
+                    </Button>
+
+                    <Button
+                        type="button"
+                        onClick={handleSubmit((data) => handleUpdate("pending", data))}
+                        disabled={isPending}
+                        className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-[#003B95] hover:bg-[#004ec2]"
+                    >
+                        {isPending ? "Loading..." : "Publish"}
+                    </Button>
+                </>
+            );
+        }
+
+        // Edit active event: Update only (goes to admin review)
+        return (
+            <>
+                <Button
+                    type="button"
+                    onClick={() => setConfirmAction("cancel")}
+                    disabled={cancelEventMutation.isPending}
+                    className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-red-500 hover:bg-red-600"
+                >
+                    {cancelEventMutation.isPending ? "Canceling..." : "Cancel Event"}
+                </Button>
+
+                <Button
+                    type="button"
+                    onClick={handleSubmit((data) => handleUpdate(eventStatus ?? "active", data))}
+                    disabled={isPending}
+                    className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-[#003B95] hover:bg-[#004ec2]"
+                >
+                    {isPending ? "Loading..." : "Update"}
+                </Button>
+            </>
+        );
+    };
+
+    const pageTitle = isEditMode ? "Edit Event" : "Create Event";
+    const pageSubtitle = isEditMode
+        ? "Update the information for this event"
+        : "Complete the information to add a new event";
+
     return (
-        <div className="space-y-10 py-15">
+        <div className="w-full max-w-7xl mx-auto space-y-10 px-4 sm:px-6 lg:px-8 py-10">
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
-                <FaBullhorn className="hidden sm:block" size={45}/>
+                <FaBullhorn className="hidden sm:block" size={45} />
                 <div>
                     <span className="flex justify-center sm:justify-start md:justify-start items-center gap-2">
-                        <GoArrowLeft 
+                        <GoArrowLeft
                             className="cursor-pointer hover:-translate-x-1 transition duration-180"
-                            onClick={() => navigate("/organizer/dashboard")}
-                            size={28}/>
-                        <h1 className="text-2xl sm:text-3xl text-[#1E293B] font-bold">Create Event</h1>
+                            onClick={() => navigate(-1)}
+                            size={28}
+                        />
+                        <h1 className="text-3xl sm:text-4xl lg:text-5xl text-[#1E293B] font-bold">{pageTitle}</h1>
                     </span>
-                    <h2 className="text-sm sm:text-lg text-gray-500">Complete the information to add a new event</h2>
+                    <h2 className="text-center sm:text-base sm:text-lg text-gray-500 mt-1">{pageSubtitle}</h2>
                 </div>
             </div>
 
-            <div className="bg-white p-4 sm:p-6 lg:p-8 w-full rounded-xl flex flex-col gap-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mt-1">
+            <div className="bg-white w-full rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8 lg:p-10 xl:p-12 flex flex-col gap-8">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8 mt-2">
                     <Input
-                        className="p-2 sm:p-3 text-sm sm:text-base w-full"
+                        className="w-full rounded-xl p-3 sm:p-4 text-sm sm:text-base"
                         label="Name"
                         labelStyle="text-[#003B95]"
                         type="text"
-                        {...register(
-                            "name",
-                            {required: "Name is required"}
-                        )}
+                        {...register("name", { required: "Name is required" })}
                         error={errors.name?.message}
                         placeholder="e.g. Global Security Summit"
                     />
@@ -279,19 +446,64 @@ export default function EventForm({
                             />
                         </div>
                     </div>
-                    
-                        
+
+                    {selectedDate && (
+                        <div className="w-full grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-[#003B95] text-xs sm:text-sm font-medium mb-1 block">
+                                    Start Time (WIB)
+                                </label>
+                                <div className="relative z-20">
+                                    <DatePicker
+                                        selected={startTime}
+                                        onChange={(time: SetStateAction<Date | null>) => setStartTime(time)}
+                                        showTimeSelect
+                                        showTimeSelectOnly
+                                        timeIntervals={15}
+                                        timeCaption="Start"
+                                        dateFormat="HH:mm"
+                                        placeholderText="09:00 WIB"
+                                        className="w-full p-2 sm:p-3 text-sm sm:text-base bg-gray-200 rounded-xl outline-none"
+                                        wrapperClassName="w-full"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[#003B95] text-xs sm:text-sm font-medium mb-1 block">
+                                    End Time (WIB)
+                                </label>
+                                <div className="relative z-20">
+                                    <DatePicker
+                                        selected={endTime}
+                                        onChange={(time: SetStateAction<Date | null>) => setEndTime(time)}
+                                        showTimeSelect
+                                        showTimeSelectOnly
+                                        timeIntervals={15}
+                                        timeCaption="End"
+                                        dateFormat="HH:mm"
+                                        placeholderText="17:00 WIB"
+                                        minTime={startTime ? new Date(startTime.getTime() + 15 * 60 * 1000) : undefined}
+                                        maxTime={new Date(new Date().setHours(23, 45))}
+                                        className="w-full p-2 sm:p-3 text-sm sm:text-base bg-gray-200 rounded-xl outline-none"
+                                        wrapperClassName="w-full"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="relative w-full">
                         <Input
-                            className="p-2 sm:p-3 text-sm sm:text-base"
+                            className="w-full rounded-xl p-3 sm:p-4 text-sm sm:text-base"
                             label="Address"
                             labelStyle="text-[#003B95]"
                             type="text"
                             placeholder="Search location..."
                             value={searchQuery}
                             onChange={(e) => {
-                                setSearchQuery(e.target.value)
-                                setShowDropdown(!showDropdown);
+                                setSearchQuery(e.target.value);
+                                setShowDropdown(true);
                             }}
                         />
 
@@ -311,10 +523,9 @@ export default function EventForm({
                                                 setSearchQuery(loc.display_name);
                                                 setPosition([
                                                     parseFloat(loc.lat),
-                                                    parseFloat(loc.lon)
+                                                    parseFloat(loc.lon),
                                                 ]);
                                                 setShowDropdown(false);
-                                                
                                             }}
                                             className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm"
                                         >
@@ -327,25 +538,22 @@ export default function EventForm({
                     </div>
                 </div>
 
-                <MapPicker
-                    position={position}
-                    selectedLocation={selectedLocation}
-                />
-                
+                <MapPicker position={position} selectedLocation={selectedLocation} />
+
                 <div>
-                    <label 
-                    className="text-xs sm:text-sm text-[#003B95] font-medium mb-1 block"
-                    htmlFor="">
+                    <label
+                        className="text-xs sm:text-sm text-[#003B95] font-medium mb-1 block"
+                        htmlFor="detail_address"
+                    >
                         Address detail
                     </label>
                     <textarea
-                    rows={3}
-                    className={`w-full p-2 rounded-xl bg-gray-200 outline-none resize-none`}                         
-                    placeholder="Building name, floor, room number, etc."
-                    {...register(
-                        "detail_address",
-                        {required: "Detail of the address required"}
-                    )}
+                        rows={5}
+                        className="w-full rounded-xl bg-gray-200 p-4 text-sm sm:text-base outline-none resize-none"
+                        placeholder="Building name, floor, room number, etc."
+                        {...register("detail_address", {
+                            required: "Detail of the address required",
+                        })}
                     />
                     {errors.detail_address && (
                         <p className="text-red-500 text-sm">{errors.detail_address.message}</p>
@@ -353,56 +561,22 @@ export default function EventForm({
                 </div>
 
                 <div>
-                    <label 
-                    className="text-xs text-[#003B95] sm:text-sm font-medium mb-1 block"
-                    htmlFor="">
+                    <label
+                        className="text-xs text-[#003B95] sm:text-sm font-medium mb-1 block"
+                        htmlFor="description"
+                    >
                         Description
                     </label>
-                    <textarea
-                    rows={3}
-                    className={`w-full p-2 rounded-xl bg-gray-200 outline-none resize-none`}                         
-                    placeholder="Event description"
-                    {...register(
-                        "description",
-                        {required: "Description required"}
-                    )}
+                    <RichTextEditor
+                        value={watch("description") ?? ""}
+                        onChange={(val) => setValue("description", val, { shouldDirty: true })}
+                        error={errors.description?.message}
                     />
-                    {errors.description && (
-                        <p className="text-red-500 text-sm">{errors.description.message}</p>
-                    )}
-                    
-                </div>
-
-                {/* Tickets */}
-                <div className="bg-[#E2E6EC]/30 p-6 space-y-4 rounded-xl">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-[#003B95] font-medium">Tickets</h2>
-                        <LuSquarePlus
-                            onClick={addTicket} 
-                            className="cursor-pointer hover:-translate-y-1 transition duration-150
-                                        text-gray-700" 
-                            size={20}/>
-                    </div>
-
-                    {tickets.map((ticket) => (
-                        <TicketForm
-                            ticket={ticket}
-                            tickets={tickets}
-                            updateTicketName={(e) => updateTicket(ticket.tempID, "name", e.target.value)}
-                            updateTicketQuanty={(e) => updateTicket(ticket.tempID, "quantity", e.target.value)}
-                            updateTicketPrice={(e) => updateTicket(ticket.tempID, "price", e.target.value)}
-                            updateTicketType={(value) => updateTicket(ticket.tempID, "type", value)}
-                            removeTicket={() => removeTicket(ticket.tempID)}
-                        />
-                    ))}
-
                 </div>
 
                 {/* Banner */}
                 <div className="flex flex-col gap-2 w-full">
-                    <p className="text-[#003B95] font-medium">
-                        Banner
-                    </p>
+                    <p className="text-[#003B95] font-medium">Banner</p>
 
                     <input
                         id="banner-upload"
@@ -414,7 +588,7 @@ export default function EventForm({
 
                     <label
                         htmlFor="banner-upload"
-                        className="w-full h-40 sm:h-48 lg:h-56
+                        className="w-full h-52 sm:h-64 lg:h-80 xl:h-96
                                 rounded-xl border-2 border-dashed border-gray-300
                                 bg-[#E2E6EC]/30
                                 flex flex-col gap-2 items-center justify-center
@@ -429,44 +603,63 @@ export default function EventForm({
                             />
                         ) : (
                             <>
-                                <LuUpload
-                                    className="text-gray-500"
-                                    size={30}
-                                />
-
-                                <p className="text-sm text-gray-600">
-                                    Choose a file jpg, jpeg, png
-                                </p>
+                                <LuUpload className="text-gray-500" size={30} />
+                                <p className="text-sm text-gray-600">Choose a file jpg, jpeg, png</p>
                             </>
                         )}
                     </label>
 
-                    {banner && (
-                        <p className="text-sm text-gray-600">
-                            {banner.name}
+                    {banner && <p className="text-sm text-gray-600">{banner.name}</p>}
+
+                    {isEditMode && !banner && eventData?.event.banner && (
+                        <p className="text-xs text-gray-400">
+                            Current banner will be kept if no new file is uploaded.
                         </p>
                     )}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 sm:mt-10">
-                    <Button
-                    type="button" 
-                    onClick={handleSubmit((data) => submitEvent("draft", data))}
-                    disabled={createEventMutation.isPending}
-                    className="w-full sm:w-auto rounded-md px-10 py-3 text-gray-800 font-semibold bg-gray-300 hover:bg-[#c7c7c7]"
-                    >
-                        {createEventMutation.isPending ? "Loading..." : "Draft"}
-                    </Button>
-            
-                    <Button 
-                    type="button"
-                    onClick={handleSubmit((data) => submitEvent("pending", data))}
-                    disabled={createEventMutation.isPending}
-                    className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-[#003B95] hover:bg-[#004ec2]">
-                        {createEventMutation.isPending ? "Loading..." : "Create"}
-                    </Button>
+                    {renderButtons()}
                 </div>
             </div>
+
+            {confirmAction && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                    onClick={() => setConfirmAction(null)}
+                >
+                    <div
+                        className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h2 className="text-lg font-bold text-gray-800 mb-2">
+                            {confirmAction === "cancel" ? "Cancel Event?" : "Delete Event?"}
+                        </h2>
+                        <p className="text-sm text-gray-500 mb-6">
+                            {confirmAction === "cancel"
+                                ? "This action cannot be undone. The event will be canceled and attendees will be notified."
+                                : "This will permanently delete the event draft."}
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setConfirmAction(null)}
+                                className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-sm"
+                            >
+                                Go Back
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setConfirmAction(null)
+                                    confirmAction === "cancel" ? handleCancel() : handleDelete()
+                                }}
+                                className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm"
+                            >
+                                {confirmAction === "cancel" ? "Yes, Cancel" : "Yes, Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
-    )
+    );
 }

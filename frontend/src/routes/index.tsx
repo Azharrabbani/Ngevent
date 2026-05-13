@@ -20,28 +20,30 @@ import OrganizerDashboard from "../layout/organizerDashboard"
 import CheckEvents from "../features/events/organizer/views/checkEvents"
 import CancelEvent from "../features/events/organizer/views/cancelEvent"
 import DraftEvents from "../features/events/organizer/views/draftEvent"
-import CreateEvent from "../features/events/organizer/views/createEvent"
+import EventFormView from "../features/events/organizer/views/eventFormView"
+import ApproveGuard from "./approveGuard"
+
 export default function AppRoutes() {
-    return(
+    return (
         <BrowserRouter>
             <Routes>
                 <Route path="/login" element={<LoginView />} />
-                <Route path="/register" element={<RegisterView/>} />
-                <Route path="/forget" element={<ForgetPassword/>}/>
-                <Route path="/reset-password" element={<ResetPasswordView/>}/>
-                <Route path="/verified-email" element={<VerifiedEmailView/>}/>
+                <Route path="/register" element={<RegisterView />} />
+                <Route path="/forget" element={<ForgetPassword />} />
+                <Route path="/reset-password" element={<ResetPasswordView />} />
+                <Route path="/verified-email" element={<VerifiedEmailView />} />
 
-                <Route element={<ProtectedRoute/>}>
-                    <Route path="/select-role" element={<SelectRoleView/>}/>
+                <Route element={<ProtectedRoute />}>
+                    <Route path="/select-role" element={<SelectRoleView />} />
 
-                    <Route element={<RoleGuard allowedRoles={["user", "event organizer"]}/>}>
-        
+                    <Route element={<RoleGuard allowedRoles={["user", "event organizer"]} />}>
+
                         <Route element={<CompleteProfileGuard />}>
                             <Route path="/complete-profile" element={<CompleteProfileView />} />
                         </Route>
 
-                        <Route element={<ProfileGuard/>}>
-                            <Route path="/profile" element={<ProfileView/>}/>
+                        <Route element={<ProfileGuard />}>
+                            <Route path="/profile" element={<ProfileView />} />
                         </Route>
                     </Route>
                 </Route>
@@ -56,33 +58,39 @@ export default function AppRoutes() {
                     </Route>
                 </Route>
 
-                <Route path="/organizer" element={<ProtectedRoute/>}>
-                    <Route element={<RoleGuard allowedRoles={["event organizer"]}/>}>
+                <Route path="/organizer" element={<ProtectedRoute />}>
+                    <Route element={<RoleGuard allowedRoles={["event organizer"]} />}>
                         <Route path="dashboard" element={
                             <OrganizerDashboard>
-                                <CheckEvents/>
+                                <CheckEvents />
                             </OrganizerDashboard>
                         }
                         />
 
                         <Route path="cancel-event" element={
                             <OrganizerDashboard>
-                                <CancelEvent/>
+                                <CancelEvent />
                             </OrganizerDashboard>
                         }
                         />
 
                         <Route path="draft-event" element={
                             <OrganizerDashboard>
-                                <DraftEvents/>
+                                <DraftEvents />
                             </OrganizerDashboard>
                         }
                         />
 
 
-                        <Route path="create-event" element={<CreateEvent/>}/>
+                        <Route element={<ProfileGuard />}>
+                            <Route element={<ApproveGuard />}>
+                                <Route path="event/new" element={<EventFormView />} />
+                                <Route path="event/edit/:id" element={<EventFormView />} />
+                            </Route>
+                        </Route>
+
                     </Route>
-                </Route>            
+                </Route>
             </Routes>
         </BrowserRouter>
     )

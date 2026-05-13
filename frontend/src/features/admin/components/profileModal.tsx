@@ -21,7 +21,7 @@ export default function ProfileModal({
             <div
                 onClick={(e) => e.stopPropagation()}
                 className="
-                    w-full max-w-lg
+                    w-full max-w-4xl
                     max-h-[90vh] overflow-y-auto
                     bg-white border-2 border-black rounded-xl
                     p-4 sm:p-6

@@ -23,7 +23,7 @@ export default function AdminSidebar({children}: Props) {
 
     const navigate = useNavigate();
 
-    const {logout, loading, error} = useLogout();
+    const { mutateAsync: logout, isPending, isError } = useLogout();
 
     const { user, loading: userLoading } = useAuth()
 
@@ -32,7 +32,7 @@ export default function AdminSidebar({children}: Props) {
             await logout();
             navigate("/login");
         } catch (err) {
-            if (error) {
+            if (isError) {
                 return;    
             }
         }
@@ -189,11 +189,11 @@ export default function AdminSidebar({children}: Props) {
                             <span className="text-2xl">{logoutMenu.icon}</span>
 
                             <span className={`${isCollapsed && "hidden"}`}>
-                                {loading ? "Logging out..." : logoutMenu.title}
+                                {isPending ? "Logging out..." : logoutMenu.title}
                             </span>
                             {isCollapsed && (
                                 <span className="absolute left-16 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">
-                                    {loading ? "Logging out..." : logoutMenu.title}
+                                    {isPending ? "Logging out..." : logoutMenu.title}
                                 </span>
                             )}
                         </li>

@@ -4,18 +4,10 @@ export interface CreateEventReq {
     user_id: string;
     description: string;
     categories: number[];
-    tickets: ticketsReq[];
-    date: number;
+    start_time: number;
+    end_time: number;
     address: eventAddress;
     status: string;
-};
-
-interface ticketsReq {
-    id?: string;
-    name: string;
-    price: string;
-    quantity: number;
-    ticketType: string;
 };
 
 interface eventAddress {
