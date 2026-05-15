@@ -1,8 +1,8 @@
 import { FaInstagram, FaRegFilePdf } from "react-icons/fa";
-import type { OrganizerResponse, OrganizerUpdateResponse } from "../../profile/types/profileResponse"
 import { useState } from "react";
-import FilePreview from "../../../components/filePreview";
-import { useValidateOrganizerUpdate } from "../../profile/hooks/organizer/useValidateOrganizer";
+import { useValidateOrganizerUpdate } from "../../../profile/hooks/organizer/useValidateOrganizer";
+import type { OrganizerResponse, OrganizerUpdateResponse } from "../../../profile/types/profileResponse";
+import FilePreview from "../../../../components/filePreview";
 
 interface Props {
     requestUpdate: OrganizerUpdateResponse;

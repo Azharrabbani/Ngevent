@@ -1,4 +1,4 @@
-import type { AttendeeResponse } from "../../profile/types/profileResponse";
+import type { AttendeeResponse } from "../../../profile/types/profileResponse";
 
 interface Props {
     profile?: AttendeeResponse;

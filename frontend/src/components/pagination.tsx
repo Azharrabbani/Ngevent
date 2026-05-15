@@ -21,7 +21,7 @@ export default function Pagination({
 
     return (
         <div className="flex justify-center my-8">
-            <div className="flex items-center gap-1 sm:gap-2 bg-white/70 backdrop-blur px-2 py-2 rounded-xl shadow-md">
+            <div className="flex items-center gap-1 sm:gap-2 bg-white/70 backdrop-blur px-2 py-2 rounded-xl">
                 <button
                     onClick={onPrev}
                     className="px-3 py-1 rounded-lg hover:bg-gray-200 disabled:opacity-50"

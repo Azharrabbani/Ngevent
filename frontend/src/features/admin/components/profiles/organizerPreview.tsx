@@ -1,9 +1,9 @@
 import { FaInstagram, FaRegFilePdf } from "react-icons/fa";
-import type { OrganizerResponse } from "../../profile/types/profileResponse";
 import { useState } from "react";
-import FilePreview from "../../../components/filePreview";
-import { useApproveOrganizer } from "../../profile/hooks/organizer/useApproveOrganizer";
-import { useRejectOrganizer } from "../../profile/hooks/organizer/useRejectOrganzier";
+import type { OrganizerResponse } from "../../../profile/types/profileResponse";
+import { useApproveOrganizer } from "../../../profile/hooks/organizer/useApproveOrganizer";
+import { useRejectOrganizer } from "../../../profile/hooks/organizer/useRejectOrganzier";
+import FilePreview from "../../../../components/filePreview";
 
 interface Props {
     loading: boolean | undefined;

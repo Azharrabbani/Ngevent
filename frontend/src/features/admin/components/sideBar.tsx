@@ -80,7 +80,7 @@ export default function AdminSidebar({children}: Props) {
 
     return (
         <div className="flex">
-            <div className="md:hidden p-4">
+            <div className="lg:hidden p-4">
                 <HiMenu
                     className="text-2xl cursor-pointer"
                     onClick={() => setIsMobileOpen(true)}
@@ -95,10 +95,10 @@ export default function AdminSidebar({children}: Props) {
             )}
     
             <div className={`
-                bg-blue-600 h-screen p-5 pt-8 fixed md:relative z-50 flex flex-col
+                bg-blue-600 h-screen p-5 pt-8 fixed lg:relative z-50 flex flex-col
                 ${isCollapsed ? "md:w-20" : "md:w-72"}
                 w-72
-                ${isMobileOpen ? "left-0" : "-left-full md:left-0"}
+                ${isMobileOpen ? "left-0" : "-left-full lg:left-0"}
                 duration-300
             `}>
                 <GoArrowLeft
