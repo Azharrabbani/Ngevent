@@ -65,7 +65,7 @@ func (r *UpdatedEventsRepository) Cancel(id string) error {
 		Model(&model.UpdatedEvents{}).
 		Where("id = ?", id).
 		Updates(&model.UpdatedEvents{
-			StatusID:  6,
+			Status:    string(model.Cancelled),
 			DeletedAt: helper.TimeToPointer(time.Now().UTC()),
 		}).Error
 }
@@ -203,7 +203,7 @@ func toUpdatedEventsResp(updatedEvents []*model.UpdatedEvents) ([]*dto.EventsUpd
 			EventTitle: event.Name,
 			UpdatedDetails: dto.UpdatedDetails{
 				Banner:      *event.Banner,
-				Status:      event.Status.Status,
+				Status:      event.Status,
 				Description: event.Description,
 				StartTime:   helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339)),
 				EndTime:     helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339)),

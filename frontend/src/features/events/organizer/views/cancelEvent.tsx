@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useGetCurrentOrganizerProfile } from "../../../profile/hooks/organizer/useGetCurrentOrganizerProfile";
-import { useGetEvents } from "../hooks/useGetEvents";
+import { useGetOrganizerEvents } from "../../hooks/useGetOrganizerEvents";
 import { converDate } from "../../../../utils/dateConverter";
 import { defaultPagination } from "../../../../utils/pagination";
 import { useListCategories } from "../../../categories/hooks/useListCategories";
@@ -15,10 +15,10 @@ export default function CancelEvent() {
     const [event, setEvent] = useState<string | undefined>(undefined);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [date, setDate] = useState<Date | null>(null);
-    
+
     const organizer = useGetCurrentOrganizerProfile();
 
-    const { data, isLoading } = useGetEvents({    
+    const { data, isLoading } = useGetOrganizerEvents({
         title: event,
         location: location,
         category: selectedCategories.length ? selectedCategories : undefined,
@@ -66,7 +66,7 @@ export default function CancelEvent() {
                     onSearch={handleSearch}
                     toggleStatus={false}
                 />
-                
+
                 <EventsContent
                     data={data}
                     loading={isLoading}

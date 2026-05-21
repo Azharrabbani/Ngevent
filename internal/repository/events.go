@@ -154,7 +154,7 @@ func (r *EventsRepository) Delete(id string) error {
 func (r *EventsRepository) CancelEvent(id string) error {
 	return r.db.Model(&model.Events{}).
 		Where("id = ?", id).
-		Update("status_id", model.Cancelled).Error
+		Update("status", model.Cancelled).Error
 }
 
 // FindAll implements EventsRepo.
@@ -163,15 +163,15 @@ func (r *EventsRepository) FindAll(filter *dto.EventFilter, pagination model.Pag
 
 	query := r.db.Select(
 		`events.*,
-		ST_Y(coordinates::geometry) AS lat,
-		ST_X(coordinates::geometry) AS lon`,
+		ST_Y(events.coordinates::geometry) AS lat,
+		ST_X(events.coordinates::geometry) AS lon`,
 	).Scopes(filterEventList(filter))
 
 	if err := query.
 		Scopes(Paginate(events, &pagination, query)).
+		Order("created_at DESC").
 		Preload("Profile.User").
 		Preload("Categories.Category").
-		Preload("Status").
 		Find(&events).Error; err != nil {
 		return nil, err
 	}
@@ -202,7 +202,6 @@ func (r *EventsRepository) FindActiveEvents(filter *dto.EventFilter, pagination 
 		Scopes(Paginate(events, &pagination, query)).
 		Preload("Profile.User").
 		Preload("Categories.Category").
-		Preload("Status").
 		Find(&events).Error; err != nil {
 		return nil, err
 	}
@@ -244,7 +243,6 @@ func (r *EventsRepository) FindNearestEvents(lat, lon float64, pagination model.
 		Scopes(Paginate(events, &pagination, query)).
 		Preload("Profile.User").
 		Preload("Categories.Category").
-		Preload("Status").
 		Order("distance ASC").
 		Find(&events).Error; err != nil {
 		return nil, err
@@ -275,7 +273,6 @@ func (r *EventsRepository) FindByProfileID(filter *dto.EventFilter, pagination m
 		Scopes(Paginate(events, &pagination, query)).
 		Preload("Profile.User").
 		Preload("Categories.Category").
-		Preload("Status").
 		Find(&events).Error; err != nil {
 		return nil, err
 	}
@@ -304,7 +301,6 @@ func (r *EventsRepository) FindByID(id string) (*model.Events, error) {
 		Where("id = ?", id).
 		Preload("Profile.User").
 		Preload("Categories.Category").
-		Preload("Status").
 		First(&event).Error; err != nil {
 		return nil, err
 	}
@@ -322,7 +318,6 @@ func (r *EventsRepository) FindBySlug(slug string, pagination model.Pagination) 
 		Scopes(Paginate(events, &pagination, query)).
 		Preload("Profile.User").
 		Preload("Categories.Category").
-		Preload("Status").
 		Find(&events).Error; err != nil {
 		return nil, errors.New("event not found")
 	}
@@ -364,7 +359,7 @@ func (r *EventsRepository) Update(event *model.Events, categories []*model.Categ
 		"coordinates":    event.Coordinates,
 		"start_time":     event.StartTime,
 		"end_time":       event.EndTime,
-		"status_id":      event.StatusID,
+		"status":         event.Status,
 	}
 
 	if err := tx.Model(&model.Events{ID: event.ID}).Updates(updateMap).Error; err != nil {
@@ -414,17 +409,74 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 		}
 
 		if filter.ProfileID != nil {
-			db = db.Where("profile_id = ?", filter.ProfileID)
+			db = db.Where("events.profile_id = ?", filter.ProfileID)
 		}
 
-		if filter.Status != nil {
-			db = db.Where("status_id = ?", helper.GetEventStatusID(*filter.Status))
+		if filter.Search != nil {
+			search := "%" + strings.ToLower(*filter.Search) + "%"
+
+			db = db.Joins("JOIN organizer_profiles ON organizer_profiles.id = events.profile_id").
+				Where(`
+			(
+				LOWER(organizer_profiles.name) LIKE ?
+				OR LOWER(organizer_profiles.email) LIKE ?
+				OR LOWER(events.name) LIKE ?
+			)
+		`,
+					search,
+					search,
+					search,
+				)
+		}
+
+		if filter.GetUpdate != nil && *filter.GetUpdate {
+			db = db.Joins(`
+				JOIN event_updates
+				ON event_updates.event_id = events.id
+				AND event_updates.deleted_at IS NULL
+			`).Where(`
+				event_updates.status = ?
+			`, *filter.Status)
+		}
+
+		if filter.Sort != nil {
+			db = db.Order(fmt.Sprintf("events.created_at %s", *filter.Sort))
 		} else {
-			db = db.Where("status_id = ?", int64(model.Active))
+			db = db.Order("events.created_at DESC")
+		}
+
+		if filter.Date != nil {
+			switch helper.StringValue(filter.Date) {
+			case "week":
+				db = db.Where(
+					"events.created_at >= ?",
+					time.Now().AddDate(0, 0, -7),
+				)
+			case "month":
+				db = db.Where(
+					"events.created_at >= ?",
+					time.Now().AddDate(0, -1, 0),
+				)
+			case "year":
+				db = db.Where(
+					"events.created_at >= ?",
+					time.Now().AddDate(-1, 0, 0),
+				)
+			}
+		}
+
+		if filter.GetUpdate != nil && *filter.GetUpdate {
+			if filter.Status != nil {
+				db = db.Where("event_updates.status = ?", *filter.Status)
+			}
+		} else if filter.Status != nil {
+			db = db.Where("events.status = ?", *filter.Status)
+		} else {
+			db = db.Where("events.status = ?", model.Active)
 		}
 
 		if filter.Title != nil {
-			db = db.Where("LOWER(slug) LIKE LOWER(?)", "%"+*filter.Title+"%")
+			db = db.Where("LOWER(events.slug) LIKE LOWER(?)", "%"+*filter.Title+"%")
 		}
 
 		if filter.Location != nil {
@@ -439,12 +491,14 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 		}
 
 		if filter.Start != nil {
-			db = db.Where("start_time >= ?", filter.Start)
+			db = db.Where("events.start_time >= ?", filter.Start)
 		}
 
 		if filter.End != nil {
-			db = db.Where("start_time < ?", filter.End)
+			db = db.Where("events.start_time < ?", filter.End)
 		}
+
+		db = db.Group("events.id, events.created_at, events.name, events.start_time")
 
 		return db
 	}
@@ -495,7 +549,7 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 				Name:        event.Name,
 				Categories:  categories,
 				Slug:        event.Slug,
-				Status:      event.Status.Status,
+				Status:      event.Status,
 				Description: event.Description,
 			},
 			EventAddress: dto.EventAddress{

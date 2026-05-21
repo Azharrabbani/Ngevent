@@ -63,8 +63,12 @@ type RouteResp struct {
 
 type EventFilterReq struct {
 	Title       string `json:"title" query:"title"`
+	Search      string `json:"search" query:"search"` // global search
+	Sort        string `json:"sort" query:"sort"`
+	Date        string `json:"date" query:"date"`
 	Category    []int  `json:"category" query:"category"`
 	Status      string `json:"status" query:"status"`
+	GetUpdate   *bool  `json:"get_update" query:"get_update"`
 	WithDeleted bool   `json:"with_deleted" query:"with_deleted"`
 	StartTime   int64  `json:"start_time" query:"start_time"`
 	Location    string `json:"location" query:"location"`
@@ -73,6 +77,10 @@ type EventFilterReq struct {
 type EventFilter struct {
 	ProfileID   *string    `json:"profile_id"`
 	Title       *string    `json:"title" query:"title"`
+	Search      *string    `json:"search" query:"search"` // global search
+	GetUpdate   *bool      `json:"get_update"`
+	Sort        *string    `json:"sort"`
+	Date        *string    `json:"date"`
 	Category    []int      `json:"category" query:"category"`
 	Status      *string    `json:"status" query:"status"`
 	WithDeleted *bool      `json:"with_deleted" query:"with_deleted"`
@@ -191,7 +199,7 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 			Name:        req.Event.Name,
 			Categories:  req.EventCategories,
 			Slug:        req.Event.Slug,
-			Status:      req.Event.Status.Status,
+			Status:      req.Event.Status,
 			Description: req.Event.Description,
 		},
 		EventAddress: EventAddress{

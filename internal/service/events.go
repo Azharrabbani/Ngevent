@@ -115,7 +115,7 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 		Banner:        eventBanner,
 		Name:          req.Name,
 		Slug:          utils.CreateSlug(req.Name),
-		StatusID:      helper.GetEventStatusID(status),
+		Status:        status,
 		Description:   req.Description,
 		Address:       *location.Address,
 		City:          *location.City,
@@ -137,7 +137,7 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 
 	// Email the admins
 	// Only if the organizer decide to immediately up the event
-	if event.StatusID == int64(model.Pending) {
+	if event.Status == string(model.Pending) {
 		admins, err := s.UserRepo.FindByRole(string(model.Admin))
 		if err != nil {
 			log.Println("[ERROR] admin data not found")
@@ -177,11 +177,11 @@ func (s *EventService) ReviewEvent(req *dto.ReviewEventReq) error {
 		return errors.New("event not found")
 	}
 
-	if event.StatusID != int64(model.Pending) && event.StatusID != int64(model.Rejected) {
-		return errors.New(fmt.Sprintf("event status is %s", event.Status.Status))
+	if event.Status != string(model.Pending) && event.Status != string(model.Rejected) {
+		return errors.New(fmt.Sprintf("event status is %s", event.Status))
 	}
 
-	event.StatusID = helper.GetEventStatusID(req.Status)
+	event.Status = req.Status
 
 	if err := s.EventRepo.ReviewEvent(event); err != nil {
 		return err
@@ -189,7 +189,6 @@ func (s *EventService) ReviewEvent(req *dto.ReviewEventReq) error {
 
 	// Invalidate cache after update
 	utils.InvalidateCache(s.rdb, eventCache)
-	// s.InvalidateEventCache()
 
 	// Email the EO
 	organizer, err := s.ProfileRepo.FindByID(event.ProfileID)
@@ -300,6 +299,17 @@ func (s *EventService) GetEventByID(id string, userLat, userLon float64) (*dto.E
 		return nil, errors.New("organizer not found")
 	}
 
+	user, err := s.UserRepo.FindByID(organizer.UserID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	// Only profile that have the event can access on the organizer dashboard
+	// and also admin can access the event, check if the organizer profile id is equal to the event profile id
+	if organizer.ID != event.ProfileID && helper.StringValue(user.Role) != string(model.Admin) {
+		return nil, errors.New("unauthorized access to event")
+	}
+
 	organizer.PhotoProfile = helper.StrPointerIfNotEmpty(
 		func() string {
 			if organizer.PhotoProfile == nil {
@@ -408,7 +418,7 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 		return errors.New("event not found")
 	}
 
-	originalStatus := event.StatusID
+	originalStatus := event.Status
 
 	// Validate the user
 	if !helper.IsAuthorized(event.ProfileID, profile.ID) {
@@ -416,21 +426,19 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	}
 
 	// Event with status pending cannot be updated
-	if event.StatusID == int64(model.Pending) {
-		return errors.New(fmt.Sprintf("event status is %s", event.Status.Status))
+	if event.Status == string(model.Pending) {
+		return errors.New(fmt.Sprintf("event status is %s", event.Status))
 	}
-
-	reqStatus := helper.GetEventStatusID(req.Status)
 
 	// If event status already active
 	// The organizer can't update it to draft
-	if event.StatusID == int64(model.Active) && reqStatus == int64(model.Draft) {
-		return errors.New(fmt.Sprintf("An active event cannot be reverted to %s status", reqStatus))
+	if event.Status == string(model.Active) && req.Status == string(model.Draft) {
+		return errors.New(fmt.Sprintf("An active event cannot be reverted to %s status", req.Status))
 	}
 
 	// Check if its critical changed
 	// It only happen if the event already approve by the admin
-	if event.StatusID == int64(model.Active) {
+	if event.Status == string(model.Active) {
 		if err := s.CreateUpdateEvent(banner, event, req); err != nil {
 			return err
 		}
@@ -478,7 +486,13 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 
 	// Save events
 	if req.Status != "" {
-		event.StatusID = reqStatus
+		event.Status = req.Status
+	}
+
+	// if the event owner decide to publish draft event
+	// Check the banner is uploaded or not
+	if event.Status == string(model.Pending) && banner == nil {
+		return errors.New("banner is required")
 	}
 
 	// If banner changed
@@ -496,6 +510,13 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 		if oldBanner != nil {
 			os.Remove(*oldBanner)
 		}
+	} else {
+		_, fileName, err := helper.SaveToLocal(banner, eventBannerPath)
+		if err != nil {
+			log.Printf("[ERROR] failed to save banner %v\n", err)
+			return err
+		}
+		event.Banner = &fileName
 	}
 
 	event.Name = req.Name
@@ -518,14 +539,14 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 
 	// If organizer decide to up the event
 	// Notify the admins
-	if event.StatusID == int64(model.Pending) {
+	if event.Status == string(model.Pending) {
 		admins, err := s.UserRepo.FindByRole(string(model.Admin))
 		if err != nil {
 			log.Println("[ERROR] admin data not found")
 		}
 
 		statusStr := string(model.Update)
-		if originalStatus == int64(model.Draft) {
+		if originalStatus == string(model.Draft) {
 			statusStr = string(model.Create)
 		}
 
@@ -565,8 +586,8 @@ func (s *EventService) CancelEvent(id, userID string) error {
 	}
 
 	// Only event with status active can be canceled
-	if event.StatusID != int64(model.Active) {
-		return errors.New(fmt.Sprintf("event status is %s", event.Status.Status))
+	if event.Status != string(model.Active) {
+		return errors.New(fmt.Sprintf("event status is %s", event.Status))
 	}
 
 	// Validate cancelation
@@ -598,7 +619,7 @@ func (s *EventService) DeleteEvent(id, userID string) error {
 	}
 
 	// Only delete event with status draft
-	if event.StatusID == int64(model.Draft) {
+	if event.Status == string(model.Draft) {
 		return s.EventRepo.Delete(id)
 	}
 
@@ -644,7 +665,7 @@ func (s *EventService) CreateUpdateEvent(banner *multipart.FileHeader, event *mo
 			Name:          req.Name,
 			Banner:        &fileName,
 			Slug:          utils.CreateSlug(req.Name),
-			StatusID:      int64(model.Pending),
+			Status:        string(model.Pending),
 			Description:   req.Description,
 			Address:       *location.Address,
 			City:          *location.City,
@@ -675,7 +696,7 @@ func (s *EventService) CreateUpdateEvent(banner *multipart.FileHeader, event *mo
 			Name:          req.Name,
 			Banner:        &bannerFile,
 			Slug:          utils.CreateSlug(req.Name),
-			StatusID:      int64(model.Pending),
+			Status:        string(model.Pending),
 			Description:   req.Description,
 			Address:       *location.Address,
 			City:          *location.City,

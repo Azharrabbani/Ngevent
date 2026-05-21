@@ -22,6 +22,8 @@ import CancelEvent from "../features/events/organizer/views/cancelEvent"
 import DraftEvents from "../features/events/organizer/views/draftEvent"
 import EventFormView from "../features/events/organizer/views/eventFormView"
 import ApproveGuard from "./approveGuard"
+import DoneEventList from "../features/admin/views/doneEventList"
+import RejectedEventList from "../features/admin/views/rejectedEventList"
 
 export default function AppRoutes() {
     return (
@@ -53,8 +55,10 @@ export default function AppRoutes() {
                         <Route path="/admin/dashboard" element={<AdminDashboard />} />
                         <Route path="/admin/organizer-list" element={<OrganizerList />} />
                         <Route path="/admin/attendee-list" element={<AttendeeList />} />
-                        <Route path="/admin/events-active" element={<ActiveEventList />} />
-                        <Route path="/admin/events-pending" element={<PendingEventList />} />
+                        <Route path="/admin/events/active" element={<ActiveEventList />} />
+                        <Route path="/admin/events/pending" element={<PendingEventList />} />
+                        <Route path="/admin/events/done" element={<DoneEventList />} />
+                        <Route path="/admin/events/rejected" element={<RejectedEventList />} />
                     </Route>
                 </Route>
 

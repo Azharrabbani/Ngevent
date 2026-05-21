@@ -1,9 +1,9 @@
-import AdminSidebar from "../components/sideBar";
-import EventList from "../components/events/eventList";
 import { useEffect, useState } from "react";
+import EventList from "../components/events/eventList";
+import AdminSidebar from "../components/sideBar";
 import { useGetEvents } from "../../events/hooks/useGetEvents";
 
-export default function ActiveEventList() {
+export default function DoneEventList() {
     const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState<string | undefined>(undefined);
     const [sort, setSort] = useState<string | undefined>("desc");
@@ -11,7 +11,7 @@ export default function ActiveEventList() {
 
 
     const { data, isLoading } = useGetEvents({
-        status: "active",
+        status: "done",
         search: search,
         sort: sort,
         date: filter,
@@ -30,12 +30,11 @@ export default function ActiveEventList() {
 
         return () => clearTimeout(delay);
     }, [search]);
-
     return (
         <AdminSidebar>
             <>
                 <EventList
-                    status="active"
+                    status="done"
                     data={data}
                     isLoading={isLoading}
                     reviewEvent={false}

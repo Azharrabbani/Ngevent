@@ -96,7 +96,7 @@ func ToEventUpdateResp(req *UpdatedEventRespReq) (*EventUpdatesResp, error) {
 		EventTitle: req.UpdatedEvent.Name,
 		UpdatedDetails: UpdatedDetails{
 			Banner:      *req.UpdatedEvent.Banner,
-			Status:      req.UpdatedEvent.Status.Status,
+			Status:      req.UpdatedEvent.Status,
 			Description: req.UpdatedEvent.Description,
 			StartTime:   req.StartTime,
 			EndTime:     req.EndTime,

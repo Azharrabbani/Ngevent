@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
-import { eventsKeys } from "../../../../utils/cacheKey"
-import { GetEventByID } from "../api/eventOrganizerApi"
+import { eventsKeys } from "../../../utils/cacheKey"
+import { GetEventByID } from "../api/eventsApi";
 
 export const useGetEventByID = (id: string) => {
     return useQuery({

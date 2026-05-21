@@ -1,6 +1,10 @@
 import type { PaginationParams } from "../../../types/apiRequest";
 
 export interface FilterEventsRequest {
+    search?: string;
+    sort?: string;
+    date?: string;
+    get_update?: boolean;
     title?: string;
     category?: number[];
     status?: string;

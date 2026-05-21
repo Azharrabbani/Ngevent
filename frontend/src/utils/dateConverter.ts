@@ -6,12 +6,12 @@ export const convertUnix = (unix: number): string => {
     const year = date.getFullYear();
 
     date = `${month} ${day} ${year}`;
-    
+
     return date;
 }
 
 export const converDate = (date: Date | null): number => {
-     if (!date) return 0;
+    if (!date) return 0;
 
     const utc = Date.UTC(
         date.getFullYear(),
@@ -20,4 +20,15 @@ export const converDate = (date: Date | null): number => {
     );
 
     return Math.floor(utc / 1000);
+}
+
+export const toDateString = (date: Date): string => {
+    const dateStr = date.toLocaleDateString("id-ID", {
+        timeZone: "Asia/Jakarta",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+
+    return dateStr
 }

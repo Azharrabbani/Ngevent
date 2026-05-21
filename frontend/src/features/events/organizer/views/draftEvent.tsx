@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useGetCurrentOrganizerProfile } from "../../../profile/hooks/organizer/useGetCurrentOrganizerProfile";
-import { useGetEvents } from "../hooks/useGetEvents";
+import { useGetOrganizerEvents } from "../../hooks/useGetOrganizerEvents";
 import { converDate } from "../../../../utils/dateConverter";
 import { defaultPagination } from "../../../../utils/pagination";
 import { useListCategories } from "../../../categories/hooks/useListCategories";
@@ -18,7 +18,7 @@ export default function DraftEvents() {
 
     const organizer = useGetCurrentOrganizerProfile();
 
-    const { data, isLoading } = useGetEvents({
+    const { data, isLoading } = useGetOrganizerEvents({
         title: event,
         location: location,
         category: selectedCategories.length ? selectedCategories : undefined,

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { CreateEventApi } from "../api/eventOrganizerApi";
 import toast from "react-hot-toast";
-import { eventsKeys } from "../../../../utils/cacheKey";
+import { CreateEventApi } from "../api/eventsApi";
+import { eventsKeys } from "../../../utils/cacheKey";
 
 export const useCreateEvent = () => {
     const queryClient = useQueryClient();

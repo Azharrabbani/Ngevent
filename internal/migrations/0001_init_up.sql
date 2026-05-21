@@ -4,8 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "postgis";
 CREATE TYPE "public"."role" AS ENUM ('user', 'admin', 'event organizer');
 CREATE TYPE "public"."type_verification" AS ENUM ('verified_email', 'reset_password');
 CREATE TYPE "public"."organizer_profile_status" AS ENUM ('pending', 'approved', 'rejected');
-CREATE TYPE "public"."event_status" AS ENUM ('draft', 'active', 'pending', 'reject', 'done', 'cancel');
-CREATE TYPE "public"."event_update_status" AS ENUM ('pending', 'approved', 'rejected', 'canceled');
+CREATE TYPE "public"."event_status" AS ENUM ('draft', 'active', 'approved', 'pending', 'rejected', 'done', 'cancelled');
 CREATE TYPE "public"."ticket_type" AS ENUM ('regular', 'premium', 'vip');
 
 SET TIME ZONE 'UTC';
@@ -141,7 +140,7 @@ CREATE TABLE "public"."events"(
 	"banner" TEXT,
 	"name" VARCHAR(255) NOT NULL,
 	"slug" VARCHAR(255) NOT NULL,
-	"status_id" INT NOT NULL,
+	"status" event_status NOT NULL DEFAULT 'pending',
 	"description" TEXT NOT NULL,
 	"address" TEXT NOT NULL,
 	"city" VARCHAR(150) NOT NULL,
@@ -154,8 +153,7 @@ CREATE TABLE "public"."events"(
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"deleted_at" TIMESTAMPTZ DEFAULT NULL,
 	CONSTRAINT "events_pk" PRIMARY KEY("id"),
-	CONSTRAINT "fk_eo_profiles_id" FOREIGN KEY ("profile_id") REFERENCES "public"."organizer_profiles" ("id") ON DELETE CASCADE,
-	CONSTRAINT "fk_event_status_id" FOREIGN KEY ("status_id") REFERENCES "public"."events_statuses" ("id") ON DELETE CASCADE
+	CONSTRAINT "fk_eo_profiles_id" FOREIGN KEY ("profile_id") REFERENCES "public"."organizer_profiles" ("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."tickets"(
@@ -190,7 +188,7 @@ CREATE TABLE "public"."event_updates"(
 	"name" VARCHAR(255) NOT NULL,
 	"slug" VARCHAR(255) NOT NULL,
 	"banner" TEXT,
-	"status_id" integer NOT NULL,
+	"status" event_status NOT NULL DEFAULT 'pending',
 	"description" TEXT NOT NULL,
 	"address" TEXT NOT NULL,
 	"city" VARCHAR(150) NOT NULL,
@@ -204,7 +202,6 @@ CREATE TABLE "public"."event_updates"(
 	"deleted_at" TIMESTAMPTZ NULL,
 	CONSTRAINT "event_updates_pk" PRIMARY KEY("id"),
 	CONSTRAINT "fk_event_id" FOREIGN KEY ("event_id") REFERENCES "public"."events" ("id") ON DELETE CASCADE
-	CONSTRAINT "fk_status_id" FOREIGN KEY ("status_id") REFERENCES "public"."events_statuses" ("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."event_update_tickets"(

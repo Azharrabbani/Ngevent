@@ -131,12 +131,16 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 	}
 
 	filter := &dto.EventFilter{
-		Title:    helper.StrPointerIfNotEmpty(title),
-		Category: filterReq.Category,
-		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:    helper.TimeToPointer(start),
-		End:      helper.TimeToPointer(end),
-		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
+		Title:     helper.StrPointerIfNotEmpty(title),
+		Search:    helper.StrPointerIfNotEmpty(filterReq.Search),
+		Sort:      helper.StrPointerIfNotEmpty(filterReq.Sort),
+		Date:      helper.StrPointerIfNotEmpty(filterReq.Date),
+		GetUpdate: filterReq.GetUpdate,
+		Category:  filterReq.Category,
+		Status:    helper.StrPointerIfNotEmpty(filterReq.Status),
+		Start:     helper.TimeToPointer(start),
+		End:       helper.TimeToPointer(end),
+		Location:  helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 
 	pagination := new(model.Pagination)
@@ -150,7 +154,6 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 	}
 
 	page := &model.Pagination{
-		Sort:  pagination.Sort,
 		Limit: pagination.Limit,
 		Page:  pagination.Page,
 	}

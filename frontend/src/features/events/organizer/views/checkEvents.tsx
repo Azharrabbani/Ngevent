@@ -2,7 +2,7 @@ import Sidebar from "../components/sidebar";
 import Header from "../components/header";
 import Pagination from "../../../../components/pagination";
 import { useEffect, useState } from "react";
-import { useGetEvents } from "../hooks/useGetEvents";
+import { useGetOrganizerEvents } from "../../hooks/useGetOrganizerEvents";
 import { defaultPagination } from "../../../../utils/pagination";
 import { useGetCurrentOrganizerProfile } from "../../../profile/hooks/organizer/useGetCurrentOrganizerProfile";
 import { converDate } from "../../../../utils/dateConverter";
@@ -19,7 +19,7 @@ export default function CheckEvents() {
 
     const organizer = useGetCurrentOrganizerProfile();
 
-    const { data, isLoading } = useGetEvents({
+    const { data, isLoading } = useGetOrganizerEvents({
         title: event,
         location: location,
         category: selectedCategories.length ? selectedCategories : undefined,

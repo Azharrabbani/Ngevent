@@ -1,25 +1,20 @@
 package model
 
-import "time"
-
-type Status int
-
-const (
-	Draft     Status = 1
-	Pending   Status = 2
-	Active    Status = 3
-	Done      Status = 4
-	Rejected  Status = 5
-	Cancelled Status = 6
+import (
+	"time"
 )
 
-type EventsStatuses struct {
-	ID        int64      `json:"id" gorm:"primaryKey"`
-	Status    string     `json:"name"`
-	CreatedAt time.Time  `json:"created_at" gorm:"default:now()"`
-	UpdatedAt time.Time  `json:"updated_at" gorm:"default:now()"`
-	DeletedAt *time.Time `json:"deleted_at"`
-}
+type Status string
+
+const (
+	Draft     Status = "draft"
+	Pending   Status = "pending"
+	Active    Status = "active"
+	Done      Status = "done"
+	Rejected  Status = "rejected"
+	Cancelled Status = "cancelled"
+	Approved  Status = "approved"
+)
 
 type Events struct {
 	ID            string             `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
@@ -28,7 +23,7 @@ type Events struct {
 	Name          string             `json:"name"`
 	Categories    []*EventCategories `json:"categories" gorm:"foreignKey:EventID"`
 	Slug          string             `json:"slug"`
-	StatusID      int64              `json:"status_id"`
+	Status        string             `json:"status"`
 	Description   string             `json:"description"`
 	Address       string             `json:"address"`
 	City          string             `json:"city"`
@@ -43,7 +38,6 @@ type Events struct {
 	UpdatedAt     time.Time          `json:"updated_at" gorm:"default:now()"`
 	DeletedAt     *time.Time         `json:"deleted_at"`
 	Profile       OrganizerProfiles  `gorm:"foreignKey:ProfileID;references:ID"`
-	Status        EventsStatuses     `gorm:"foreignKey:StatusID;references:ID"`
 }
 
 type EventCategories struct {
@@ -76,7 +70,7 @@ type UpdatedEvents struct {
 	Banner        *string                  `json:"banner"`
 	Categories    []*EventCategoriesUpdate `json:"categories" gorm:"foreignKey:EventUpdateID"`
 	Slug          string                   `json:"slug"`
-	StatusID      int64                    `json:"status_id"`
+	Status        string                   `json:"string"`
 	Description   string                   `json:"description"`
 	Address       string                   `json:"address"`
 	City          string                   `json:"city"`
@@ -91,7 +85,6 @@ type UpdatedEvents struct {
 	UpdatedAt     time.Time                `json:"updated_at" gorm:"default:now()"`
 	DeletedAt     *time.Time               `json:"deleted_at"`
 	Event         Events                   `gorm:"foreignKey:EventID"`
-	Status        EventsStatuses           `gorm:"foreignKey:StatusID"`
 }
 
 type EventCategoriesUpdate struct {
@@ -114,10 +107,6 @@ type TicketsUpdate struct {
 	CreatedAt     time.Time `json:"created_at" gorm:"default:now()"`
 	UpdatedAt     time.Time `json:"updated_at" gorm:"default:now()"`
 	DeletedAt     time.Time `json:"deleted_at"`
-}
-
-func (EventsStatuses) TableName() string {
-	return "events_statuses"
 }
 
 func (Events) TableName() string {

@@ -183,7 +183,7 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		return errors.New("update event not found")
 	}
 
-	if updatedEvent.StatusID != int64(model.Pending) {
+	if updatedEvent.Status != string(model.Pending) {
 		return errors.New(fmt.Sprintf("Updated already %s", updatedEvent.Status))
 	}
 
@@ -192,7 +192,7 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		return errors.New("event not found")
 	}
 
-	updatedEvent.StatusID = helper.GetEventStatusID(req.Status)
+	updatedEvent.Status = req.Status
 
 	// Review the update
 	if err := updatedX.Updates(updatedEvent).Error; err != nil {
@@ -248,7 +248,7 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		To:        organizer.User.Email,
 		EOName:    organizer.Name,
 		EventName: updatedEvent.Name,
-		Status:    updatedEvent.Status.Status,
+		Status:    updatedEvent.Status,
 	}
 
 	if err := s.EmailTaskPublisher.Enqueue(model.TypeEventUpdateNotification, payload); err != nil {

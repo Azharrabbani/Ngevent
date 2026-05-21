@@ -1,13 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { CancelEventApi } from "../api/eventOrganizerApi"
 import toast from "react-hot-toast"
-import { eventsKeys } from "../../../../utils/cacheKey"
+import { DeleteEventApi } from "../api/eventsApi";
+import { eventsKeys } from "../../../utils/cacheKey";
 
-export const useCancelEvent = () => {
+export const useDeleteEvent = () => {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: (id: string) => CancelEventApi(id),
+        mutationFn: (id: string) => DeleteEventApi(id),
         onSuccess: (success, variable) => {
             toast.success(success.data)
             // Invalidate list queries
@@ -24,7 +24,7 @@ export const useCancelEvent = () => {
             });
         },
         onError: (err: any) => {
-            toast.error(err.response?.data?.error || "Failed to cancel event")
+            toast.error(err.response?.data?.error || "Failed to delete event")
         }
     })
 }

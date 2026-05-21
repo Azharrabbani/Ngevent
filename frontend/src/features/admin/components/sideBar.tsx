@@ -15,7 +15,7 @@ interface Props {
     children: React.ReactElement;
 };
 
-export default function AdminSidebar({children}: Props) {
+export default function AdminSidebar({ children }: Props) {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [activeMenu, setActiveMenu] = useState<number | null>(null);
@@ -33,16 +33,16 @@ export default function AdminSidebar({children}: Props) {
             navigate("/login");
         } catch (err) {
             if (isError) {
-                return;    
+                return;
             }
         }
     }
 
     const menus = [
-        { 
-            title: "Home", 
-            icon: <IoHomeOutline />, 
-            path: "/admin/dashboard" 
+        {
+            title: "Home",
+            icon: <IoHomeOutline />,
+            path: "/admin/dashboard"
         },
         {
             title: "Users",
@@ -50,7 +50,7 @@ export default function AdminSidebar({children}: Props) {
             subMenu: true,
             subMenuItems: [
                 { title: "Attendee", path: "/admin/attendee-list" },
-                { title: "Organizer", path: "/admin/organizer-list"}
+                { title: "Organizer", path: "/admin/organizer-list" }
             ],
         },
         {
@@ -58,12 +58,14 @@ export default function AdminSidebar({children}: Props) {
             icon: <RiCalendarEventFill />,
             subMenu: true,
             subMenuItems: [
-                { title: "Active", path: "/admin/events-active" },
-                { title: "Pending", path: "/admin/events-pending"}
+                { title: "Active", path: "/admin/events/active" },
+                { title: "Pending", path: "/admin/events/pending" },
+                { title: "Done", path: "/admin/events/done" },
+                { title: "Rejected", path: "/admin/events/rejected" }
             ]
         },
     ];
-    
+
     useEffect(() => {
         menus.forEach((menu, index) => {
             if (menu.subMenu) {
@@ -75,7 +77,7 @@ export default function AdminSidebar({children}: Props) {
             }
         });
     }, [location.pathname]);
-    
+
     const logoutMenu = { title: "Logout", icon: <CgLogOut /> };
 
     return (
@@ -86,14 +88,14 @@ export default function AdminSidebar({children}: Props) {
                     onClick={() => setIsMobileOpen(true)}
                 />
             </div>
-    
+
             {isMobileOpen && (
                 <div
-                    className="fixed inset-0 bg-black/40 z-40 md:hidden"
+                    className="fixed inset-0 bg-black/40 z-40 lg:hidden"
                     onClick={() => setIsMobileOpen(false)}
                 />
             )}
-    
+
             <div className={`
                 bg-blue-600 h-screen p-5 pt-8 fixed lg:relative z-50 flex flex-col
                 ${isCollapsed ? "md:w-20" : "md:w-72"}
@@ -117,13 +119,13 @@ export default function AdminSidebar({children}: Props) {
                         Ngevent
                     </h1>
                 </div>
-                
+
                 <div className={`flex flex-col items-center justify-center pt-6 gap-2 duration-300 ${isCollapsed && "hidden"}`}>
                     <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center">
-                        <img 
-                        className="w-full h-full object-cover rounded-full"
-                        src="https://static.vecteezy.com/system/resources/thumbnails/012/210/707/small/worker-employee-businessman-avatar-profile-icon-vector.jpg" 
-                        alt="" />
+                        <img
+                            className="w-full h-full object-cover rounded-full"
+                            src="https://static.vecteezy.com/system/resources/thumbnails/012/210/707/small/worker-employee-businessman-avatar-profile-icon-vector.jpg"
+                            alt="" />
                     </div>
                     {!userLoading && user && (
                         <h1 className="text-center text-white">{user.email}</h1>
@@ -182,9 +184,9 @@ export default function AdminSidebar({children}: Props) {
                     </ul>
 
                     <ul className="mb-2">
-                        <li 
-                        className="group relative text-white flex items-center gap-x-4 p-2 cursor-pointer hover:bg-white/50 rounded-md"
-                        onClick={() => handleLogout()}
+                        <li
+                            className="group relative text-white flex items-center gap-x-4 p-2 cursor-pointer hover:bg-white/50 rounded-md"
+                            onClick={() => handleLogout()}
                         >
                             <span className="text-2xl">{logoutMenu.icon}</span>
 

@@ -15,12 +15,13 @@ import type { categoriesResp } from "../../../../categories/types/categoryRespon
 import type { locationResp } from "../../../types/locationResponse";
 import MapPicker from "../../../../../components/map";
 import { useForm } from "react-hook-form";
-import { useCreateEvent } from "../../hooks/useCreateEvent";
-import { useUpdateEvent } from "../../hooks/useUpdateEvent";
 import type { EventsResponse } from "../../../types/organizerResponse";
 import RichTextEditor from "../../../../../components/richTextEditior";
-import { useCancelEvent } from "../../hooks/useCancelEvent";
-import { useDeleteEvent } from "../../hooks/useDeleteEvent";
+import { useCreateEvent } from "../../../hooks/useCreateEvent";
+import { useUpdateEvent } from "../../../hooks/useUpdateEvent";
+import { useCancelEvent } from "../../../hooks/useCancelEvent";
+import { useDeleteEvent } from "../../../hooks/useDeleteEvent";
+
 
 interface Props {
     mode: "create" | "edit";
@@ -88,8 +89,8 @@ export default function EventForm({
 
     const createEventMutation = useCreateEvent();
     const updateEventMutation = useUpdateEvent();
-    const cancelEventMutation = useCancelEvent()
-    const deleteEventMutation = useDeleteEvent()
+    const cancelEventMutation = useCancelEvent();
+    const deleteEventMutation = useDeleteEvent();
 
     const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null)
 

@@ -2,11 +2,11 @@ import EventFormContainer from "../components/form/eventFormContainer";
 import EventForm from "../components/form/eventForm";
 import { useDebounce } from "use-debounce";
 import { useListCategories } from "../../../categories/hooks/useListCategories";
-import {  useState } from "react";
+import { useState } from "react";
 import { useSearchLocation } from "../../hooks/useSearchLocation";
 import type { locationResp } from "../../types/locationResponse";
 import { useParams } from "react-router-dom";
-import { useGetEventByID } from "../hooks/useGetEventByID";
+import { useGetEventByID } from "../../hooks/useGetEventByID";
 
 
 export default function EventFormView() {
