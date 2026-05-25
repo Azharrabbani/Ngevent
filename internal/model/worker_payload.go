@@ -60,4 +60,5 @@ type EventEmailPayload struct {
 	EOEmail   string
 	EventName string
 	Status    string
+	Reason    string
 }

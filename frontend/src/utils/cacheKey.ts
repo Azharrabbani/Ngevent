@@ -30,6 +30,15 @@ export const eventsKeys = {
     me: () => [...eventsKeys.all, "me"] as const,
 };
 
+export const updateEventKeys = {
+    all: ["update-event"] as const,
+    lists: () => [...updateEventKeys.all, "list"] as const,
+    list: (params: any) => [...updateEventKeys.lists(), params] as const,
+    details: () => [...updateEventKeys.all, "detail"] as const,
+    detail: (id: string, status?: string) => [...updateEventKeys.details(), id, status || ""] as const,
+    me: () => [...updateEventKeys.all, "me"] as const,
+};
+
 export const categoriesKeys = {
     all: ["categories"] as const,
     lists: () => [...categoriesKeys.all, "list"] as const,

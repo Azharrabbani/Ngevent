@@ -8,7 +8,28 @@ export interface EventsResponse {
     created_at: number;
     updated_at: number;
     deleted_at?: number;
-} 
+    update_request_id?: string;
+}
+
+export interface UpdateEventResponse {
+    id: string;
+    event_id: string;
+    event_title: string;
+    eo_profile: EoProfile;
+    updated_details: UpdatedDetails;
+    updated_address: EventAddress;
+    updated_categories: EventCategories[];
+    created_at: number;
+    updated_at: number;
+    deleted_at?: number;
+}
+type UpdatedDetails = {
+    banner: string;
+    status: string;
+    description: string;
+    start_time: number;
+    end_time: number;
+};
 
 type EoProfile = {
     id: string;
@@ -22,7 +43,7 @@ type EoProfile = {
 type EventDetail = {
     banner?: string;
     name: string;
-    categories: EventCategories[];  
+    categories: EventCategories[];
     tickets: Tickets[];
     slug: string;
     status: string;

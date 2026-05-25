@@ -1,9 +1,10 @@
-import { BsCalendar4 } from "react-icons/bs";
 import { GoDotFill } from "react-icons/go";
 import { MdOutlineLocationOn } from "react-icons/md";
 import { cn } from "../../../../utils/cn";
 import { useNavigate } from "react-router-dom";
 import { FiClock } from "react-icons/fi";
+import { CalenderIcon } from "../../../../components/icon";
+import { timeRange } from "../../../../utils/timeRange";
 
 
 interface EventCardProps {
@@ -49,7 +50,7 @@ export default function EventCard({
         day: "numeric"
     })
 
-    const timeRange = `${start.toLocaleTimeString("id-ID", { ...options, hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("id-ID", { ...options, hour: "2-digit", minute: "2-digit" })}`
+    const timeRangeVal = timeRange(start, end)
 
     return (
         <div
@@ -81,12 +82,12 @@ export default function EventCard({
                     <span className="flex items-start gap-2">
                         <div className="flex flex-col">
                             <div className="flex items-center gap-2">
-                                <BsCalendar4 className="text-[#424654] font-semibold mt-0.5 shrink-0" />
+                                <CalenderIcon className="text-[#424654] font-semibold mt-0.5 shrink-0" />
                                 <p>{date}</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <FiClock className="text-[#424654] font-semibold mt-0.5 shrink-0" />
-                                <p>{timeRange} WIB</p>
+                                <p>{timeRangeVal} WIB</p>
                             </div>
                         </div>
                     </span>

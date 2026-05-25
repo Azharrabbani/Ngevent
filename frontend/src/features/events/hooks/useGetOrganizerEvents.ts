@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { eventsKeys } from "../../../utils/cacheKey"
-import type { FilterEventsRequest } from "../types/organizerRequest"
+import type { FilterEventsRequest } from "../types/eventRequest"
 import { GetOrganizerEventsApi } from "../api/eventsApi";
 
 export const useGetOrganizerEvents = (params: FilterEventsRequest) => {

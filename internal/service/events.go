@@ -171,7 +171,6 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 }
 
 func (s *EventService) ReviewEvent(req *dto.ReviewEventReq) error {
-	// Validate the event
 	event, err := s.EventRepo.FindByID(req.ID)
 	if err != nil {
 		return errors.New("event not found")
@@ -181,13 +180,21 @@ func (s *EventService) ReviewEvent(req *dto.ReviewEventReq) error {
 		return errors.New(fmt.Sprintf("event status is %s", event.Status))
 	}
 
+	now := time.Now().UTC()
 	event.Status = req.Status
+	event.ReviewedBy = req.ReviewedBy
+	event.ReviewedAt = &now
+
+	if req.Status == "reject" {
+		event.RejectedReason = req.Reason
+	} else {
+		event.RejectedReason = nil
+	}
 
 	if err := s.EventRepo.ReviewEvent(event); err != nil {
 		return err
 	}
 
-	// Invalidate cache after update
 	utils.InvalidateCache(s.rdb, eventCache)
 
 	// Email the EO
@@ -200,6 +207,7 @@ func (s *EventService) ReviewEvent(req *dto.ReviewEventReq) error {
 		To:        organizer.User.Email,
 		EventName: event.Name,
 		Status:    req.Status,
+		Reason:    helper.StringValue(req.Reason),
 	}
 	if err := s.EmailTaskPublisher.Enqueue(model.TypeEventEOVerification, EOEmailPayload); err != nil {
 		log.Printf("[EMAIL] failed sending email to event organizer %s\n", organizer.User.Email)
@@ -510,13 +518,6 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 		if oldBanner != nil {
 			os.Remove(*oldBanner)
 		}
-	} else {
-		_, fileName, err := helper.SaveToLocal(banner, eventBannerPath)
-		if err != nil {
-			log.Printf("[ERROR] failed to save banner %v\n", err)
-			return err
-		}
-		event.Banner = &fileName
 	}
 
 	event.Name = req.Name

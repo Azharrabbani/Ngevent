@@ -20,7 +20,7 @@ L.Icon.Default.mergeOptions({
 
 export default function MapPicker({ position, selectedLocation }: Props) {
     return (
-        <div className="h-60 z-10 sm:h-72 lg:h-80 w-full rounded-xl overflow-hidden">
+        <div className="relative h-60 sm:h-72 lg:h-80 w-full rounded-xl overflow-hidden">
             <MapContainer
                 center={position}
                 zoom={13}

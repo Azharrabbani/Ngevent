@@ -4,7 +4,6 @@ export interface FilterEventsRequest {
     search?: string;
     sort?: string;
     date?: string;
-    get_update?: boolean;
     title?: string;
     category?: number[];
     status?: string;
@@ -13,3 +12,12 @@ export interface FilterEventsRequest {
     with_deleted?: boolean;
     pagination?: PaginationParams;
 };
+
+export interface FilterUpdatedEventsRequest {
+    title?: string;
+    search?: string;   
+    sort?: string;     
+    date?: string;     
+    status?: string;
+    pagination?: PaginationParams;
+}

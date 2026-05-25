@@ -1,5 +1,5 @@
 import type { PaginatedData } from "../../../../types/apiResponse"
-import type { EventsResponse } from "../../types/organizerResponse"
+import type { EventsResponse } from "../../types/eventResponse"
 import EventCard from "./eventCard";
 
 interface Props {

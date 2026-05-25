@@ -5,6 +5,7 @@ import AdminSidebar from "../components/sideBar";
 import { useNavigate } from "react-router-dom";
 import { useListAttendee } from "../../profile/hooks/attendee/useListAttendee";
 import { useGetEvents } from "../../events/hooks/useGetEvents";
+import { useGetAllUpdatedEvents } from "../../events/hooks/useGetAllUpdatedEvent";
 
 export default function AdminDashboard() {
     const { data: attendees, isLoading: attendessLoading } = useListAttendee({
@@ -19,17 +20,38 @@ export default function AdminDashboard() {
         status: "active",
     })
 
+    const { data: pendingUpdates } = useGetAllUpdatedEvents({
+        status: "pending",
+        pagination: { page: 1, limit: 1 },
+    });
+
     const { data: pendingEvents } = useGetEvents({
         status: "pending",
-    })
+        pagination: { page: 1, limit: 1 },
+    });
+
+    const pendingEventCount = pendingEvents?.total_rows ?? 0;
+    const pendingUpdateCount = pendingUpdates?.total_rows ?? 0;
+    const totalPending = pendingEventCount + pendingUpdateCount
+
 
     const { data: completedEvents } = useGetEvents({
         status: "done",
     })
 
-    const { data: rejectedEvent } = useGetEvents({
+    const { data: rejectedUpdates } = useGetAllUpdatedEvents({
         status: "rejected",
-    })
+        pagination: { page: 1, limit: 1 },
+    });
+
+    const { data: rejectedEvents } = useGetEvents({
+        status: "rejected",
+        pagination: { page: 1, limit: 1 },
+    });
+
+    const rejectedEventCount = rejectedEvents?.total_rows ?? 0;
+    const rejectedUpdateCount = rejectedUpdates?.total_rows ?? 0;
+    const totalRejected = rejectedEventCount + rejectedUpdateCount;
 
     const navigate = useNavigate();
 
@@ -58,7 +80,7 @@ export default function AdminDashboard() {
                         <h1 className="text-lg">Pending Events</h1>
                         <div className="flex items-center justify-between mt-4">
                             <RiCalendarEventFill className="text-4xl" />
-                            <h1 className="text-2xl font-bold">{pendingEvents?.total_rows ?? 0}</h1>
+                            <h1 className="text-2xl font-bold">{totalPending ?? 0}</h1>
                         </div>
                     </div>
 
@@ -80,7 +102,7 @@ export default function AdminDashboard() {
                         <h1 className="text-lg">Rejected Events</h1>
                         <div className="flex items-center justify-between mt-4">
                             <RiCalendarEventFill className="text-4xl" />
-                            <h1 className="text-2xl font-bold">{rejectedEvent?.total_rows ?? 0}</h1>
+                            <h1 className="text-2xl font-bold">{totalRejected ?? 0}</h1>
                         </div>
                     </div>
 

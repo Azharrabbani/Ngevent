@@ -1,7 +1,7 @@
 import Pagination from "../../../../components/pagination";
 import EventTable from "./eventTable";
 import EventCard from "./eventCard";
-import type { EventsResponse } from "../../../events/types/organizerResponse";
+import type { EventsResponse } from "../../../events/types/eventResponse";
 import type { PaginatedData } from "../../../../types/apiResponse";
 import { FiSearch } from "react-icons/fi";
 import { IoFilter } from "react-icons/io5";
@@ -23,7 +23,7 @@ interface Props {
     dateFilter?: string;
     setDateFilter?: React.Dispatch<React.SetStateAction<string | undefined>>;
     getUpdate?: boolean;
-    setGetupdate?: React.Dispatch<React.SetStateAction<boolean | undefined>>;
+    setGetupdate?: (val: boolean | undefined) => void;
 }
 export default function EventList({
     status,
@@ -76,7 +76,7 @@ export default function EventList({
                         <button
                             onClick={() =>
                                 setGetupdate?.(
-                                    getUpdate === true ? undefined : true
+                                    getUpdate === true ? false : true
                                 )
                             }
                             className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${getUpdate === true
@@ -112,6 +112,7 @@ export default function EventList({
 
             {/* Desktop */}
             <EventTable
+                key={`table-${getUpdate ?? "false"}`}
                 status={status}
                 data={data}
                 isLoading={isLoading}
@@ -120,8 +121,8 @@ export default function EventList({
                 setSort={setSort}
             />
 
-            {/* Mobile */}
             <EventCard
+                key={`card-${getUpdate ?? "false"}`}
                 status={status}
                 data={data}
                 isLoading={isLoading}

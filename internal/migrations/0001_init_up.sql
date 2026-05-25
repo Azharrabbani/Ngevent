@@ -118,22 +118,6 @@ CREATE TABLE "public"."categories"(
 	"deleted_at" TIMESTAMPTZ NULL
 );
 
-CREATE TABLE "public"."events_statuses"(
-	"id" SERIAL PRIMARY KEY,
-	"status" VARCHAR(50) NOT NULL,
-	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	"deleted_at" TIMESTAMPTZ NULL
-);
-
-INSERT INTO "public"."events_statuses"("status")
-VALUES('draft'),
-	  ('pending'),
-	  ('active'),
-	  ('done'),
-	  ('rejected'),
-	  ('cancelled');
-
 CREATE TABLE "public"."events"(
 	"id" uuid DEFAULT uuid_generate_v4() NOT NULL,
 	"profile_id" uuid NOT NULL,
@@ -149,6 +133,9 @@ CREATE TABLE "public"."events"(
 	"coordinates" GEOGRAPHY(Point, 4326) NOT NULL,
 	"start_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"end_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"rejected_reason" TEXT,
+	"reviewed_by" uuid REFERENCES "public"."users"("id"),
+	"reviewed_at" TIMESTAMPTZ,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"deleted_at" TIMESTAMPTZ DEFAULT NULL,
@@ -197,6 +184,9 @@ CREATE TABLE "public"."event_updates"(
 	"coordinates" GEOGRAPHY(Point, 4326) NOT NULL,
 	"start_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"end_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"rejected_reason" TEXT,
+	"reviewed_by" uuid REFERENCES "public"."users"("id"),
+	"reviewed_at" TIMESTAMPTZ,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"deleted_at" TIMESTAMPTZ NULL,

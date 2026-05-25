@@ -172,6 +172,7 @@ func (r *EventsRepository) FindAll(filter *dto.EventFilter, pagination model.Pag
 		Order("created_at DESC").
 		Preload("Profile.User").
 		Preload("Categories.Category").
+		Preload("Reviewer").
 		Find(&events).Error; err != nil {
 		return nil, err
 	}
@@ -273,6 +274,7 @@ func (r *EventsRepository) FindByProfileID(filter *dto.EventFilter, pagination m
 		Scopes(Paginate(events, &pagination, query)).
 		Preload("Profile.User").
 		Preload("Categories.Category").
+		Preload("Reviewer").
 		Find(&events).Error; err != nil {
 		return nil, err
 	}
@@ -301,6 +303,7 @@ func (r *EventsRepository) FindByID(id string) (*model.Events, error) {
 		Where("id = ?", id).
 		Preload("Profile.User").
 		Preload("Categories.Category").
+		Preload("Reviewer").
 		First(&event).Error; err != nil {
 		return nil, err
 	}
@@ -318,6 +321,7 @@ func (r *EventsRepository) FindBySlug(slug string, pagination model.Pagination) 
 		Scopes(Paginate(events, &pagination, query)).
 		Preload("Profile.User").
 		Preload("Categories.Category").
+		Preload("Reviewer").
 		Find(&events).Error; err != nil {
 		return nil, errors.New("event not found")
 	}
@@ -429,16 +433,6 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 				)
 		}
 
-		if filter.GetUpdate != nil && *filter.GetUpdate {
-			db = db.Joins(`
-				JOIN event_updates
-				ON event_updates.event_id = events.id
-				AND event_updates.deleted_at IS NULL
-			`).Where(`
-				event_updates.status = ?
-			`, *filter.Status)
-		}
-
 		if filter.Sort != nil {
 			db = db.Order(fmt.Sprintf("events.created_at %s", *filter.Sort))
 		} else {
@@ -465,11 +459,7 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 			}
 		}
 
-		if filter.GetUpdate != nil && *filter.GetUpdate {
-			if filter.Status != nil {
-				db = db.Where("event_updates.status = ?", *filter.Status)
-			}
-		} else if filter.Status != nil {
+		if filter.Status != nil {
 			db = db.Where("events.status = ?", *filter.Status)
 		} else {
 			db = db.Where("events.status = ?", model.Active)
@@ -520,6 +510,14 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 			})
 		}
 
+		var reviewer *dto.Reviewer
+		if event.Reviewer != nil {
+			reviewer = &dto.Reviewer{
+				ID:    event.Reviewer.ID,
+				Email: event.Reviewer.Email,
+			}
+		}
+
 		eventsResp = append(eventsResp, &dto.EventsResp{
 			ID: event.ID,
 			EOProfile: dto.EOProfiles{
@@ -546,11 +544,14 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 						return fmt.Sprintf("http://localhost:8080/api/v1/event/banner/%s", *event.Banner)
 					}(),
 				),
-				Name:        event.Name,
-				Categories:  categories,
-				Slug:        event.Slug,
-				Status:      event.Status,
-				Description: event.Description,
+				Name:           event.Name,
+				Categories:     categories,
+				Slug:           event.Slug,
+				Status:         event.Status,
+				Description:    event.Description,
+				RejectedReason: event.RejectedReason,
+				ReviewedBy:     reviewer,
+				ReviewedAt:     helper.TimePtrToUnix(event.ReviewedAt),
 			},
 			EventAddress: dto.EventAddress{
 				Address:       event.Address,

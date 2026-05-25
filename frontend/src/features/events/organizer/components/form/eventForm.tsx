@@ -15,7 +15,7 @@ import type { categoriesResp } from "../../../../categories/types/categoryRespon
 import type { locationResp } from "../../../types/locationResponse";
 import MapPicker from "../../../../../components/map";
 import { useForm } from "react-hook-form";
-import type { EventsResponse } from "../../../types/organizerResponse";
+import type { EventsResponse } from "../../../types/eventResponse";
 import RichTextEditor from "../../../../../components/richTextEditior";
 import { useCreateEvent } from "../../../hooks/useCreateEvent";
 import { useUpdateEvent } from "../../../hooks/useUpdateEvent";
@@ -363,7 +363,7 @@ export default function EventForm({
 
                 <Button
                     type="button"
-                    onClick={handleSubmit((data) => handleUpdate(eventStatus ?? "active", data))}
+                    onClick={handleSubmit((data) => handleUpdate("pending", data))}
                     disabled={isPending}
                     className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-[#003B95] hover:bg-[#004ec2]"
                 >

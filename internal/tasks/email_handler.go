@@ -103,7 +103,7 @@ func (h *EmailTaskHandler) HandlerEventOrganizerVerification(ctx context.Context
 		return err
 	}
 
-	return utils.OrganizerEventVerification(p.To, p.EOName, p.EventName, p.Status)
+	return utils.OrganizerEventVerification(p.To, p.EOName, p.EventName, p.Status, p.Reason)
 }
 
 func (h *EmailTaskHandler) HandlerUpdateEventOrganizerNotif(ctx context.Context, t *asynq.Task) error {
@@ -112,5 +112,5 @@ func (h *EmailTaskHandler) HandlerUpdateEventOrganizerNotif(ctx context.Context,
 		return err
 	}
 
-	return utils.OrganizerUpdatedEventNotif(p.To, p.EOName, p.EventName, p.Status)
+	return utils.OrganizerUpdatedEventNotif(p.To, p.EOName, p.EventName, p.Status, p.Reason)
 }

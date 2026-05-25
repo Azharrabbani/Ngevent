@@ -56,7 +56,7 @@ func (s *FiberServer) RegisterFiberRoutes() {
 			"/api/v1/organizer/nib",
 			"/api/v1/attendee/photo",
 			"/api/v1/event/banner",
-			"/api/v1/updated-event/updated-banner",
+			"/api/v1/updated-event/banner",
 			"/api/v1/staging-organizer/npwp",
 			"/api/v1/staging-organizer/nib",
 		}
@@ -242,10 +242,10 @@ func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 		event.Get("/", middleware.AuthorizeRoles(string(model.Attendee), string(model.Admin)), h.GetEvents)
 		event.Get("/nearest", middleware.AuthorizeRoles(string(model.Attendee)), h.FindNearestEvents)
 		event.Get("/organizer-events", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.GetEventsByProfileID)
-		event.Put("/review", middleware.AuthorizeRoles(string(model.Admin)), h.ReviewEvent)
+		event.Get("/route/:id", routeLimiter, h.GetEventRoute)
+		event.Put("/review/:id", middleware.AuthorizeRoles(string(model.Admin)), h.ReviewEvent)
 		event.Put("/cancel/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.CancelEvent)
 		event.Get("/:id", h.GetEventByID)
-		event.Get("/route/:id", routeLimiter, h.GetEventRoute)
 		event.Put("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.UpdateEvent)
 		event.Delete("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.DeleteEvent)
 	}
@@ -253,13 +253,13 @@ func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 
 func (s *FiberServer) RegisterUpdatedEventRoutes(h *handler.UpdatedEventHandler) {
 	updateEvent := v1.Group("/updated-event")
-	updateEvent.Static("/updated-banner", "./storage/updated_event/banner")
+	updateEvent.Static("/banner", "./storage/updated/banner")
 	updateEvent.Use(middleware.AuthMiddleware())
 	{
 		updateEvent.Get("/", middleware.AuthorizeRoles(string(model.Admin)), h.ListAllUpdated)
-		updateEvent.Get("/:id", middleware.AuthorizeRoles(string(model.Admin)), h.GetUpdatedByID)
+		updateEvent.Put("/review/:id", middleware.AuthorizeRoles(string(model.Admin)), h.ReviewUpdate)
 		updateEvent.Get("/update-list/:event_id", middleware.AuthorizeRoles(string(model.Admin)), h.ListAllUpdatedByEventID)
-		updateEvent.Put("/", middleware.AuthorizeRoles(string(model.Admin)), h.ReviewUpdate)
+		updateEvent.Get("/:event_id", middleware.AuthorizeRoles(string(model.Admin)), h.GetUpdatedByEventID)
 		updateEvent.Put("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.CancelUpdate)
 	}
 

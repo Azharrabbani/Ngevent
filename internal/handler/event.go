@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"mime/multipart"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/service"
@@ -135,7 +136,6 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 		Search:    helper.StrPointerIfNotEmpty(filterReq.Search),
 		Sort:      helper.StrPointerIfNotEmpty(filterReq.Sort),
 		Date:      helper.StrPointerIfNotEmpty(filterReq.Date),
-		GetUpdate: filterReq.GetUpdate,
 		Category:  filterReq.Category,
 		Status:    helper.StrPointerIfNotEmpty(filterReq.Status),
 		Start:     helper.TimeToPointer(start),
@@ -389,40 +389,41 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 }
 
 func (h *EventHandler) ReviewEvent(c *fiber.Ctx) error {
-	var req *dto.ReviewEventReq
+	id := c.Params("id")
+	adminID := c.Locals("user_id").(string)
+
+	var req dto.ReviewEventReq
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
+			fiber.StatusBadRequest, "failed", "error", err.Error(),
 		))
 	}
+
+	req.ID = id
 
 	if err := h.Validate.Struct(req); err != nil {
 		msg := utils.GetValidationError(err)
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"validation-error",
-			msg,
+			fiber.StatusBadRequest, "failed", "validation-error", msg,
 		))
 	}
 
-	if err := h.EventService.ReviewEvent(req); err != nil {
+	if err := req.ValidateReason(); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
+			fiber.StatusBadRequest, "failed", "validation-error", err.Error(),
+		))
+	}
+
+	req.ReviewedBy = &adminID
+
+	if err := h.EventService.ReviewEvent(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest, "failed", "error", err.Error(),
 		))
 	}
 
 	return c.Status(fiber.StatusOK).JSON(dto.Success(
-		fiber.StatusOK,
-		"success",
-		"success",
-		"success review event",
+		fiber.StatusOK, "success", "success", "success review event",
 	))
 }
 
@@ -455,7 +456,9 @@ func (h *EventHandler) UpdateEvent(c *fiber.Ctx) error {
 	req.ID = &eventID
 	req.UserID = userID
 
-	banner, _ := c.FormFile("banner")
+	var banner *multipart.FileHeader
+
+	banner, _ = c.FormFile("banner")
 	if banner != nil {
 		// Check pdf size
 		if banner.Size > (5 * 1024 * 1024) {

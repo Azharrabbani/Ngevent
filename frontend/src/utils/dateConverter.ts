@@ -22,11 +22,11 @@ export const converDate = (date: Date | null): number => {
     return Math.floor(utc / 1000);
 }
 
-export const toDateString = (date: Date): string => {
+export const toDateString = (date: Date, month: "long" | "short" | "2-digit" | "numeric"): string => {
     const dateStr = date.toLocaleDateString("id-ID", {
         timeZone: "Asia/Jakarta",
         year: "numeric",
-        month: "short",
+        month: month,
         day: "numeric",
     });
 

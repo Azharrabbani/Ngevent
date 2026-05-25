@@ -105,8 +105,6 @@ func VerifyEmailMail(otp, email string) error {
 	m.SetHeader("To", email)
 	m.SetHeader("Subject", "Verifify Email")
 
-	
-
 	m.SetBody("text/html", fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -884,7 +882,7 @@ func OrganizerEventNotification(email, organizerName, eventName string) error {
 }
 
 // EO verification notification
-func OrganizerEventVerification(email, organizerName, eventName, status string) error {
+func OrganizerEventVerification(email, organizerName, eventName, status, reason string) error {
 	m := gomail.NewMessage()
 
 	var subject string
@@ -901,7 +899,7 @@ func OrganizerEventVerification(email, organizerName, eventName, status string) 
 		boxColor = "#ECFDF5"
 		message = "Congratulations! Your event has been approved by our admin team and is now live on Ngevent."
 
-	case "reject":
+	case "rejected":
 		subject = "Your Event Has Been Rejected"
 		title = "Event Rejected"
 		color = "#EF4444"
@@ -916,77 +914,93 @@ func OrganizerEventVerification(email, organizerName, eventName, status string) 
 		message = "Your event status has been updated."
 	}
 
+	reasonBlock := ""
+	if status == "rejected" && reason != "" {
+		reasonBlock = fmt.Sprintf(`
+            <div style="background:#FEF2F2; border-left:4px solid #EF4444; padding:15px; border-radius:0 6px 6px 0; margin:20px 0;">
+                <p style="margin:0 0 6px 0; font-size:13px; font-weight:bold; color:#991B1B; text-transform:uppercase; letter-spacing:0.05em;">
+                    Reason for Rejection
+                </p>
+                <p style="margin:0; font-size:15px; color:#7F1D1D; line-height:1.6;">
+                    %s
+                </p>
+            </div>
+        `, reason)
+	}
+
 	m.SetHeader("From", "ngevent@gmail.com")
 	m.SetHeader("To", email)
 	m.SetHeader("Subject", subject)
 
 	m.SetBody("text/html", fmt.Sprintf(`
-	<!DOCTYPE html>
-	<html>
-	<head>
-		<meta charset="UTF-8">
-		<title>%s</title>
-	</head>
-	<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
-		<table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
-			<tr>
-				<td align="center">
-					<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
-						
-						<tr>
-							<td style="background:%s; padding:20px; text-align:center;">
-								<h1 style="color:#ffffff; margin:0;">%s</h1>
-							</td>
-						</tr>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>%s</title>
+    </head>
+    <body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+        <table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+                        
+                        <tr>
+                            <td style="background:%s; padding:20px; text-align:center;">
+                                <h1 style="color:#ffffff; margin:0;">%s</h1>
+                            </td>
+                        </tr>
 
-						<tr>
-							<td style="padding:30px; color:#333333;">
-								<p style="font-size:16px; line-height:1.6;">
-									Hello <strong>%s</strong>,
-								</p>
+                        <tr>
+                            <td style="padding:30px; color:#333333;">
+                                <p style="font-size:16px; line-height:1.6;">
+                                    Hello <strong>%s</strong>,
+                                </p>
 
-								<p style="font-size:16px; line-height:1.6;">
-									%s
-								</p>
+                                <p style="font-size:16px; line-height:1.6;">
+                                    %s
+                                </p>
 
-								<div style="background:%s; padding:15px; border-radius:6px; margin:20px 0;">
-									<p style="margin:0; font-size:15px;">
-										<strong>Event Name:</strong> %s
-									</p>
-								</div>
+                                <div style="background:%s; padding:15px; border-radius:6px; margin:20px 0;">
+                                    <p style="margin:0; font-size:15px;">
+                                        <strong>Event Name:</strong> %s
+                                    </p>
+                                </div>
 
-								<div style="text-align:center; margin:30px 0;">
-									<a href="https://ngevent.id/organizer/events"
-										style="
-											background:%s;
-											color:#ffffff;
-											text-decoration:none;
-											padding:12px 24px;
-											border-radius:6px;
-											font-size:16px;
-											display:inline-block;
-										">
-										View My Events
-									</a>
-								</div>
+                                %s
 
-								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
+                                <div style="text-align:center; margin:30px 0;">
+                                    <a href="https://ngevent.id/organizer/events"
+                                        style="
+                                            background:%s;
+                                            color:#ffffff;
+                                            text-decoration:none;
+                                            padding:12px 24px;
+                                            border-radius:6px;
+                                            font-size:16px;
+                                            display:inline-block;
+                                        ">
+                                        View My Events
+                                    </a>
+                                </div>
 
-								<p style="font-size:14px; color:#777777;">
-									Best regards,<br>
-									<strong>Ngevent Team</strong>
-								</p>
+                                <hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
 
-							</td>
-						</tr>
+                                <p style="font-size:14px; color:#777777;">
+                                    Best regards,<br>
+                                    <strong>Ngevent Team</strong>
+                                </p>
 
-					</table>
-				</td>
-			</tr>
-		</table>
-	</body>
-	</html>
-	`, title, color, title, organizerName, message, boxColor, eventName, color))
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+	`, title, color, title, organizerName, message, boxColor, eventName, reasonBlock, color))
 
 	host := os.Getenv("SMTP_HOST")
 	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
@@ -998,7 +1012,7 @@ func OrganizerEventVerification(email, organizerName, eventName, status string) 
 	return d.DialAndSend(m)
 }
 
-func OrganizerUpdatedEventNotif(email, organizerName, eventName, status string) error {
+func OrganizerUpdatedEventNotif(email, organizerName, eventName, status, reason string) error {
 	m := gomail.NewMessage()
 
 	var subject string
@@ -1030,75 +1044,91 @@ func OrganizerUpdatedEventNotif(email, organizerName, eventName, status string) 
 		message = "Your event status has been updated."
 	}
 
+	reasonBlock := ""
+	if status == "rejected" && reason != "" {
+		reasonBlock = fmt.Sprintf(`
+            <div style="background:#FEF2F2; border-left:4px solid #EF4444; padding:15px; border-radius:0 6px 6px 0; margin:20px 0;">
+                <p style="margin:0 0 6px 0; font-size:13px; font-weight:bold; color:#991B1B; text-transform:uppercase; letter-spacing:0.05em;">
+                    Reason for Rejection
+                </p>
+                <p style="margin:0; font-size:15px; color:#7F1D1D; line-height:1.6;">
+                    %s
+                </p>
+            </div>
+        `, reason)
+	}
+
 	m.SetHeader("From", "ngevent@gmail.com")
 	m.SetHeader("To", email)
 	m.SetHeader("Subject", subject)
 
 	m.SetBody("text/html", fmt.Sprintf(`
-	<!DOCTYPE html>
-	<html>
-	<head>
-		<meta charset="UTF-8">
-		<title>%s</title>
-	</head>
-	<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
-		<table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
-			<tr>
-				<td align="center">
-					<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
-						
-						<tr>
-							<td style="background:%s; padding:20px; text-align:center;">
-								<h1 style="color:#ffffff; margin:0;">%s</h1>
-							</td>
-						</tr>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>%s</title>
+    </head>
+    <body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+        <table width="100%%" cellpadding="0" cellspacing="0" style="padding:20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+                        
+                        <tr>
+                            <td style="background:%s; padding:20px; text-align:center;">
+                                <h1 style="color:#ffffff; margin:0;">%s</h1>
+                            </td>
+                        </tr>
 
-						<tr>
-							<td style="padding:30px; color:#333333;">
-								<p style="font-size:16px;">Hello <strong>%s</strong>,</p>
+                        <tr>
+                            <td style="padding:30px; color:#333333;">
+                                <p style="font-size:16px;">Hello <strong>%s</strong>,</p>
 
-								<p style="font-size:16px; line-height:1.6;">
-									%s
-								</p>
+                                <p style="font-size:16px; line-height:1.6;">
+                                    %s
+                                </p>
 
-								<div style="background:%s; padding:15px; border-radius:6px; margin:20px 0;">
-									<p style="margin:0;">
-										<strong>Event Name:</strong> %s
-									</p>
-								</div>
+                                <div style="background:%s; padding:15px; border-radius:6px; margin:20px 0;">
+                                    <p style="margin:0;">
+                                        <strong>Event Name:</strong> %s
+                                    </p>
+                                </div>
 
-								<div style="text-align:center; margin:30px 0;">
-									<a href="https://ngevent.id/organizer/events"
-										style="
-											background:%s;
-											color:#ffffff;
-											text-decoration:none;
-											padding:12px 24px;
-											border-radius:6px;
-											font-size:16px;
-											display:inline-block;
-										">
-										View My Events
-									</a>
-								</div>
+                                %s
 
-								<hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
+                                <div style="text-align:center; margin:30px 0;">
+                                    <a href="https://ngevent.id/organizer/events"
+                                        style="
+                                            background:%s;
+                                            color:#ffffff;
+                                            text-decoration:none;
+                                            padding:12px 24px;
+                                            border-radius:6px;
+                                            font-size:16px;
+                                            display:inline-block;
+                                        ">
+                                        View My Events
+                                    </a>
+                                </div>
 
-								<p style="font-size:14px; color:#777777;">
-									Best regards,<br>
-									<strong>Ngevent Team</strong>
-								</p>
+                                <hr style="border:none; border-top:1px solid #eeeeee; margin:30px 0;">
 
-							</td>
-						</tr>
+                                <p style="font-size:14px; color:#777777;">
+                                    Best regards,<br>
+                                    <strong>Ngevent Team</strong>
+                                </p>
 
-					</table>
-				</td>
-			</tr>
-		</table>
-	</body>
-	</html>
-	`, title, color, title, organizerName, message, boxColor, eventName, color))
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    `, title, color, title, organizerName, message, boxColor, eventName, reasonBlock, color))
 
 	host := os.Getenv("SMTP_HOST")
 	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))

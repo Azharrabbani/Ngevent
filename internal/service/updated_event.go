@@ -132,12 +132,21 @@ func (s *UpdatedEventService) ListAllUpdatedEventsByEventID(filter *dto.UpdatedE
 	return updatedEvents, nil
 }
 
-func (s *UpdatedEventService) GetUpdateEventByID(id, userID, role string) (*dto.EventUpdatesResp, error) {
+func (s *UpdatedEventService) GetUpdateEventByEventID(req *dto.GetUpdateReq) (*dto.EventUpdatesResp, error) {
 	// Validate event
-	event, err := s.UpdatedEventRepo.FindByID(id)
+	event, err := s.UpdatedEventRepo.FindByEventID(req.EventID, req.Status)
 	if err != nil {
 		return nil, errors.New("updated event request not found")
 	}
+
+	event.Banner = helper.StrPointerIfNotEmpty(
+		func() string {
+			if event.Banner == nil {
+				return ""
+			}
+			return fmt.Sprintf("http://localhost:8080/api/v1/updated-event/banner/%s", *event.Banner)
+		}(),
+	)
 
 	var categories []dto.EventCategories
 	for _, cat := range event.Categories {
@@ -149,7 +158,7 @@ func (s *UpdatedEventService) GetUpdateEventByID(id, userID, role string) (*dto.
 
 	startTime := helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339))
 	endTime := helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339))
-	req := &dto.UpdatedEventRespReq{
+	updatedEventReq := &dto.UpdatedEventRespReq{
 		UpdatedEvent:    event,
 		EventID:         event.EventID,
 		EventCategories: categories,
@@ -160,13 +169,12 @@ func (s *UpdatedEventService) GetUpdateEventByID(id, userID, role string) (*dto.
 		DeletedAt:       helper.TimePtrToUnix(event.DeletedAt),
 	}
 
-	resp, err := dto.ToEventUpdateResp(req)
+	resp, err := dto.ToEventUpdateResp(updatedEventReq)
 
 	return resp, nil
 }
 
 func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) error {
-	// Begin trasaction
 	updatedX := s.UpdatedEventRepo.GetDB().Begin()
 	eventX := s.EventRepo.GetDB().Begin()
 
@@ -177,7 +185,6 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		}
 	}()
 
-	// Validate updated event
 	updatedEvent, err := s.UpdatedEventRepo.FindByID(req.ID)
 	if err != nil {
 		return errors.New("update event not found")
@@ -192,31 +199,34 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		return errors.New("event not found")
 	}
 
+	now := time.Now().UTC()
 	updatedEvent.Status = req.Status
+	updatedEvent.ReviewedBy = req.ReviewedBy
+	updatedEvent.ReviewedAt = &now
 
-	// Review the update
-	if err := updatedX.Updates(updatedEvent).Error; err != nil {
-		log.Printf("[ERROR] review event failed with %v error", err)
-		updatedX.Rollback()
-		return errors.New(fmt.Sprintf("review updated event failed"))
+	if req.Status == "rejected" {
+		updatedEvent.RejectedReason = req.Reason
+	} else {
+		updatedEvent.RejectedReason = nil
 	}
 
-	// If the status approved
-	// Update the event with the updated event data
+	if err := updatedX.Updates(updatedEvent).Error; err != nil {
+		updatedX.Rollback()
+		return errors.New("review updated event failed")
+	}
+
 	if req.Status == "approved" {
 		update := &dto.UpdateEvent{
 			EventTx:      eventX,
 			UpdatedEvent: updatedEvent,
 			Event:        event,
 		}
-
 		oldBanner, err := updateEventWithUpdated(update)
 		if err != nil {
 			updatedX.Rollback()
 			eventX.Rollback()
 			return err
 		}
-
 		if oldBanner != "" {
 			if err := os.Remove(filepath.Join(eventBannerPath, oldBanner)); err != nil {
 				updatedX.Rollback()
@@ -226,19 +236,15 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		}
 	}
 
-	// Commit transaction
 	if err := updatedX.Commit().Error; err != nil {
 		return err
 	}
-
 	if err := eventX.Commit().Error; err != nil {
 		return err
 	}
 
-	// Invalidate cache after update
 	utils.InvalidateCache(s.rdb, updatedEventCache)
 
-	// Send email to organizer
 	organizer, err := s.OrganizerProfileRepo.FindByID(updatedEvent.Event.ProfileID)
 	if err != nil {
 		log.Println("[ERROR] organizer data not found")
@@ -249,8 +255,8 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		EOName:    organizer.Name,
 		EventName: updatedEvent.Name,
 		Status:    updatedEvent.Status,
+		Reason:    helper.StringValue(req.Reason),
 	}
-
 	if err := s.EmailTaskPublisher.Enqueue(model.TypeEventUpdateNotification, payload); err != nil {
 		log.Printf("[ERROR] failed sending email to %s with error %v", organizer.User.Email, err)
 	}

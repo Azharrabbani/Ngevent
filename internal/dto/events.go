@@ -4,6 +4,7 @@ import (
 	"errors"
 	"mime/multipart"
 	"ngevent/internal/model"
+	"strings"
 	"time"
 )
 
@@ -68,7 +69,6 @@ type EventFilterReq struct {
 	Date        string `json:"date" query:"date"`
 	Category    []int  `json:"category" query:"category"`
 	Status      string `json:"status" query:"status"`
-	GetUpdate   *bool  `json:"get_update" query:"get_update"`
 	WithDeleted bool   `json:"with_deleted" query:"with_deleted"`
 	StartTime   int64  `json:"start_time" query:"start_time"`
 	Location    string `json:"location" query:"location"`
@@ -78,7 +78,6 @@ type EventFilter struct {
 	ProfileID   *string    `json:"profile_id"`
 	Title       *string    `json:"title" query:"title"`
 	Search      *string    `json:"search" query:"search"` // global search
-	GetUpdate   *bool      `json:"get_update"`
 	Sort        *string    `json:"sort"`
 	Date        *string    `json:"date"`
 	Category    []int      `json:"category" query:"category"`
@@ -96,8 +95,17 @@ type EventAddressReq struct {
 }
 
 type ReviewEventReq struct {
-	ID     string `json:"id" validate:"required"`
-	Status string `json:"status" validate:"required,oneof=active reject"`
+	ID         string  `json:"id"`
+	Status     string  `json:"status" validate:"required,oneof=active rejected"`
+	Reason     *string `json:"reason"`
+	ReviewedBy *string `json:"reviewed_by"`
+}
+
+func (r *ReviewEventReq) ValidateReason() error {
+	if r.Status == "reject" && (r.Reason == nil || strings.TrimSpace(*r.Reason) == "") {
+		return errors.New("reason is required when rejecting an event")
+	}
+	return nil
 }
 
 type UpdateEventReq struct {
@@ -145,12 +153,20 @@ type EOProfiles struct {
 }
 
 type EventDetail struct {
-	Banner      *string           `json:"banner,omitempty"`
-	Name        string            `json:"name"`
-	Categories  []EventCategories `json:"categories"`
-	Slug        string            `json:"slug"`
-	Status      string            `json:"status"`
-	Description string            `json:"description"`
+	Banner         *string           `json:"banner,omitempty"`
+	Name           string            `json:"name"`
+	Categories     []EventCategories `json:"categories"`
+	Slug           string            `json:"slug"`
+	Status         string            `json:"status"`
+	Description    string            `json:"description"`
+	RejectedReason *string           `json:"rejected_reason,omitempty"`
+	ReviewedBy     *Reviewer         `json:"reviewed_by,omitempty"`
+	ReviewedAt     *int64            `json:"reviewed_at,omitempty"`
+}
+
+type Reviewer struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
 }
 
 type EventAddress struct {
@@ -184,6 +200,14 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 		return nil, errors.New("event is nil")
 	}
 
+	var reviewer *Reviewer
+	if req.Event.Reviewer != nil {
+		reviewer = &Reviewer{
+			ID:    req.Event.Reviewer.ID,
+			Email: req.Event.Reviewer.Email,
+		}
+	}
+
 	eventResp := &EventsResp{
 		ID: req.Event.ID,
 		EOProfile: EOProfiles{
@@ -195,12 +219,15 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 			PhoneNumber:  req.Organizer.PhoneNumber,
 		},
 		Event: EventDetail{
-			Banner:      req.Event.Banner,
-			Name:        req.Event.Name,
-			Categories:  req.EventCategories,
-			Slug:        req.Event.Slug,
-			Status:      req.Event.Status,
-			Description: req.Event.Description,
+			Banner:         req.Event.Banner,
+			Name:           req.Event.Name,
+			Categories:     req.EventCategories,
+			Slug:           req.Event.Slug,
+			Status:         req.Event.Status,
+			Description:    req.Event.Description,
+			RejectedReason: req.Event.RejectedReason,
+			ReviewedBy:     reviewer,
+			ReviewedAt:     timePtrToUnix(req.Event.ReviewedAt),
 		},
 		EventAddress: EventAddress{
 			Address:       req.Event.Address,
@@ -222,4 +249,12 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 	}
 
 	return eventResp, nil
+}
+
+func timePtrToUnix(t *time.Time) *int64 {
+	if t == nil {
+		return nil
+	}
+	val := t.Unix()
+	return &val
 }
