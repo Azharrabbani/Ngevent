@@ -5,3 +5,10 @@ export interface categoriesResp {
     created_at: number;
     updated_at: number;
 };
+
+export interface categoriesPaginatedResp {
+    id: string;
+    name: string;
+    slug: string;
+    total_used: number;
+};

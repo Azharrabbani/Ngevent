@@ -1,13 +1,53 @@
 package repository
 
 import (
+	"ngevent/internal/dto"
 	"ngevent/internal/model"
+	"strings"
 
 	"gorm.io/gorm"
 )
 
 type CategoriesRepository struct {
 	db *gorm.DB
+}
+
+// GetWithPagination implements [CategoriesRepo].
+func (r *CategoriesRepository) GetWithPagination(
+	pagination model.Pagination,
+	filter *dto.FilterCatReq,
+) (*model.PaginationRow[*dto.ListCatResp], error) {
+
+	var categories []*dto.ListCatResp
+
+	query := r.db.
+		Table("categories").
+		Select(`
+			categories.id,
+			categories.name,
+			categories.slug,
+			categories.created_at,
+			categories.updated_at,
+			COUNT(event_categories.category_id) AS total_used
+		`).
+		Joins(`
+			LEFT JOIN event_categories
+			ON categories.id = event_categories.category_id
+			AND event_categories.deleted_at IS NULL
+		`).
+		Scopes(FilterCat(filter)).
+		Group("categories.id")
+
+	if err := query.
+		Scopes(Paginate(categories, &pagination, query)).
+		Scan(&categories).Error; err != nil {
+		return nil, err
+	}
+
+	return &model.PaginationRow[*dto.ListCatResp]{
+		Pagination: pagination,
+		Rows:       categories,
+	}, nil
 }
 
 // Create implements CategoriesRepo.
@@ -67,6 +107,16 @@ func (r *CategoriesRepository) FindBySlug(title string, pagination model.Paginat
 		Pagination: pagination,
 		Rows:       categories,
 	}, nil
+}
+
+func FilterCat(filter *dto.FilterCatReq) func(*gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		if filter.Name != nil {
+			query := "%" + strings.ToLower(*filter.Name) + "%"
+			db = db.Where("LOWER(slug) LIKE LOWER(?)", query)
+		}
+		return db
+	}
 }
 
 // Update implements CategoriesRepo.

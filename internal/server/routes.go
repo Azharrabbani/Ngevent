@@ -212,6 +212,7 @@ func (s *FiberServer) RegisterCategoriesRoutes(h *handler.CategoriesHandler) {
 	{
 		category.Post("/", middleware.AuthorizeRoles(string(model.Admin)), h.CreateCategory)
 		category.Get("/", h.ListCategories)
+		category.Get("/list", middleware.AuthorizeRoles(string(model.Admin)), h.ListWithPagination)
 		category.Get("/filter", h.ListByCatName)
 		category.Put("/:id", middleware.AuthorizeRoles(string(model.Admin)), h.UpdateCategory)
 		category.Delete("/:id", middleware.AuthorizeRoles(string(model.Admin)), h.DeleteCategory)

@@ -25,6 +25,8 @@ import ApproveGuard from "./approveGuard"
 import DoneEventList from "../features/admin/views/doneEventList"
 import RejectedEventList from "../features/admin/views/rejectedEventList"
 import ReviewPage from "../features/admin/views/reviewPage"
+import CategoriesView from "../features/admin/views/categories"
+import UnauthorizedView from "../features/auth/views/unauthorizedView"
 
 export default function AppRoutes() {
     return (
@@ -38,6 +40,7 @@ export default function AppRoutes() {
 
                 <Route element={<ProtectedRoute />}>
                     <Route path="/select-role" element={<SelectRoleView />} />
+                    <Route path="/unauthorized" element={<UnauthorizedView />} />
 
                     <Route element={<RoleGuard allowedRoles={["user", "event organizer"]} />}>
 
@@ -53,16 +56,18 @@ export default function AppRoutes() {
 
                 <Route path="/admin" element={<ProtectedRoute />}>
                     <Route element={<RoleGuard allowedRoles={["admin"]} />}>
-                        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                        <Route path="/admin/organizer-list" element={<OrganizerList />} />
-                        <Route path="/admin/attendee-list" element={<AttendeeList />} />
-                        <Route path="/admin/events/active" element={<ActiveEventList />} />
-                        <Route path="/admin/events/pending" element={<PendingEventList />} />
-                        <Route path="/admin/events/done" element={<DoneEventList />} />
-                        <Route path="/admin/events/rejected" element={<RejectedEventList />} />
-                        <Route path="/admin/events/review/:id" element={<ReviewPage />} />
+                        <Route path="dashboard" element={<AdminDashboard />} />
+                        <Route path="organizer-list" element={<OrganizerList />} />
+                        <Route path="attendee-list" element={<AttendeeList />} />
+                        <Route path="events/active" element={<ActiveEventList />} />
+                        <Route path="events/pending" element={<PendingEventList />} />
+                        <Route path="events/done" element={<DoneEventList />} />
+                        <Route path="events/rejected" element={<RejectedEventList />} />
+                        <Route path="events/review/:id" element={<ReviewPage />} />
+                        <Route path="categories" element={<CategoriesView />} />
                     </Route>
                 </Route>
+
 
                 <Route path="/organizer" element={<ProtectedRoute />}>
                     <Route element={<RoleGuard allowedRoles={["event organizer"]} />}>

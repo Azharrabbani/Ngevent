@@ -5,6 +5,7 @@ import (
 	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
+	"ngevent/internal/utils/helper"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -79,6 +80,58 @@ func (h *CategoriesHandler) ListCategories(c *fiber.Ctx) error {
 		"success",
 		"success",
 		categories,
+	))
+}
+
+func (h *CategoriesHandler) ListWithPagination(c *fiber.Ctx) error {
+	filter := new(dto.FilterCatReq)
+
+	if err := c.QueryParser(filter); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	if filter.Name != nil {
+		name := utils.CreateSlug(helper.StringValue(filter.Name))
+		filter.Name = &name
+	}
+
+	paginate := new(model.Pagination)
+
+	if err := c.QueryParser(paginate); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	page := &model.Pagination{
+		Page:  paginate.Page,
+		Limit: paginate.Limit,
+		Sort:  paginate.Sort,
+	}
+
+	res, err := h.CategoriesService.GetWithPagination(*page, filter)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		res,
 	))
 }
 

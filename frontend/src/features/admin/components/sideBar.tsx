@@ -2,14 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLogout } from "../../auth/hooks/useLogout";
 import { CgLogOut } from "react-icons/cg";
-import { RiCalendarEventFill } from "react-icons/ri";
-import { FaRegUser } from "react-icons/fa";
-import { IoHomeOutline } from "react-icons/io5";
 import { HiMenu } from "react-icons/hi";
 import { GoArrowLeft } from "react-icons/go";
 import { IoIosArrowDown } from "react-icons/io";
 import { HiSwatch } from "react-icons/hi2";
 import { useAuth } from "../../../lib/auth";
+import { CategoryIcon, EventIcon, HomeIcon, UserIcon } from "../../../components/icon";
 
 interface Props {
     children: React.ReactElement;
@@ -41,12 +39,12 @@ export default function AdminSidebar({ children }: Props) {
     const menus = [
         {
             title: "Home",
-            icon: <IoHomeOutline />,
+            icon: <HomeIcon />,
             path: "/admin/dashboard"
         },
         {
             title: "Users",
-            icon: <FaRegUser />,
+            icon: <UserIcon />,
             subMenu: true,
             subMenuItems: [
                 { title: "Attendee", path: "/admin/attendee-list" },
@@ -55,7 +53,7 @@ export default function AdminSidebar({ children }: Props) {
         },
         {
             title: "Events",
-            icon: <RiCalendarEventFill />,
+            icon: <EventIcon />,
             subMenu: true,
             subMenuItems: [
                 { title: "Active", path: "/admin/events/active" },
@@ -63,6 +61,11 @@ export default function AdminSidebar({ children }: Props) {
                 { title: "Done", path: "/admin/events/done" },
                 { title: "Rejected", path: "/admin/events/rejected" }
             ]
+        },
+        {
+            title: "Categories",
+            icon: <CategoryIcon />,
+            path: "/admin/categories"
         },
     ];
 
