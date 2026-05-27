@@ -40,6 +40,7 @@ func (r *CategoriesRepository) GetWithPagination(
 
 	if err := query.
 		Scopes(Paginate(categories, &pagination, query)).
+		Order("total_used DESC").
 		Scan(&categories).Error; err != nil {
 		return nil, err
 	}

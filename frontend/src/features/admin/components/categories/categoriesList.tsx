@@ -37,6 +37,9 @@ export default function CategoriesList({ data, isLoading, currentPage, totalPage
         );
     }
 
+    const from = (currentPage - 1) * data.limit + 1;
+    const to = Math.min(currentPage * data.limit, data.total_rows);
+
     return (
         <div>
             <CategoriesTable data={data} />
@@ -47,7 +50,7 @@ export default function CategoriesList({ data, isLoading, currentPage, totalPage
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 md:px-8 border-t border-gray-100">
 
                     <p className="text-sm text-gray-500">
-                        Showing 1 to 4 of {data?.total_rows} categories
+                        Showing {from} to {to} of {data?.total_rows} categories
                     </p>
 
                     <Pagination

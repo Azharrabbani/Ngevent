@@ -8,7 +8,6 @@ export const listCategories = async () => {
     return res.data
 }
 
-
 export const listCategoriesPaginatedApi = async (request: FilterCategoryRequest) => {
     const res = await api.get<PaginatedResponse<categoriesPaginatedResp>>(
         "/category/list",
@@ -22,4 +21,14 @@ export const listCategoriesPaginatedApi = async (request: FilterCategoryRequest)
         }
     );
     return res.data
+}
+
+export const createCategoryApi = async (name: string) => {
+    const res = await api.post<successResponse<string>>("/category", { name });
+    return res.data;
+}
+
+export const updateCategoryApi = async ({ id, name }: { id: string | number; name: string }) => {
+    const res = await api.put<successResponse<string>>(`/category/${id}`, { name });
+    return res.data;
 }
