@@ -1,9 +1,9 @@
 import { FaInstagram, FaRegFilePdf } from "react-icons/fa";
-import type { OrganizerResponse } from "../../profile/types/profileResponse";
 import { useState } from "react";
-import FilePreview from "../../../components/filePreview";
-import { useApproveOrganizer } from "../../profile/hooks/organizer/useApproveOrganizer";
-import { useRejectOrganizer } from "../../profile/hooks/organizer/useRejectOrganzier";
+import type { OrganizerResponse } from "../../../profile/types/profileResponse";
+import { useApproveOrganizer } from "../../../profile/hooks/organizer/useApproveOrganizer";
+import { useRejectOrganizer } from "../../../profile/hooks/organizer/useRejectOrganzier";
+import FilePreview from "../../../../components/filePreview";
 
 interface Props {
     loading: boolean | undefined;
@@ -23,7 +23,7 @@ export default function OrganizerPreview({ loading, profile, hasUpdate, onClose 
 
     const isPending = profile?.status?.status === "pending";
     const showAction = isPending && !hasUpdate;
-    
+
     const handleApprove = async () => {
         if (!profile?.id) return;
 
@@ -31,7 +31,7 @@ export default function OrganizerPreview({ loading, profile, hasUpdate, onClose 
 
         onClose?.();
     };
-    
+
     const handleReject = async () => {
         if (!profile?.id) return;
 
@@ -45,7 +45,7 @@ export default function OrganizerPreview({ loading, profile, hasUpdate, onClose 
         setRejectModalOpen(false);
         onClose?.();
     };
-    
+
     return (
         <>
             <div className="mt-5 space-y-2 text-sm sm:text-base wrap-break-word">
@@ -54,29 +54,33 @@ export default function OrganizerPreview({ loading, profile, hasUpdate, onClose 
                 <p><span className="font-semibold">Phone:</span> {profile?.phone_number}</p>
                 <p><span className="font-semibold">Country:</span> {profile?.country}</p>
                 <p><span className="font-semibold">Address:</span> {profile?.address}</p>
-                <p><span className="font-semibold">Description:</span> {profile?.company_detail?.description}</p>
+                <p><span className="font-semibold">Description:</span></p>
+                <div
+                    className="prose prose-sm max-w-none bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm"
+                    dangerouslySetInnerHTML={{ __html: profile?.company_detail?.description }}
+                />
                 <p><span className="font-semibold">NPWP Number:</span> {profile?.company_detail?.npwp}</p>
-                <p className="flex gap-2 items-center"><span className="font-semibold">NPWP:</span> 
-                    <FaRegFilePdf 
-                        className="cursor-pointer text-2xl text-red-500 hover:scale-110 transition" 
-                        onClick={() => setPreviewFile(profile?.company_detail?.npwp_file || null)}/>
+                <p className="flex gap-2 items-center"><span className="font-semibold">NPWP:</span>
+                    <FaRegFilePdf
+                        className="cursor-pointer text-2xl text-red-500 hover:scale-110 transition"
+                        onClick={() => setPreviewFile(profile?.company_detail?.npwp_file || null)} />
                 </p>
                 <p><span className="font-semibold">NIB Number:</span> {profile?.company_detail?.nib}</p>
-                <p className="flex gap-2 items-center"><span className="font-semibold">NIB:</span> 
-                    <FaRegFilePdf 
+                <p className="flex gap-2 items-center"><span className="font-semibold">NIB:</span>
+                    <FaRegFilePdf
                         className="cursor-pointer text-2xl text-red-500 hover:scale-110 transition"
-                        onClick={() => setPreviewFile(profile?.company_detail?.nib_file || null)}/>
+                        onClick={() => setPreviewFile(profile?.company_detail?.nib_file || null)} />
                 </p>
                 <p><span className="font-semibold">Secondary Email:</span> {profile?.social_media?.email ? profile.social_media?.email : "-"}</p>
-                <p className="flex gap-2 items-center"><span className="font-semibold">Instagram:</span> 
-                    {profile?.social_media?.instagram ? 
+                <p className="flex gap-2 items-center"><span className="font-semibold">Instagram:</span>
+                    {profile?.social_media?.instagram ?
                         <FaInstagram
                             className="cursor-pointer text-2xl text-pink-500 hover:scale-110 transition"
                             onClick={() => window.open(profile.social_media.instagram, "_blank")}
-                        /> : 
-                        "-" }
+                        /> :
+                        "-"}
                 </p>
-                
+
                 {previewFile && (
                     <FilePreview
                         setPreview={() => setPreviewFile(null)}
@@ -87,13 +91,13 @@ export default function OrganizerPreview({ loading, profile, hasUpdate, onClose 
 
             {showAction && (
                 <div className="flex justify-end gap-3 mt-6">
-                    <button 
+                    <button
                         className="px-4 py-2 border-2 border-black rounded-lg hover:bg-gray-200 transition"
                         onClick={() => setRejectModalOpen(true)}
                     >
                         Reject
                     </button>
-                    <button 
+                    <button
                         className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
                         onClick={handleApprove}
                         disabled={approvalPending}
@@ -141,7 +145,7 @@ export default function OrganizerPreview({ loading, profile, hasUpdate, onClose 
                     </div>
                 </div>
             )}
-        
+
         </>
     )
 }

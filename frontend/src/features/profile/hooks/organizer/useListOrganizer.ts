@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { organizerKeys } from "../../utils/cacheKey"
+import { organizerKeys } from "../../../../utils/cacheKey"
 import type { FilterOrganizerReq } from "../../types/profileRequest"
 import { GetOrganizersProfileApi } from "../../api/profileApi"
 

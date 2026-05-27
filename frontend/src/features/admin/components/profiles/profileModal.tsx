@@ -1,3 +1,5 @@
+import Modal from "../../../../components/modal";
+
 interface Props {
     isOpen: boolean;
     onClose: () => void;
@@ -14,14 +16,14 @@ export default function ProfileModal({
     if (!isOpen) return null;
 
     return (
-        <div
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-            onClick={onClose}
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
         >
             <div
                 onClick={(e) => e.stopPropagation()}
                 className="
-                    w-full max-w-lg
+                    w-full max-w-4xl
                     max-h-[90vh] overflow-y-auto
                     bg-white border-2 border-black rounded-xl
                     p-4 sm:p-6
@@ -37,9 +39,11 @@ export default function ProfileModal({
                 </button>
 
                 {isLoading && <h1 className="text-center">Loading...</h1>}
-                
+
                 {children}
             </div>
-        </div>
+        </Modal>
+
+
     );
 }

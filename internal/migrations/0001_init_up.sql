@@ -4,8 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "postgis";
 CREATE TYPE "public"."role" AS ENUM ('user', 'admin', 'event organizer');
 CREATE TYPE "public"."type_verification" AS ENUM ('verified_email', 'reset_password');
 CREATE TYPE "public"."organizer_profile_status" AS ENUM ('pending', 'approved', 'rejected');
-CREATE TYPE "public"."event_status" AS ENUM ('draft', 'active', 'pending', 'reject', 'done', 'cancel');
-CREATE TYPE "public"."event_update_status" AS ENUM ('pending', 'approved', 'rejected', 'canceled');
+CREATE TYPE "public"."event_status" AS ENUM ('draft', 'active', 'approved', 'pending', 'rejected', 'done', 'cancelled');
 CREATE TYPE "public"."ticket_type" AS ENUM ('regular', 'premium', 'vip');
 
 SET TIME ZONE 'UTC';
@@ -132,7 +131,11 @@ CREATE TABLE "public"."events"(
 	"country" VARCHAR(100) NOT NULL,
 	"detail_address" TEXT NOT NULL,
 	"coordinates" GEOGRAPHY(Point, 4326) NOT NULL,
-	"date" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"start_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"end_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"rejected_reason" TEXT,
+	"reviewed_by" uuid REFERENCES "public"."users"("id"),
+	"reviewed_at" TIMESTAMPTZ,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"deleted_at" TIMESTAMPTZ DEFAULT NULL,
@@ -172,14 +175,18 @@ CREATE TABLE "public"."event_updates"(
 	"name" VARCHAR(255) NOT NULL,
 	"slug" VARCHAR(255) NOT NULL,
 	"banner" TEXT,
-	"status" event_update_status NOT NULL DEFAULT 'pending',
+	"status" event_status NOT NULL DEFAULT 'pending',
 	"description" TEXT NOT NULL,
 	"address" TEXT NOT NULL,
 	"city" VARCHAR(150) NOT NULL,
 	"country" VARCHAR(100) NOT NULL,
 	"detail_address" TEXT NOT NULL,
 	"coordinates" GEOGRAPHY(Point, 4326) NOT NULL,
-	"date" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"start_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"end_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"rejected_reason" TEXT,
+	"reviewed_by" uuid REFERENCES "public"."users"("id"),
+	"reviewed_at" TIMESTAMPTZ,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"deleted_at" TIMESTAMPTZ NULL,
@@ -231,7 +238,7 @@ ON "public"."event_categories"("event_id", "category_id");
 
 CREATE UNIQUE INDEX "unique_event_updates"
 ON "public"."event_updates" ("event_id")
-WHERE status = 'pending';
+WHERE "status_id" = 2;
 
 CREATE UNIQUE INDEX "unique_ticket_type" 
 ON "public"."tickets"("event_id", "ticket_type");

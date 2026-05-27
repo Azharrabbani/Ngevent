@@ -2,20 +2,18 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLogout } from "../../auth/hooks/useLogout";
 import { CgLogOut } from "react-icons/cg";
-import { RiCalendarEventFill } from "react-icons/ri";
-import { FaRegUser } from "react-icons/fa";
-import { IoHomeOutline } from "react-icons/io5";
 import { HiMenu } from "react-icons/hi";
 import { GoArrowLeft } from "react-icons/go";
 import { IoIosArrowDown } from "react-icons/io";
 import { HiSwatch } from "react-icons/hi2";
 import { useAuth } from "../../../lib/auth";
+import { CategoryIcon, EventIcon, HomeIcon, UserIcon } from "../../../components/icon";
 
 interface Props {
     children: React.ReactElement;
 };
 
-export default function AdminSidebar({children}: Props) {
+export default function AdminSidebar({ children }: Props) {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [activeMenu, setActiveMenu] = useState<number | null>(null);
@@ -23,7 +21,7 @@ export default function AdminSidebar({children}: Props) {
 
     const navigate = useNavigate();
 
-    const {logout, loading, error} = useLogout();
+    const { mutateAsync: logout, isPending, isError } = useLogout();
 
     const { user, loading: userLoading } = useAuth()
 
@@ -32,34 +30,45 @@ export default function AdminSidebar({children}: Props) {
             await logout();
             navigate("/login");
         } catch (err) {
-            if (error) {
-                return;    
+            if (isError) {
+                return;
             }
         }
     }
 
     const menus = [
-        { title: "Home", icon: <IoHomeOutline />, path: "/admin/dashboard" },
+        {
+            title: "Home",
+            icon: <HomeIcon />,
+            path: "/admin/dashboard"
+        },
         {
             title: "Users",
-            icon: <FaRegUser />,
+            icon: <UserIcon />,
             subMenu: true,
             subMenuItems: [
                 { title: "Attendee", path: "/admin/attendee-list" },
-                { title: "Organizer", path: "/admin/organizer-list"}
+                { title: "Organizer", path: "/admin/organizer-list" }
             ],
         },
         {
             title: "Events",
-            icon: <RiCalendarEventFill />,
+            icon: <EventIcon />,
             subMenu: true,
             subMenuItems: [
-                { title: "Active", path: "/admin/events-active" },
-                { title: "Pending", path: "/admin/events-pending"}
+                { title: "Active", path: "/admin/events/active" },
+                { title: "Pending", path: "/admin/events/pending" },
+                { title: "Done", path: "/admin/events/done" },
+                { title: "Rejected", path: "/admin/events/rejected" }
             ]
         },
+        {
+            title: "Categories",
+            icon: <CategoryIcon />,
+            path: "/admin/categories"
+        },
     ];
-    
+
     useEffect(() => {
         menus.forEach((menu, index) => {
             if (menu.subMenu) {
@@ -71,30 +80,30 @@ export default function AdminSidebar({children}: Props) {
             }
         });
     }, [location.pathname]);
-    
+
     const logoutMenu = { title: "Logout", icon: <CgLogOut /> };
 
     return (
         <div className="flex">
-            <div className="md:hidden p-4">
+            <div className="lg:hidden p-4">
                 <HiMenu
                     className="text-2xl cursor-pointer"
                     onClick={() => setIsMobileOpen(true)}
                 />
             </div>
-    
+
             {isMobileOpen && (
                 <div
-                    className="fixed inset-0 bg-black/40 z-40 md:hidden"
+                    className="fixed inset-0 bg-black/40 z-40 lg:hidden"
                     onClick={() => setIsMobileOpen(false)}
                 />
             )}
-    
+
             <div className={`
-                bg-blue-600 h-screen p-5 pt-8 fixed md:relative z-50 flex flex-col
+                bg-blue-600 h-screen p-5 pt-8 fixed lg:relative z-50 flex flex-col
                 ${isCollapsed ? "md:w-20" : "md:w-72"}
                 w-72
-                ${isMobileOpen ? "left-0" : "-left-full md:left-0"}
+                ${isMobileOpen ? "left-0" : "-left-full lg:left-0"}
                 duration-300
             `}>
                 <GoArrowLeft
@@ -113,13 +122,13 @@ export default function AdminSidebar({children}: Props) {
                         Ngevent
                     </h1>
                 </div>
-                
+
                 <div className={`flex flex-col items-center justify-center pt-6 gap-2 duration-300 ${isCollapsed && "hidden"}`}>
                     <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center">
-                        <img 
-                        className="w-full h-full object-cover rounded-full"
-                        src="https://static.vecteezy.com/system/resources/thumbnails/012/210/707/small/worker-employee-businessman-avatar-profile-icon-vector.jpg" 
-                        alt="" />
+                        <img
+                            className="w-full h-full object-cover rounded-full"
+                            src="https://static.vecteezy.com/system/resources/thumbnails/012/210/707/small/worker-employee-businessman-avatar-profile-icon-vector.jpg"
+                            alt="" />
                     </div>
                     {!userLoading && user && (
                         <h1 className="text-center text-white">{user.email}</h1>
@@ -178,18 +187,18 @@ export default function AdminSidebar({children}: Props) {
                     </ul>
 
                     <ul className="mb-2">
-                        <li 
-                        className="group relative text-white flex items-center gap-x-4 p-2 cursor-pointer hover:bg-white/50 rounded-md"
-                        onClick={() => handleLogout()}
+                        <li
+                            className="group relative text-white flex items-center gap-x-4 p-2 cursor-pointer hover:bg-white/50 rounded-md"
+                            onClick={() => handleLogout()}
                         >
                             <span className="text-2xl">{logoutMenu.icon}</span>
 
                             <span className={`${isCollapsed && "hidden"}`}>
-                                {loading ? "Logging out..." : logoutMenu.title}
+                                {isPending ? "Logging out..." : logoutMenu.title}
                             </span>
                             {isCollapsed && (
                                 <span className="absolute left-16 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">
-                                    {loading ? "Logging out..." : logoutMenu.title}
+                                    {isPending ? "Logging out..." : logoutMenu.title}
                                 </span>
                             )}
                         </li>

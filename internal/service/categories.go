@@ -9,6 +9,7 @@ import (
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
 	"ngevent/internal/utils"
+	"ngevent/internal/utils/helper"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -31,6 +32,7 @@ func NewCategoryService(
 
 var categoryCache []string = []string{
 	"category:all:*",
+	"category:list:*",
 }
 
 func (s *CategoryService) Create(req *dto.CreateCatReq) error {
@@ -49,11 +51,11 @@ func (s *CategoryService) Create(req *dto.CreateCatReq) error {
 	return nil
 }
 
-func (s *CategoryService) FindAll(pagination model.Pagination) (*model.PaginationRow[*model.Categories], error) {
-	var categories *model.PaginationRow[*model.Categories]
+func (s *CategoryService) FindAll() ([]*model.Categories, error) {
+	var categories []*model.Categories
 
 	// Generate cache key
-	cachekey := fmt.Sprintf("category:all:%d:%d:%s", pagination.Page, pagination.Limit, pagination.Sort)
+	cachekey := fmt.Sprintf("category:all")
 
 	// Try to get from cache
 	val, err := s.rdb.Get(context.Background(), cachekey).Result()
@@ -63,7 +65,7 @@ func (s *CategoryService) FindAll(pagination model.Pagination) (*model.Paginatio
 
 	if categories == nil {
 		// If cache miss, get from db
-		categories, err = s.CategoryRepo.FindAll(pagination)
+		categories, err = s.CategoryRepo.FindAll()
 		if err != nil {
 			return nil, err
 		}
@@ -72,6 +74,40 @@ func (s *CategoryService) FindAll(pagination model.Pagination) (*model.Paginatio
 		if data, err := json.Marshal(categories); err == nil {
 			s.rdb.Set(context.Background(), cachekey, data, 15*time.Minute)
 		}
+	}
+
+	return categories, nil
+}
+
+func (s *CategoryService) GetWithPagination(pagination model.Pagination, filter *dto.FilterCatReq) (*model.PaginationRow[*dto.ListCatResp], error) {
+	var categories *model.PaginationRow[*dto.ListCatResp]
+
+	// Gemerate cache key
+	cacheKey := fmt.Sprintf("category:list:%d:%d:%s:%s",
+		pagination.Page,
+		pagination.Limit,
+		pagination.Sort,
+		helper.StringValue(filter.Name),
+	)
+
+	// Try get from cache
+	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
+	if err == nil {
+		json.Unmarshal([]byte(val), &categories)
+	}
+
+	if categories == nil {
+		// If miss get from db
+		categories, err = s.CategoryRepo.GetWithPagination(pagination, filter)
+		if err != nil {
+			return nil, err
+		}
+
+		// Set cache with 15 minute TTL
+		if data, err := json.Marshal(categories); err == nil {
+			s.rdb.Set(context.Background(), cacheKey, data, 15*time.Minute)
+		}
+
 	}
 
 	return categories, nil

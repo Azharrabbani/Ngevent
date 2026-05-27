@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { GetUpdateOrganizerReqApi } from "../../api/profileApi"
-import { organizerUpdateKeys } from "../../utils/cacheKey";
+import { organizerUpdateKeys } from "../../../../utils/cacheKey";
 
 export const useGetOrganizerUpdate = (id: string) => {
     return useQuery({

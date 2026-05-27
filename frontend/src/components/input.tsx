@@ -1,45 +1,43 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import { forwardRef, type InputHTMLAttributes, type ReactNode } from "react";
 import { cn } from "../utils/cn";
-
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  labelStyle?: string;
   error?: string;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
-};
+}
 
-export default function Input({
+const Input = forwardRef<HTMLInputElement, InputProps>(({
   label,
   type = "text",
   name,
   placeholder,
   className = "",
+  labelStyle = "",
   error,
   leftIcon,
   rightIcon,
   ...rest
-}: InputProps) {
+}, ref) => {
   return (
     <div className="w-full">
-      {/* Label */}
       {label && (
-        <label className="block text-sm mb-1 font-medium">
+        <label className={cn("block text-sm mb-1 font-medium", labelStyle)}>
           {label}
         </label>
       )}
 
-      {/* Input wrapper */}
       <div className="relative">
-        {/* Left Icon */}
         {leftIcon && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
             {leftIcon}
           </div>
         )}
 
-        {/* Input */}
         <input
+          ref={ref}
           type={type}
           name={name}
           placeholder={placeholder}
@@ -53,7 +51,6 @@ export default function Input({
           )}
         />
 
-        {/* Right Icon */}
         {rightIcon && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400">
             {rightIcon}
@@ -61,12 +58,13 @@ export default function Input({
         )}
       </div>
 
-      {/* Error Message */}
       {error && (
-        <p className="text-red-500 text-xs mt-1">
-          {error}
-        </p>
+        <p className="text-red-500 text-xs mt-1">{error}</p>
       )}
     </div>
   );
-}
+});
+
+Input.displayName = "Input";
+
+export default Input;

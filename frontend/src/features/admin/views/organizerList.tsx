@@ -6,8 +6,8 @@ import { useListOrganizer } from "../../profile/hooks/organizer/useListOrganizer
 import { useEffect, useRef, useState } from "react";
 import Pagination from "../../../components/pagination";
 import { useOrganizerProfileDetail } from "../../profile/hooks/organizer/useOrganizerProfileDetail";
-import ProfileModal from "../components/profileModal";
-import OrganizerProfile from "../components/organizerProfile";
+import ProfileModal from "../components/profiles/profileModal";
+import OrganizerProfile from "../components/profiles/organizerProfile";
 import { useGetOrganizerUpdate } from "../../profile/hooks/organizer/useGetOrganizerUpdate";
 import { IoIosArrowDown } from "react-icons/io";
 
@@ -29,7 +29,7 @@ export default function OrganizerList() {
     });
 
     const { data: profile, isLoading: loadingProfile } = useOrganizerProfileDetail(selectedUser);
-    
+
     const { data: organizerUpdate, isError, isPending: loadingUpdate } = useGetOrganizerUpdate(selectedUser);
 
     const totalPage = data?.total_pages || 1;
@@ -56,19 +56,19 @@ export default function OrganizerList() {
                 <h1 className="text-2xl font-semibold">Hello Admin!</h1>
 
                 <div className="flex flex-col md:flex-row gap-4 w-full mt-5">
-                    <form 
+                    <form
                         className="relative w-full max-w-md"
                         onSubmit={handleFilter}
                     >
-                        <input 
+                        <input
                             type="text"
-                            onChange={(e) => setFilterOrganizer(e.target.value)} 
-                            placeholder="Search..." 
+                            onChange={(e) => setFilterOrganizer(e.target.value)}
+                            placeholder="Search..."
                             className="w-full px-4 py-2 pr-12 rounded-lg bg-gray-200 focus:outline-none" />
                         <button
-                        type="submit" 
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-400 text-white p-2 rounded-full hover:bg-blue-500 transition">
-                            <IoIosSearch/>
+                            type="submit"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-400 text-white p-2 rounded-full hover:bg-blue-500 transition">
+                            <IoIosSearch />
                         </button>
 
                     </form>
@@ -80,11 +80,11 @@ export default function OrganizerList() {
                             className="w-full md:w-auto border border-gray-300 bg-white text-gray-600 px-4 py-2 rounded-lg flex justify-between items-center gap-2"
                         >
                             {status ? status : "Status"}
-                            <IoIosArrowDown className={`transition ${openStatus ? "rotate-180" : ""}`}/>
+                            <IoIosArrowDown className={`transition ${openStatus ? "rotate-180" : ""}`} />
                         </button>
 
                         {openStatus && (
-                            <div 
+                            <div
                                 className="absolute z-10 mt-2 w-full md:w-40 bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden"
                             >
                                 {["approved", "pending", "rejected"].map((item) => (
@@ -95,8 +95,7 @@ export default function OrganizerList() {
                                             setStatus(item);
                                             setOpenStatus(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 ${
-                                            status === item ? "bg-gray-100 font-semibold" : ""}`}
+                                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 ${status === item ? "bg-gray-100 font-semibold" : ""}`}
                                     >
                                         {item.charAt(0).toUpperCase() + item.slice(1)}
                                     </button>
@@ -121,11 +120,11 @@ export default function OrganizerList() {
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
                     {isLoading ? (
                         <h1>Loading....</h1>
-                    ): !data?.rows || data.rows.length === 0 ? (
+                    ) : !data?.rows || data.rows.length === 0 ? (
                         <h1 className="text-gray-400 text-sm text-center md:text-start">
                             User not found
                         </h1>
-                    ): 
+                    ) :
                         (
                             data.rows.map((item) => (
                                 <div
@@ -133,7 +132,7 @@ export default function OrganizerList() {
                                     onClick={() => {
                                         setSelectedUser(item.id)
                                         setIsModalOpen(true)
-                                    }} 
+                                    }}
                                     className="group relative flex items-center gap-4 bg-white border-2 border-black p-5 rounded-xl 
                                                 shadow-[3px_3px_0px_0px_#000] 
                                                 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#000] cursor-pointer
@@ -142,14 +141,14 @@ export default function OrganizerList() {
                                     <div className={`
                                         absolute left-0 top-0 h-full 
                                         w-2 group-hover:w-28 
-                                    ${item.status.status === "approved" ? 
-                                    "bg-blue-500 " : 
-                                    item.status.status === "pending" ? "bg-amber-500" : "bg-red-500"}
+                                    ${item.status.status === "approved" ?
+                                            "bg-blue-500 " :
+                                            item.status.status === "pending" ? "bg-amber-500" : "bg-red-500"}
                                         rounded-l-xl
                                         transition-all duration-300
                                         flex items-center justify-center
                                         overflow-hidden
-                                    `}    
+                                    `}
                                     >
                                         <span className="
                                             text-white text-sm font-semibold
@@ -161,9 +160,9 @@ export default function OrganizerList() {
                                             {item.status.status}
                                         </span>
                                     </div>
-                                    <img 
+                                    <img
                                         src={item.photo_profile}
-                                        alt="" 
+                                        alt=""
                                         className="w-20 h-20 object-cover rounded-full shrink-0"
                                     />
 
@@ -172,15 +171,15 @@ export default function OrganizerList() {
                                             <h2 className="font-bold text-lg truncate">
                                                 {item.name}
                                             </h2>
-                                            {item.status.status === "approved" && <MdVerified className="text-blue-600"/>}
+                                            {item.status.status === "approved" && <MdVerified className="text-blue-600" />}
                                         </div>
 
                                         <p className={`
                                             text-xs md:hidden
-                                            ${item.status.status === "approved" ? 
-                                            "text-blue-500": 
-                                            item.status.status === "pending" ? "text-amber-500" : 
-                                            "text-red-500"} 
+                                            ${item.status.status === "approved" ?
+                                                "text-blue-500" :
+                                                item.status.status === "pending" ? "text-amber-500" :
+                                                    "text-red-500"} 
                                         `}>
                                             {item.status.status}
                                         </p>
@@ -203,7 +202,7 @@ export default function OrganizerList() {
                             ))
                         )
                     }
-                    
+
                 </div>
 
                 <Pagination
@@ -222,8 +221,8 @@ export default function OrganizerList() {
                     }}
                     isLoading={loadingProfile}
                 >
-                    <OrganizerProfile 
-                        profile={profile} 
+                    <OrganizerProfile
+                        profile={profile}
                         update={organizerUpdate}
                         profileLoading={loadingProfile}
                         updateLoading={loadingUpdate}

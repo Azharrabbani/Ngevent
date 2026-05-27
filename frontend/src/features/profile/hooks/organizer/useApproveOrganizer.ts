@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { ApproveOrganizerApi } from "../../api/profileApi";
 import toast from "react-hot-toast";
-import { organizerKeys } from "../../utils/cacheKey";
+import { organizerKeys } from "../../../../utils/cacheKey";
 
 export const useApproveOrganizer = (id: string) => {
-    const queryClient = useQueryClient()    ;
+    const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: ApproveOrganizerApi,
@@ -14,6 +14,11 @@ export const useApproveOrganizer = (id: string) => {
         onSuccess: (success) => {
             toast.success(success.data);
             queryClient.invalidateQueries({
+                queryKey: organizerKeys.lists(),
+                exact: false,
+            });
+
+            queryClient.invalidateQueries({
                 queryKey: organizerKeys.me(),
             });
 
@@ -21,10 +26,6 @@ export const useApproveOrganizer = (id: string) => {
                 queryKey: organizerKeys.detail(id),
             });
 
-            queryClient.invalidateQueries({
-                queryKey: organizerKeys.lists(),
-                exact: false,
-            });
         }
     })
 }

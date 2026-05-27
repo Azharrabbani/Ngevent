@@ -9,10 +9,11 @@ import (
 
 type EventsUpdateRepo interface {
 	GetDB() *gorm.DB
-	Create(event *model.UpdatedEvents, categories []*model.Categories, tickets []*model.TicketsUpdate) error
+	Create(event *model.UpdatedEvents, categories []*model.Categories) error
 	FindAll(filter *dto.UpdatedEventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsUpdatesResp], error)
 	FindAllByEventID(filter *dto.UpdatedEventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsUpdatesResp], error)
 	FindByID(id string) (*model.UpdatedEvents, error)
+	FindByEventID(eventID, status string) (*model.UpdatedEvents, error)
 	ReviewEvent(id, status string) error
 	Cancel(id string) error
 }

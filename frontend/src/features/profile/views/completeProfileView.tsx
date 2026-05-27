@@ -21,36 +21,35 @@ export default function CompleteProfileView() {
         }, {});
     };
 
-    const validationErrors = mapValidationErrors(attendeeErrors);
-    
+    const attendeeValidationErrors = mapValidationErrors(attendeeErrors);
+
     const {
-        createProfile: organizer,
-        loading: organizerLoading,
-        message: organizerMessage,
+        mutateAsync: organizer,
+        isPending: organizerLoading,
         error: organizerError,
-        errors: organizerErrors
-    } = useCreateOrganizerProfile();
-    
-    
+    } = useCreateOrganizerProfile()
+
+    const organizerValidationErrors = mapValidationErrors(organizerError);
+
     const { user, loading: userLoading } = useAuth()
-    
+
     const navigate = useNavigate();
 
     if (userLoading) {
         return <p className="text-center">Loading...</p>
     }
 
-    const handleCreateAttendeeProfile = async(payload: CreateAttendeeProfileReq) => {
+    const handleCreateAttendeeProfile = async (payload: CreateAttendeeProfileReq) => {
         await attendee(payload);
         navigate("/dashboard");
     }
 
-    const handleCreateOrganizerProfile = async(payload: CreateOrganizerProfileReq) => {
+    const handleCreateOrganizerProfile = async (payload: CreateOrganizerProfileReq) => {
         await organizer(payload);
         navigate("/profile");
     }
 
-    return(
+    return (
         <CompleteProfileContainer>
             <div className="w-full max-w-md md:max-w-lg mx-auto px-4 sm:px-6">
 
@@ -58,38 +57,37 @@ export default function CompleteProfileView() {
                     <>
                         <h1 className="mb-6 sm:mb-8 font-bold text-xl sm:text-2xl md:text-4xl text-center">
                             Let's complete your profile
-                        </h1>    
-                        <CompleteAttendeeProfileForm 
-                            onSubmit={handleCreateAttendeeProfile} 
-                            loading={attendeePending} 
-                            errors={validationErrors}
+                        </h1>
+                        <CompleteAttendeeProfileForm
+                            onSubmit={handleCreateAttendeeProfile}
+                            loading={attendeePending}
+                            errors={attendeeValidationErrors}
                         />
                     </>
                 ) : (
                     <>
                         <h1 className="mb-6 sm:mb-8 font-bold text-xl sm:text-2xl md:text-4xl text-center">
-                        Let's complete your profile
+                            Let's complete your profile
                         </h1>
                         <p>
                             This information helps us verify your business and
                             personalize your security experience.
                         </p>
-                        
+
                         <CompleteOrganizerProfileForm
-                        onSubmit={handleCreateOrganizerProfile} 
-                        loading={organizerLoading} 
-                        errors={organizerErrors}/>
+                            onSubmit={handleCreateOrganizerProfile}
+                            loading={organizerLoading}
+                            errors={organizerValidationErrors}
+                        />
 
-                        {organizerError && (
-                            <p className="text-red-500 text-center mt-3">{organizerError}</p>
-                        )}
-
-                        {organizerMessage && (
-                            <p className="text-green-500 text-center mt-3">{organizerMessage}</p>
+                        {organizerError && !Array.isArray((organizerError as any)?.response?.data?.error) && (
+                            <p className="text-red-500 text-center mt-3">
+                                {(organizerError as any)?.response?.data?.error || "Failed to create profile"}
+                            </p>
                         )}
                     </>
                 )}
-                
+
             </div>
         </CompleteProfileContainer>
     )

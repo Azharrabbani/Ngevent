@@ -8,12 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
 	"mime/multipart"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
 	"ngevent/internal/utils"
+	"ngevent/internal/utils/analytics"
 	"ngevent/internal/utils/helper"
 	"os"
 	"path/filepath"
@@ -59,6 +59,7 @@ var (
 
 var eventCache []string = []string{
 	"events:all:*",
+	"events:nearest:*",
 	"organizer_events:all:*",
 }
 
@@ -69,8 +70,8 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 		return errors.New("profile not found")
 	}
 
-	// Validate len categories & tickets
-	if len(req.Categories) == 0 || len(req.Tickets) == 0 {
+	// Validate len categories
+	if len(req.Categories) == 0 {
 		return errors.New("categories or ticket cannot be empty")
 	}
 
@@ -80,19 +81,9 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 		return err
 	}
 
-	// Declared the tickets
-	var tickets []*model.Tickets
-	for _, ticket := range req.Tickets {
-		tickets = append(tickets, &model.Tickets{
-			Name:       ticket.Name,
-			Price:      ticket.Price,
-			Quantity:   ticket.Quantity,
-			TicketType: ticket.TicketType,
-		})
-	}
-
 	// Convert unix to date
-	date := helper.ConvertUnixtoDate(req.Date)
+	startTime := helper.ConvertUnixtoDate(req.StartTime)
+	endTime := helper.ConvertUnixtoDate(req.EndTime)
 
 	// Default status
 	status := string(model.Pending)
@@ -131,10 +122,11 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 		Country:       *location.Country,
 		DetailAddress: req.Address.DetailAddress,
 		Coordinates:   *location.Coordinates,
-		Date:          date.UTC(),
+		StartTime:     startTime.UTC(),
+		EndTime:       endTime.UTC(),
 	}
 
-	event, err = s.EventRepo.Create(event, categories, tickets)
+	event, err = s.EventRepo.Create(event, categories)
 	if err != nil {
 		log.Printf("error creating event")
 		return err
@@ -142,7 +134,6 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 
 	// Invalidate cache after update
 	utils.InvalidateCache(s.rdb, eventCache)
-	// s.InvalidateEventCache()
 
 	// Email the admins
 	// Only if the organizer decide to immediately up the event
@@ -180,25 +171,31 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 }
 
 func (s *EventService) ReviewEvent(req *dto.ReviewEventReq) error {
-	// Validate the event
 	event, err := s.EventRepo.FindByID(req.ID)
 	if err != nil {
 		return errors.New("event not found")
 	}
 
-	if event.Status != string(model.Pending) && event.Status != string(model.Reject) {
+	if event.Status != string(model.Pending) && event.Status != string(model.Rejected) {
 		return errors.New(fmt.Sprintf("event status is %s", event.Status))
 	}
 
+	now := time.Now().UTC()
 	event.Status = req.Status
+	event.ReviewedBy = req.ReviewedBy
+	event.ReviewedAt = &now
+
+	if req.Status == "reject" {
+		event.RejectedReason = req.Reason
+	} else {
+		event.RejectedReason = nil
+	}
 
 	if err := s.EventRepo.ReviewEvent(event); err != nil {
 		return err
 	}
 
-	// Invalidate cache after update
 	utils.InvalidateCache(s.rdb, eventCache)
-	// s.InvalidateEventCache()
 
 	// Email the EO
 	organizer, err := s.ProfileRepo.FindByID(event.ProfileID)
@@ -210,6 +207,7 @@ func (s *EventService) ReviewEvent(req *dto.ReviewEventReq) error {
 		To:        organizer.User.Email,
 		EventName: event.Name,
 		Status:    req.Status,
+		Reason:    helper.StringValue(req.Reason),
 	}
 	if err := s.EmailTaskPublisher.Enqueue(model.TypeEventEOVerification, EOEmailPayload); err != nil {
 		log.Printf("[EMAIL] failed sending email to event organizer %s\n", organizer.User.Email)
@@ -263,7 +261,7 @@ func (s *EventService) GetEventsByProfileID(userID string, filter *dto.EventFilt
 	hash := sha1.Sum(filterBytes)
 	filterHash := hex.EncodeToString(hash[:])
 
-	cacheKey := fmt.Sprintf("organizer_events:all:%d:%d:%s:%s:%s", pagination.Page, pagination.Limit, pagination.Sort, filterHash, profile.ID)
+	cacheKey := fmt.Sprintf("organizer_events:all:%d:%d:%s:%s:%s", pagination.Page, pagination.Limit, pagination.Sort, filterHash)
 
 	// Try to get from cache
 	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
@@ -287,18 +285,47 @@ func (s *EventService) GetEventsByProfileID(userID string, filter *dto.EventFilt
 	return events, nil
 }
 
-func (s *EventService) GetEventByID(id string) (*dto.EventsResp, error) {
+func (s *EventService) GetEventByID(id string, userLat, userLon float64) (*dto.EventsResp, error) {
 	// Search the event
 	event, err := s.EventRepo.FindByID(id)
 	if err != nil {
 		return nil, errors.New("event not found")
 	}
 
+	event.Banner = helper.StrPointerIfNotEmpty(
+		func() string {
+			if event.Banner == nil {
+				return ""
+			}
+			return fmt.Sprintf("http://localhost:8080/api/v1/event/banner/%s", *event.Banner)
+		}(),
+	)
+
 	// Get the organizer profile
 	organizer, err := s.ProfileRepo.FindByID(event.ProfileID)
 	if err != nil {
 		return nil, errors.New("organizer not found")
 	}
+
+	user, err := s.UserRepo.FindByID(organizer.UserID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	// Only profile that have the event can access on the organizer dashboard
+	// and also admin can access the event, check if the organizer profile id is equal to the event profile id
+	if organizer.ID != event.ProfileID && helper.StringValue(user.Role) != string(model.Admin) {
+		return nil, errors.New("unauthorized access to event")
+	}
+
+	organizer.PhotoProfile = helper.StrPointerIfNotEmpty(
+		func() string {
+			if organizer.PhotoProfile == nil {
+				return ""
+			}
+			return fmt.Sprintf("http://localhost:8080/api/v1/profile/photo/%s", *organizer.PhotoProfile)
+		}(),
+	)
 
 	var eventCategories []dto.EventCategories
 	for _, category := range event.Categories {
@@ -308,26 +335,23 @@ func (s *EventService) GetEventByID(id string) (*dto.EventsResp, error) {
 		})
 	}
 
-	var tickets []dto.Tickets
-	for _, ticket := range event.Tickets {
-		tickets = append(tickets, dto.Tickets{
-			ID:         ticket.ID,
-			Name:       ticket.Name,
-			Price:      ticket.Price,
-			Quantity:   ticket.Quantity,
-			TicketType: ticket.TicketType,
-		})
-	}
+	havDist := utils.Haversine(userLat, userLon, event.Lat, event.Lon)
+	distance := fmt.Sprintf("%.2f km", havDist)
 
 	respReq := &dto.EventRespReq{
 		Event:           event,
 		Organizer:       organizer,
 		EventCategories: eventCategories,
-		Tickets:         tickets,
-		Date:            helper.ConvertDatetoUnix(event.Date.Format(time.RFC3339)),
-		CreatedAt:       helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
-		UpdatedAt:       helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
-		DeletedAt:       helper.TimePtrToUnix(event.DeletedAt),
+		StartTime:       helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339)),
+		EndTime:         helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339)),
+		Distance:        distance,
+		Path: []dto.PathPoint{
+			{Name: "user", Lat: userLat, Lon: userLon},
+			{Name: event.Name, Lat: event.Lat, Lon: event.Lon},
+		},
+		CreatedAt: helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
+		UpdatedAt: helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
+		DeletedAt: helper.TimePtrToUnix(event.DeletedAt),
 	}
 	eventResp, err := dto.ToEventResp(respReq)
 	if err != nil {
@@ -337,24 +361,56 @@ func (s *EventService) GetEventByID(id string) (*dto.EventsResp, error) {
 	return eventResp, nil
 }
 
-func (s *EventService) FindNearestEvent(user model.Location) (*dto.NearestResult, error) {
-	eventsInRange, err := s.EventRepo.FindNearestEvents(user.Lat, user.Lon)
+func (s *EventService) GetEventRoute(id string, userLat, userLon float64) (*dto.RouteResp, error) {
+	event, err := s.EventRepo.FindByID(id)
 	if err != nil {
-		return nil, errors.New("there are no events near your location at the moment.")
+		return nil, errors.New("event not found")
 	}
 
-	var events []model.Location
-	for _, event := range eventsInRange {
-		events = append(events, model.Location{
-			Name: event.Event.Name,
-			Lat:  event.EventAddress.Coordinates.Lat,
-			Lon:  event.EventAddress.Coordinates.Lon,
-		})
+	distance, path := utils.ComputePathToEvent(userLat, userLon, event.Name, event.Lat, event.Lon)
+
+	// Compute analytic in background
+	// It will display the comparison between Dijkstra and Haversine on calculate the distance
+	go func() {
+		user := model.Location{Name: "user", Lat: userLat, Lon: userLon}
+		eventLoc := model.Location{Name: event.Name, Lat: event.Lat, Lon: event.Lon}
+		events := []model.Location{eventLoc}
+
+		go analytics.ComputeAnalytic(user, events)
+	}()
+
+	return &dto.RouteResp{
+		Event:    event.Name,
+		Distance: distance,
+		Path:     path,
+	}, nil
+}
+
+func (s *EventService) FindNearestEvent(user model.Location, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
+	var events *model.PaginationRow[*dto.EventsResp]
+
+	cacheKey := fmt.Sprintf("events:nearest:%d:%d:%d:%f:%f", pagination.Page, pagination.Limit, pagination.Sort, user.Lat, user.Lon)
+
+	// Try to get from cache
+	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
+	if err == nil {
+		json.Unmarshal([]byte(val), &events)
 	}
 
-	nearestEvent := Nearest(user, events)
+	if events == nil {
+		// If cache miss, get from db
+		events, err = s.EventRepo.FindNearestEvents(user.Lat, user.Lon, pagination)
+		if err != nil {
+			return nil, errors.New("there are no events near your location at the moment.")
+		}
 
-	return nearestEvent, nil
+		// Set cache with 15 minute TTL
+		if data, err := json.Marshal(events); err == nil {
+			s.rdb.Set(context.Background(), cacheKey, data, 15*time.Minute)
+		}
+	}
+
+	return events, nil
 }
 
 func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventReq) error {
@@ -370,13 +426,15 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 		return errors.New("event not found")
 	}
 
+	originalStatus := event.Status
+
 	// Validate the user
 	if !helper.IsAuthorized(event.ProfileID, profile.ID) {
 		return errors.New("unauthorized action")
 	}
 
-	// Only event with status active and draft can update
-	if event.Status != string(model.Active) && event.Status != string(model.Draft) {
+	// Event with status pending cannot be updated
+	if event.Status == string(model.Pending) {
 		return errors.New(fmt.Sprintf("event status is %s", event.Status))
 	}
 
@@ -424,19 +482,9 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 		return err
 	}
 
-	// Declared the tickets
-	var tickets []*model.Tickets
-	for _, ticket := range req.Tickets {
-		tickets = append(tickets, &model.Tickets{
-			Name:       ticket.Name,
-			Price:      ticket.Price,
-			Quantity:   ticket.Quantity,
-			TicketType: ticket.TicketType,
-		})
-	}
-
 	// Convert unix to date
-	date := helper.ConvertUnixtoDate(req.Date)
+	startTime := helper.ConvertUnixtoDate(req.StartTime)
+	endTime := helper.ConvertUnixtoDate(req.EndTime)
 
 	// Get coordinates from req
 	location := getLocation(req.Address.Lat, req.Address.Long)
@@ -445,8 +493,14 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	}
 
 	// Save events
-	if req.Status != "" && req.Status == string(model.Pending) {
+	if req.Status != "" {
 		event.Status = req.Status
+	}
+
+	// if the event owner decide to publish draft event
+	// Check the banner is uploaded or not
+	if event.Status == string(model.Pending) && banner == nil {
+		return errors.New("banner is required")
 	}
 
 	// If banner changed
@@ -461,7 +515,9 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 		event.Banner = &fileName
 
 		// Delete old banner from storage
-		os.Remove(*oldBanner)
+		if oldBanner != nil {
+			os.Remove(*oldBanner)
+		}
 	}
 
 	event.Name = req.Name
@@ -472,9 +528,10 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	event.Country = *location.Country
 	event.DetailAddress = req.Address.DetailAddress
 	event.Coordinates = *location.Coordinates
-	event.Date = date
+	event.StartTime = startTime
+	event.EndTime = endTime
 
-	if err := s.EventRepo.Update(event, categories, tickets); err != nil {
+	if err := s.EventRepo.Update(event, categories); err != nil {
 		return err
 	}
 
@@ -489,13 +546,18 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 			log.Println("[ERROR] admin data not found")
 		}
 
+		statusStr := string(model.Update)
+		if originalStatus == string(model.Draft) {
+			statusStr = string(model.Create)
+		}
+
 		for _, admin := range admins {
 			AdminEmailPayload := &model.EventEmailPayload{
 				To:        admin.Email,
 				EOName:    profile.Name,
 				EOEmail:   profile.User.Email,
 				EventName: event.Name,
-				Status:    string(model.Update),
+				Status:    statusStr,
 			}
 			if err := s.EmailTaskPublisher.Enqueue(model.TypeEventAdminNotification, AdminEmailPayload); err != nil {
 				log.Printf("[EMAIL] failed sending email to admin %s\n", admin.Email)
@@ -531,13 +593,9 @@ func (s *EventService) CancelEvent(id, userID string) error {
 
 	// Validate cancelation
 	// Event can be canceled less then 3 days before it starts
-	if time.Until(event.Date) < 72*time.Hour {
+	if time.Until(event.StartTime) < 72*time.Hour {
 		return errors.New("event cannot be cancelled less than 3 days before it starts")
 	}
-
-	// After integrated it with midtrans
-	// TO DO:
-	// Email to attendee about cancelation
 
 	// Cancel event
 	if err := s.EventRepo.CancelEvent(event.ID); err != nil {
@@ -551,30 +609,40 @@ func (s *EventService) CancelEvent(id, userID string) error {
 	return nil
 }
 
+func (s *EventService) DeleteEvent(id, userID string) error {
+	event, err := s.EventRepo.FindByID(id)
+	if err != nil {
+		return errors.New("Event not found")
+	}
+
+	if event.Profile.User.ID != userID {
+		return errors.New("Unauthorized action")
+	}
+
+	// Only delete event with status draft
+	if event.Status == string(model.Draft) {
+		return s.EventRepo.Delete(id)
+	}
+
+	utils.InvalidateCache(s.rdb, eventCache)
+
+	return nil
+}
+
 func (s *EventService) CreateUpdateEvent(banner *multipart.FileHeader, event *model.Events, req *dto.EventReq) error {
 	// Update only permitted 1 week before the event
-	if time.Until(event.Date) < 7*24*time.Hour {
+	if time.Until(event.StartTime) < 7*24*time.Hour {
 		return errors.New("event cannot be updated within 7 days of the event date")
 	}
 
 	// Validate len categories & tickets
-	if len(req.Categories) == 0 || len(req.Tickets) == 0 {
-		return errors.New("categories or ticket cannot be empty")
+	if len(req.Categories) == 0 {
+		return errors.New("categories cannot be empty")
 	}
 
 	categories, err := s.CategoryRepo.FindByIDs(req.Categories)
 	if err != nil {
 		return errors.New("category not found")
-	}
-
-	var tickets []*model.TicketsUpdate
-	for _, ticket := range req.Tickets {
-		tickets = append(tickets, &model.TicketsUpdate{
-			Name:       ticket.Name,
-			Price:      ticket.Price,
-			Quantity:   ticket.Quantity,
-			TicketType: ticket.TicketType,
-		})
 	}
 
 	// Get coordinates from req
@@ -598,17 +666,18 @@ func (s *EventService) CreateUpdateEvent(banner *multipart.FileHeader, event *mo
 			Name:          req.Name,
 			Banner:        &fileName,
 			Slug:          utils.CreateSlug(req.Name),
-			Status:        string(model.UpdatePending),
+			Status:        string(model.Pending),
 			Description:   req.Description,
 			Address:       *location.Address,
 			City:          *location.City,
 			Country:       *location.Country,
 			DetailAddress: req.Address.DetailAddress,
 			Coordinates:   *location.Coordinates,
-			Date:          helper.ConvertUnixtoDate(req.Date),
+			StartTime:     helper.ConvertUnixtoDate(req.StartTime),
+			EndTime:       helper.ConvertUnixtoDate(req.EndTime),
 		}
 
-		if err := s.UpdatedEventRepo.Create(updatedEvent, categories, tickets); err != nil {
+		if err := s.UpdatedEventRepo.Create(updatedEvent, categories); err != nil {
 			log.Printf("[ERROR] failed to update event %v\n", err)
 			return err
 		}
@@ -628,139 +697,24 @@ func (s *EventService) CreateUpdateEvent(banner *multipart.FileHeader, event *mo
 			Name:          req.Name,
 			Banner:        &bannerFile,
 			Slug:          utils.CreateSlug(req.Name),
-			Status:        string(model.UpdatePending),
+			Status:        string(model.Pending),
 			Description:   req.Description,
 			Address:       *location.Address,
 			City:          *location.City,
 			Country:       *location.Country,
 			DetailAddress: req.Address.DetailAddress,
 			Coordinates:   *location.Coordinates,
-			Date:          helper.ConvertUnixtoDate(req.Date),
+			StartTime:     helper.ConvertUnixtoDate(req.StartTime),
+			EndTime:       helper.ConvertUnixtoDate(req.EndTime),
 		}
 
-		if err := s.UpdatedEventRepo.Create(updatedEvent, categories, tickets); err != nil {
+		if err := s.UpdatedEventRepo.Create(updatedEvent, categories); err != nil {
 			log.Printf("[ERROR] failed to update event %v\n", err)
 			return err
 		}
 	}
 
 	return nil
-}
-
-func Nearest(user model.Location, events []model.Location) *dto.NearestResult {
-	performence := HavAndDijPerformence(user, events)
-
-	totalErrorHav := 0.0
-	totalErrorDij := 0.0
-
-	req := dto.AccuracyReq{
-		Events:        events,
-		User:          user,
-		NearestEvent:  dto.NearestResult{},
-		TotalErrorHav: totalErrorHav,
-		TotalErrorDij: totalErrorDij,
-	}
-
-	accuracyHav, accuracyDij := HavAndDijAccuracy(performence, &req)
-
-	// =========================
-	// ASSIGN PERFORMANCE & ACCURACY
-	// =========================
-	req.NearestEvent.Haversine.Time = fmt.Sprintf("%.4f s", performence.HavTime.Seconds())
-	req.NearestEvent.Haversine.Accuracy = fmt.Sprintf("%.2f%%", accuracyHav)
-
-	req.NearestEvent.Dijkstra.Time = fmt.Sprintf("%.4f s", performence.DijTime.Seconds())
-	req.NearestEvent.Dijkstra.Accuracy = fmt.Sprintf("%.2f%%", accuracyDij)
-
-	return &req.NearestEvent
-}
-
-func HavAndDijPerformence(user model.Location, events []model.Location) *dto.PerformenceResp {
-	// Haversine
-	startHav := time.Now()
-
-	havResults := make(map[string]float64)
-	for _, e := range events {
-		havResults[e.Name] = utils.Haversine(user.Lat, user.Lon, e.Lat, e.Lon)
-	}
-
-	havTime := time.Since(startHav)
-
-	// Dijkstra
-	startDij := time.Now()
-
-	graph := utils.BuildGraph(user, events)
-	distMap, _ := utils.Dijkstra(*graph, user.Name)
-
-	dijTime := time.Since(startDij)
-
-	minHav := math.Inf(1)
-	minDij := math.Inf(1)
-
-	return &dto.PerformenceResp{
-		HavResults: havResults,
-		DistMap:    distMap,
-		HavTime:    havTime,
-		DijTime:    dijTime,
-		MinHav:     minHav,
-		MinDij:     minDij,
-	}
-
-}
-
-func HavAndDijAccuracy(performence *dto.PerformenceResp, req *dto.AccuracyReq) (float64, float64) {
-	for _, e := range req.Events {
-		hav := performence.HavResults[e.Name]
-		dij := performence.DistMap[e.Name]
-
-		if hav < performence.MinHav {
-			performence.MinHav = hav
-			req.NearestEvent.Haversine = dto.Haversine{
-				Name:     e.Name,
-				Distance: fmt.Sprintf("%.2f km", hav),
-			}
-		}
-
-		if dij < performence.MinDij {
-			performence.MinDij = dij
-
-			route, err := utils.GetRouteOSRM(req.User.Lat, req.User.Lon, e.Lat, e.Lon)
-			if err == nil {
-				req.NearestEvent.Path = utils.ExtractPath(route, e.Name)
-			}
-
-			req.NearestEvent.Dijkstra = dto.Dijkstra{
-				Name:     e.Name,
-				Distance: fmt.Sprintf("%.2f km", dij),
-			}
-		}
-
-		// =========================
-		// ACCURACY DIJKSTRA
-		// =========================
-		if dij != 0 {
-			req.TotalErrorDij += math.Abs(hav-dij) / dij * 100
-		}
-
-		// =========================
-		// ACCURACY HAVERSINE
-		// =========================
-		if hav != 0 {
-			req.TotalErrorHav += math.Abs(hav-dij) / hav * 100
-		}
-	}
-
-	// =========================
-	// FINAL ACCURACY
-	// =========================
-	avgErrorHav := req.TotalErrorHav / float64(len(req.Events))
-	accuracyHav := 100 - avgErrorHav
-
-	avgErrorDij := req.TotalErrorDij / float64(len(req.Events))
-	accuracyDij := 100 - avgErrorDij
-
-	return accuracyHav, accuracyDij
-
 }
 
 func getLocation(lat, lon string) *dto.LocationResp {

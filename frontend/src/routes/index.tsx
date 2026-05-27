@@ -16,40 +16,92 @@ import AttendeeList from "../features/admin/views/attendeeList"
 import OrganizerList from "../features/admin/views/organizerList"
 import ActiveEventList from "../features/admin/views/activeEventList"
 import PendingEventList from "../features/admin/views/pendingEventList"
+import OrganizerDashboard from "../layout/organizerDashboard"
+import CheckEvents from "../features/events/organizer/views/checkEvents"
+import CancelEvent from "../features/events/organizer/views/cancelEvent"
+import DraftEvents from "../features/events/organizer/views/draftEvent"
+import EventFormView from "../features/events/organizer/views/eventFormView"
+import ApproveGuard from "./approveGuard"
+import DoneEventList from "../features/admin/views/doneEventList"
+import RejectedEventList from "../features/admin/views/rejectedEventList"
+import ReviewPage from "../features/admin/views/reviewPage"
+import CategoriesView from "../features/admin/views/categories"
+import UnauthorizedView from "../features/auth/views/unauthorizedView"
+
 export default function AppRoutes() {
-    return(
+    return (
         <BrowserRouter>
             <Routes>
                 <Route path="/login" element={<LoginView />} />
-                <Route path="/register" element={<RegisterView/>} />
-                <Route path="/forget" element={<ForgetPassword/>}/>
-                <Route path="/reset-password" element={<ResetPasswordView/>}/>
-                <Route path="/verified-email" element={<VerifiedEmailView/>}/>
+                <Route path="/register" element={<RegisterView />} />
+                <Route path="/forget" element={<ForgetPassword />} />
+                <Route path="/reset-password" element={<ResetPasswordView />} />
+                <Route path="/verified-email" element={<VerifiedEmailView />} />
 
-                <Route element={<ProtectedRoute/>}>
-                    <Route path="/select-role" element={<SelectRoleView/>}/>
+                <Route element={<ProtectedRoute />}>
+                    <Route path="/select-role" element={<SelectRoleView />} />
+                    <Route path="/unauthorized" element={<UnauthorizedView />} />
 
-                    <Route element={<RoleGuard allowedRoles={["user", "event organizer"]}/>}>
-        
+                    <Route element={<RoleGuard allowedRoles={["user", "event organizer"]} />}>
+
                         <Route element={<CompleteProfileGuard />}>
                             <Route path="/complete-profile" element={<CompleteProfileView />} />
                         </Route>
 
-                        <Route element={<ProfileGuard/>}>
-                            <Route path="/profile" element={<ProfileView/>}/>
+                        <Route element={<ProfileGuard />}>
+                            <Route path="/profile" element={<ProfileView />} />
                         </Route>
                     </Route>
                 </Route>
 
                 <Route path="/admin" element={<ProtectedRoute />}>
                     <Route element={<RoleGuard allowedRoles={["admin"]} />}>
-                        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                        <Route path="/admin/organizer-list" element={<OrganizerList />} />
-                        <Route path="/admin/attendee-list" element={<AttendeeList />} />
-                        <Route path="/admin/events-active" element={<ActiveEventList />} />
-                        <Route path="/admin/events-pending" element={<PendingEventList />} />
+                        <Route path="dashboard" element={<AdminDashboard />} />
+                        <Route path="organizer-list" element={<OrganizerList />} />
+                        <Route path="attendee-list" element={<AttendeeList />} />
+                        <Route path="events/active" element={<ActiveEventList />} />
+                        <Route path="events/pending" element={<PendingEventList />} />
+                        <Route path="events/done" element={<DoneEventList />} />
+                        <Route path="events/rejected" element={<RejectedEventList />} />
+                        <Route path="events/review/:id" element={<ReviewPage />} />
+                        <Route path="categories" element={<CategoriesView />} />
                     </Route>
-                </Route>            
+                </Route>
+
+
+                <Route path="/organizer" element={<ProtectedRoute />}>
+                    <Route element={<RoleGuard allowedRoles={["event organizer"]} />}>
+                        <Route path="dashboard" element={
+                            <OrganizerDashboard>
+                                <CheckEvents />
+                            </OrganizerDashboard>
+                        }
+                        />
+
+                        <Route path="cancel-event" element={
+                            <OrganizerDashboard>
+                                <CancelEvent />
+                            </OrganizerDashboard>
+                        }
+                        />
+
+                        <Route path="draft-event" element={
+                            <OrganizerDashboard>
+                                <DraftEvents />
+                            </OrganizerDashboard>
+                        }
+                        />
+
+
+                        <Route element={<ProfileGuard />}>
+                            <Route element={<ApproveGuard />}>
+                                <Route path="event/new" element={<EventFormView />} />
+                                <Route path="event/edit/:id" element={<EventFormView />} />
+                            </Route>
+                        </Route>
+
+                    </Route>
+                </Route>
             </Routes>
         </BrowserRouter>
     )

@@ -132,12 +132,21 @@ func (s *UpdatedEventService) ListAllUpdatedEventsByEventID(filter *dto.UpdatedE
 	return updatedEvents, nil
 }
 
-func (s *UpdatedEventService) GetUpdateEventByID(id, userID, role string) (*dto.EventUpdatesResp, error) {
+func (s *UpdatedEventService) GetUpdateEventByEventID(req *dto.GetUpdateReq) (*dto.EventUpdatesResp, error) {
 	// Validate event
-	event, err := s.UpdatedEventRepo.FindByID(id)
+	event, err := s.UpdatedEventRepo.FindByEventID(req.EventID, req.Status)
 	if err != nil {
 		return nil, errors.New("updated event request not found")
 	}
+
+	event.Banner = helper.StrPointerIfNotEmpty(
+		func() string {
+			if event.Banner == nil {
+				return ""
+			}
+			return fmt.Sprintf("http://localhost:8080/api/v1/updated-event/banner/%s", *event.Banner)
+		}(),
+	)
 
 	var categories []dto.EventCategories
 	for _, cat := range event.Categories {
@@ -147,36 +156,25 @@ func (s *UpdatedEventService) GetUpdateEventByID(id, userID, role string) (*dto.
 		})
 	}
 
-	var tickets []dto.Tickets
-	for _, ticket := range event.Tickets {
-		tickets = append(tickets, dto.Tickets{
-			ID:         ticket.ID,
-			Name:       ticket.Name,
-			Price:      ticket.Price,
-			Quantity:   ticket.Quantity,
-			TicketType: ticket.TicketType,
-		})
-	}
-
-	date := helper.ConvertDatetoUnix(event.Date.Format(time.RFC3339))
-	req := &dto.UpdatedEventRespReq{
+	startTime := helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339))
+	endTime := helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339))
+	updatedEventReq := &dto.UpdatedEventRespReq{
 		UpdatedEvent:    event,
 		EventID:         event.EventID,
 		EventCategories: categories,
-		Tickets:         tickets,
-		Date:            date,
+		StartTime:       startTime,
+		EndTime:         endTime,
 		CreatedAt:       helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
 		UpdatedAt:       helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
 		DeletedAt:       helper.TimePtrToUnix(event.DeletedAt),
 	}
 
-	resp, err := dto.ToEventUpdateResp(req)
+	resp, err := dto.ToEventUpdateResp(updatedEventReq)
 
 	return resp, nil
 }
 
 func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) error {
-	// Begin trasaction
 	updatedX := s.UpdatedEventRepo.GetDB().Begin()
 	eventX := s.EventRepo.GetDB().Begin()
 
@@ -187,13 +185,12 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		}
 	}()
 
-	// Validate updated event
 	updatedEvent, err := s.UpdatedEventRepo.FindByID(req.ID)
 	if err != nil {
 		return errors.New("update event not found")
 	}
 
-	if updatedEvent.Status != string(model.UpdatePending) {
+	if updatedEvent.Status != string(model.Pending) {
 		return errors.New(fmt.Sprintf("Updated already %s", updatedEvent.Status))
 	}
 
@@ -202,31 +199,34 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		return errors.New("event not found")
 	}
 
+	now := time.Now().UTC()
 	updatedEvent.Status = req.Status
+	updatedEvent.ReviewedBy = req.ReviewedBy
+	updatedEvent.ReviewedAt = &now
 
-	// Review the update
-	if err := updatedX.Updates(updatedEvent).Error; err != nil {
-		log.Printf("[ERROR] review event failed with %v error", err)
-		updatedX.Rollback()
-		return errors.New(fmt.Sprintf("review updated event failed"))
+	if req.Status == "rejected" {
+		updatedEvent.RejectedReason = req.Reason
+	} else {
+		updatedEvent.RejectedReason = nil
 	}
 
-	// If the status approved
-	// Update the event with the updated event data
-	if req.Status == string(model.UpdateApprove) {
+	if err := updatedX.Updates(updatedEvent).Error; err != nil {
+		updatedX.Rollback()
+		return errors.New("review updated event failed")
+	}
+
+	if req.Status == "approved" {
 		update := &dto.UpdateEvent{
 			EventTx:      eventX,
 			UpdatedEvent: updatedEvent,
 			Event:        event,
 		}
-
 		oldBanner, err := updateEventWithUpdated(update)
 		if err != nil {
 			updatedX.Rollback()
 			eventX.Rollback()
 			return err
 		}
-
 		if oldBanner != "" {
 			if err := os.Remove(filepath.Join(eventBannerPath, oldBanner)); err != nil {
 				updatedX.Rollback()
@@ -236,19 +236,15 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		}
 	}
 
-	// Commit transaction
 	if err := updatedX.Commit().Error; err != nil {
 		return err
 	}
-
 	if err := eventX.Commit().Error; err != nil {
 		return err
 	}
 
-	// Invalidate cache after update
 	utils.InvalidateCache(s.rdb, updatedEventCache)
 
-	// Send email to organizer
 	organizer, err := s.OrganizerProfileRepo.FindByID(updatedEvent.Event.ProfileID)
 	if err != nil {
 		log.Println("[ERROR] organizer data not found")
@@ -259,8 +255,8 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		EOName:    organizer.Name,
 		EventName: updatedEvent.Name,
 		Status:    updatedEvent.Status,
+		Reason:    helper.StringValue(req.Reason),
 	}
-
 	if err := s.EmailTaskPublisher.Enqueue(model.TypeEventUpdateNotification, payload); err != nil {
 		log.Printf("[ERROR] failed sending email to %s with error %v", organizer.User.Email, err)
 	}
@@ -282,13 +278,9 @@ func (s *UpdatedEventService) CancelUpdate(id string) error {
 func updateEventWithUpdated(update *dto.UpdateEvent) (string, error) {
 	var oldBanner string
 
-	fmt.Println("updated banner: ", *update.UpdatedEvent.Banner)
-	fmt.Println("event banner: ", *update.Event.Banner)
-
 	// Save the update event
 	if update.UpdatedEvent.Banner != nil && update.Event.Banner != nil &&
 		*update.UpdatedEvent.Banner != *update.Event.Banner {
-		fmt.Println("Sama nih")
 		fileName := *update.UpdatedEvent.Banner
 
 		updatedBannerSrc := filepath.Join(updatedEventBannerPath, fileName)
@@ -311,7 +303,8 @@ func updateEventWithUpdated(update *dto.UpdateEvent) (string, error) {
 	update.Event.Country = update.UpdatedEvent.Country
 	update.Event.DetailAddress = update.UpdatedEvent.DetailAddress
 	update.Event.Coordinates = update.UpdatedEvent.Coordinates
-	update.Event.Date = update.UpdatedEvent.Date
+	update.Event.StartTime = update.UpdatedEvent.StartTime
+	update.Event.EndTime = update.UpdatedEvent.EndTime
 	update.Event.UpdatedAt = time.Now().UTC()
 
 	if err := update.EventTx.Updates(update.Event).Error; err != nil {

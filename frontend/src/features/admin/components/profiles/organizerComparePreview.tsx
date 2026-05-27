@@ -1,8 +1,8 @@
 import { FaInstagram, FaRegFilePdf } from "react-icons/fa";
-import type { OrganizerResponse, OrganizerUpdateResponse } from "../../profile/types/profileResponse"
 import { useState } from "react";
-import FilePreview from "../../../components/filePreview";
-import { useValidateOrganizerUpdate } from "../../profile/hooks/organizer/useValidateOrganizer";
+import { useValidateOrganizerUpdate } from "../../../profile/hooks/organizer/useValidateOrganizer";
+import type { OrganizerResponse, OrganizerUpdateResponse } from "../../../profile/types/profileResponse";
+import FilePreview from "../../../../components/filePreview";
 
 interface Props {
     requestUpdate: OrganizerUpdateResponse;
@@ -12,7 +12,7 @@ interface Props {
     onClose?: () => void;
 };
 
-export default function OrganizerComparePreview({ 
+export default function OrganizerComparePreview({
     requestUpdate,
     current,
     profileLoading,
@@ -26,7 +26,7 @@ export default function OrganizerComparePreview({
     const { mutateAsync: validateOrganizer, isPending: updatePending } = useValidateOrganizerUpdate();
 
     const isPending = current?.status?.status === "pending";
-        
+
     const handleApprove = async () => {
         if (!requestUpdate?.id) return;
 
@@ -40,7 +40,7 @@ export default function OrganizerComparePreview({
 
         onClose?.();
     };
-        
+
     const handleReject = async () => {
         if (!requestUpdate?.id) return;
 
@@ -68,7 +68,11 @@ export default function OrganizerComparePreview({
                         <p><b>Phone:</b> {current.phone_number}</p>
                         <p><b>Country:</b> {current.country}</p>
                         <p><b>Address:</b> {current.address}</p>
-                        <p><b>Description:</b> {current.company_detail?.description}</p>
+                        <p><b>Description:</b></p>
+                        <div
+                            className="prose prose-sm max-w-none bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm"
+                            dangerouslySetInnerHTML={{ __html: current.company_detail?.description }}
+                        />
                         <p><b>NPWP:</b> {current.company_detail?.npwp}</p>
                         <p className="flex items-center gap-2">
                             <b>File:</b>
@@ -109,9 +113,13 @@ export default function OrganizerComparePreview({
                         <p><b>Phone:</b> {requestUpdate.phone_number}</p>
                         <p><b>Country:</b> {requestUpdate.country}</p>
                         <p><b>Address:</b> {requestUpdate.address}</p>
-                        <p><b>Description:</b> {requestUpdate.description}</p>
+                        <p><b>Description:</b></p>
+                        <div
+                            className="prose prose-sm max-w-none bg-gray-50 border border-dashed border-gray-300 rounded-lg p-3 text-sm"
+                            dangerouslySetInnerHTML={{ __html: requestUpdate.description }}
+                        />
                         <p><b>NPWP:</b> {requestUpdate.npwp_number}</p>
-                        {requestUpdate.npwp_document && 
+                        {requestUpdate.npwp_document &&
                             <p className="flex items-center gap-2">
                                 <b>NPWP File:</b>
                                 <FaRegFilePdf
@@ -121,7 +129,7 @@ export default function OrganizerComparePreview({
                             </p>
                         }
                         <p><b>NIB:</b> {requestUpdate.nib_number}</p>
-                        {requestUpdate.nib_document && 
+                        {requestUpdate.nib_document &&
                             <p className="flex items-center gap-2">
                                 <b>NIB File:</b>
                                 <FaRegFilePdf
@@ -133,7 +141,7 @@ export default function OrganizerComparePreview({
                     </div>
                 </div>
             </div>
-                        
+
             {previewFile && (
                 <FilePreview
                     setPreview={() => setPreviewFile(null)}
@@ -143,13 +151,13 @@ export default function OrganizerComparePreview({
 
             {isPending && (
                 <div className="flex justify-end gap-3 mt-6">
-                    <button 
+                    <button
                         className="px-4 py-2 border-2 border-black rounded-lg hover:bg-gray-200 transition"
                         onClick={() => setRejectModalOpen(true)}
                     >
                         Reject
                     </button>
-                    <button 
+                    <button
                         className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
                         onClick={handleApprove}
                         disabled={updatePending}
@@ -198,7 +206,7 @@ export default function OrganizerComparePreview({
                 </div>
             )}
         </>
-        
-        
+
+
     )
 }

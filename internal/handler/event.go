@@ -2,11 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"mime/multipart"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
+	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -75,8 +77,6 @@ func (h *EventHandler) CreateEvent(c *fiber.Ctx) error {
 				"file is too big",
 			))
 		}
-	} else {
-		banner = nil
 	}
 
 	if err := h.EventService.CreateEvent(banner, &req); err != nil {
@@ -119,9 +119,9 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 	}
 
 	var start, end time.Time
-	if filterReq.Date != 0 {
+	if filterReq.StartTime != 0 {
 		loc, _ := time.LoadLocation("Asia/Jakarta")
-		unix := time.Unix(filterReq.Date, 0).In(loc)
+		unix := time.Unix(filterReq.StartTime, 0).In(loc)
 		start = time.Date(unix.Year(), unix.Month(), unix.Day(), 0, 0, 0, 0, time.UTC)
 		end = start.Add(24 * time.Hour)
 	}
@@ -132,13 +132,15 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 	}
 
 	filter := &dto.EventFilter{
-		Title:    helper.StrPointerIfNotEmpty(title),
-		Category: helper.ArrayIntToPointer(filterReq.Category),
-		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:    helper.TimeToPointer(start),
-		End:      helper.TimeToPointer(end),
-		City:     helper.StrPointerIfNotEmpty(filterReq.City),
-		Country:  helper.StrPointerIfNotEmpty(filterReq.Country),
+		Title:     helper.StrPointerIfNotEmpty(title),
+		Search:    helper.StrPointerIfNotEmpty(filterReq.Search),
+		Sort:      helper.StrPointerIfNotEmpty(filterReq.Sort),
+		Date:      helper.StrPointerIfNotEmpty(filterReq.Date),
+		Category:  filterReq.Category,
+		Status:    helper.StrPointerIfNotEmpty(filterReq.Status),
+		Start:     helper.TimeToPointer(start),
+		End:       helper.TimeToPointer(end),
+		Location:  helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 
 	pagination := new(model.Pagination)
@@ -152,7 +154,6 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 	}
 
 	page := &model.Pagination{
-		Sort:  pagination.Sort,
 		Limit: pagination.Limit,
 		Page:  pagination.Page,
 	}
@@ -178,7 +179,7 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 func (h *EventHandler) GetEventByID(c *fiber.Ctx) error {
 	eventID := c.Params("id")
 
-	event, err := h.EventService.GetEventByID(eventID)
+	userLat, err := strconv.ParseFloat(c.Query("lat", "0"), 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -188,18 +189,8 @@ func (h *EventHandler) GetEventByID(c *fiber.Ctx) error {
 		))
 	}
 
-	return c.Status(fiber.StatusFound).JSON(dto.Success(
-		fiber.StatusFound,
-		"success",
-		"success",
-		event,
-	))
-}
-
-func (h *EventHandler) FindNearestEvents(c *fiber.Ctx) error {
-	var req dto.NearestEventReq
-
-	if err := c.BodyParser(&req); err != nil {
+	userLon, err := strconv.ParseFloat(c.Query("lon", "0"), 64)
+	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"failed",
@@ -208,23 +199,109 @@ func (h *EventHandler) FindNearestEvents(c *fiber.Ctx) error {
 		))
 	}
 
-	if err := h.Validate.Struct(req); err != nil {
-		msg := utils.GetValidationError(err)
+	event, err := h.EventService.GetEventByID(eventID, userLat, userLon)
+	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"failed",
-			"validation-error",
-			msg,
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		event,
+	))
+}
+
+func (h *EventHandler) GetEventRoute(c *fiber.Ctx) error {
+	eventID := c.Params("id")
+
+	userLat, err := strconv.ParseFloat(c.Query("lat", "0"), 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	userLon, err := strconv.ParseFloat(c.Query("lon", "0"), 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	resp, err := h.EventService.GetEventRoute(eventID, userLat, userLon)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		resp,
+	))
+}
+
+func (h *EventHandler) FindNearestEvents(c *fiber.Ctx) error {
+	userLat, err := strconv.ParseFloat(c.Query("lat", "0"), 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	userLon, err := strconv.ParseFloat(c.Query("lon", "0"), 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
 		))
 	}
 
 	user := model.Location{
 		Name: "user",
-		Lat:  req.Lat,
-		Lon:  req.Lon,
+		Lat:  userLat,
+		Lon:  userLon,
 	}
 
-	resp, err := h.EventService.FindNearestEvent(user)
+	pagination := new(model.Pagination)
+	if err := c.QueryParser(pagination); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	page := &model.Pagination{
+		Sort:  pagination.Sort,
+		Limit: pagination.Limit,
+		Page:  pagination.Page,
+	}
+
+	resp, err := h.EventService.FindNearestEvent(user, *page)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -256,9 +333,9 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 	}
 
 	var start, end time.Time
-	if filterReq.Date != 0 {
+	if filterReq.StartTime != 0 {
 		loc, _ := time.LoadLocation("Asia/Jakarta")
-		unix := time.Unix(filterReq.Date, 0).In(loc)
+		unix := time.Unix(filterReq.StartTime, 0).In(loc)
 		start = time.Date(unix.Year(), unix.Month(), unix.Day(), 0, 0, 0, 0, time.UTC)
 		end = start.Add(24 * time.Hour)
 	}
@@ -270,12 +347,11 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 
 	filter := &dto.EventFilter{
 		Title:    helper.StrPointerIfNotEmpty(title),
-		Category: helper.ArrayIntToPointer(filterReq.Category),
+		Category: filterReq.Category,
 		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
 		Start:    helper.TimeToPointer(start),
 		End:      helper.TimeToPointer(end),
-		City:     helper.StrPointerIfNotEmpty(filterReq.City),
-		Country:  helper.StrPointerIfNotEmpty(filterReq.Country),
+		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 
 	pagination := new(model.Pagination)
@@ -313,40 +389,41 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 }
 
 func (h *EventHandler) ReviewEvent(c *fiber.Ctx) error {
-	var req *dto.ReviewEventReq
+	id := c.Params("id")
+	adminID := c.Locals("user_id").(string)
+
+	var req dto.ReviewEventReq
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
+			fiber.StatusBadRequest, "failed", "error", err.Error(),
 		))
 	}
+
+	req.ID = id
 
 	if err := h.Validate.Struct(req); err != nil {
 		msg := utils.GetValidationError(err)
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"validation-error",
-			msg,
+			fiber.StatusBadRequest, "failed", "validation-error", msg,
 		))
 	}
 
-	if err := h.EventService.ReviewEvent(req); err != nil {
+	if err := req.ValidateReason(); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
+			fiber.StatusBadRequest, "failed", "validation-error", err.Error(),
+		))
+	}
+
+	req.ReviewedBy = &adminID
+
+	if err := h.EventService.ReviewEvent(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest, "failed", "error", err.Error(),
 		))
 	}
 
 	return c.Status(fiber.StatusOK).JSON(dto.Success(
-		fiber.StatusOK,
-		"success",
-		"success",
-		"success review event",
+		fiber.StatusOK, "success", "success", "success review event",
 	))
 }
 
@@ -379,7 +456,9 @@ func (h *EventHandler) UpdateEvent(c *fiber.Ctx) error {
 	req.ID = &eventID
 	req.UserID = userID
 
-	banner, _ := c.FormFile("banner")
+	var banner *multipart.FileHeader
+
+	banner, _ = c.FormFile("banner")
 	if banner != nil {
 		// Check pdf size
 		if banner.Size > (5 * 1024 * 1024) {
@@ -430,5 +509,26 @@ func (h *EventHandler) CancelEvent(c *fiber.Ctx) error {
 		"success",
 		"success",
 		"event canceled",
+	))
+}
+
+func (h *EventHandler) DeleteEvent(c *fiber.Ctx) error {
+	id := c.Params("id")
+	userID := c.Locals("user_id").(string)
+
+	if err := h.EventService.DeleteEvent(id, userID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"error",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		"Event deleted",
 	))
 }

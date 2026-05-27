@@ -17,16 +17,13 @@ export default function LoginView() {
 
         if (!user) return;
 
-        if (user.role === null) {
-            navigate("/select-role");
-        } 
-
         if (user.role === "admin") {
             navigate("/admin/dashboard");
-        } else {
-            navigate("/dashboard");
         }
 
+        if (user.role === "event organizer") {
+            navigate("/organizer/dashboard");
+        }
     }
 
     return(
@@ -39,7 +36,6 @@ export default function LoginView() {
 
                 </div>
 
-                {/* Form */}
                 <div className="md:w-1/2 px-8 md:px-16 sm:py-7">
                     <h2 className="font-bold text-2xl text-center">Login</h2>
                     <LoginForm onSubmit={handleLogin} loading={loading} errors={errors}/>
