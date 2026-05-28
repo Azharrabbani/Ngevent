@@ -24,6 +24,7 @@ type UpdatedEventService struct {
 	UpdatedEventRepo     repository.EventsUpdateRepo
 	EventRepo            repository.EventsRepo
 	OrganizerProfileRepo repository.OrganizerProfileRepo
+	EventExpiryPublisher NewTaskEventExpiryPublisher
 	rdb                  *redis.Client
 	EmailTaskPublisher   NewTaskEmail
 }
@@ -32,6 +33,7 @@ func NewUpdatedEventService(
 	updatedEventRepo repository.EventsUpdateRepo,
 	eventRepo repository.EventsRepo,
 	organizerProfileRepo repository.OrganizerProfileRepo,
+	eventExpiryPublisher NewTaskEventExpiryPublisher,
 	rdb *redis.Client,
 	emailTaskPublisher NewTaskEmail,
 ) *UpdatedEventService {
@@ -39,6 +41,7 @@ func NewUpdatedEventService(
 		UpdatedEventRepo:     updatedEventRepo,
 		EventRepo:            eventRepo,
 		OrganizerProfileRepo: organizerProfileRepo,
+		EventExpiryPublisher: eventExpiryPublisher,
 		rdb:                  rdb,
 		EmailTaskPublisher:   emailTaskPublisher,
 	}
@@ -233,6 +236,12 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 				eventX.Rollback()
 				return err
 			}
+		}
+		if err := s.EventExpiryPublisher.EnqueueEventExpiry(
+			&model.EventExpiredPayload{EventID: event.ID},
+			updatedEvent.EndTime,
+		); err != nil {
+			log.Printf("[EXPIRY] failed to re-enqueue expiry for event %s after update: %v", event.ID, err)
 		}
 	}
 

@@ -378,22 +378,52 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 	// =============================
 	var npwpFile, nibFile string
 
-	if req.CompanyDetail.NPWPFile != nil && req.CompanyDetail.NIBFile != nil {
-		fileReq := &dto.SaveNPWPAndNIBFileReq{
-			NPWP:     req.CompanyDetail.NPWPFile,
-			NIB:      req.CompanyDetail.NIBFile,
-			NPWPPath: npwpStagePath,
-			NIBPath:  nibStagePath,
+	hasNPWP := req.CompanyDetail.NPWPFile != nil
+	hasNIB := req.CompanyDetail.NIBFile != nil
+
+	if hasNPWP || hasNIB {
+		if hasNPWP {
+			npwpPath, npwpFileName, err := helper.SaveToLocal(req.CompanyDetail.NPWPFile, npwpStagePath)
+			if err != nil {
+				return fiber.StatusBadRequest, false, err
+			}
+			extNPWP := filepath.Ext(npwpPath)
+			baseNPWP := strings.TrimSuffix(npwpPath, extNPWP)
+			tempNPWP := baseNPWP + "_tmp" + extNPWP
+			if err := helper.CompressPDF(npwpPath, tempNPWP); err != nil {
+				return fiber.StatusBadRequest, false, err
+			}
+			if err := helper.OptimizePDF(tempNPWP); err != nil {
+				return fiber.StatusBadRequest, false, err
+			}
+			if err := os.Rename(tempNPWP, npwpPath); err != nil {
+				return fiber.StatusBadRequest, false, err
+			}
+			npwpFile = npwpFileName
 		}
 
-		npwpFile, nibFile, err = saveNPWPAndNIBFile(fileReq)
-		if err != nil {
-			return fiber.StatusBadRequest, false, err
+		if hasNIB {
+			nibPath, nibFileName, err := helper.SaveToLocal(req.CompanyDetail.NIBFile, nibStagePath)
+			if err != nil {
+				return fiber.StatusBadRequest, false, err
+			}
+			extNIB := filepath.Ext(nibPath)
+			baseNIB := strings.TrimSuffix(nibPath, extNIB)
+			tempNIB := baseNIB + "_tmp" + extNIB
+			if err := helper.CompressPDF(nibPath, tempNIB); err != nil {
+				return fiber.StatusBadRequest, false, err
+			}
+			if err := helper.OptimizePDF(tempNIB); err != nil {
+				return fiber.StatusBadRequest, false, err
+			}
+			if err := os.Rename(tempNIB, nibPath); err != nil {
+				return fiber.StatusBadRequest, false, err
+			}
+			nibFile = nibFileName
 		}
 
 		criticalChanged = true
 	}
-
 
 	// =============================
 	// IF CRITICAL → SAVE TO STAGING

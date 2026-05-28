@@ -17,15 +17,6 @@ type EventsRepository struct {
 	db *gorm.DB
 }
 
-// UpdateBannerEvent implements EventsRepo.
-func (r *EventsRepository) UpdateBannerEvent(id, banner string) error {
-	return r.db.Model(&model.Events{}).
-		Where("id = ?", id).
-		Updates(&model.Events{
-			Banner:    &banner,
-			UpdatedAt: time.Now().UTC()}).Error
-}
-
 func NewEventsRepository(db *gorm.DB) EventsRepo {
 	return &EventsRepository{db: db}
 }
@@ -33,6 +24,22 @@ func NewEventsRepository(db *gorm.DB) EventsRepo {
 // GetDB implements EventsRepo.
 func (r *EventsRepository) GetDB() *gorm.DB {
 	return r.db
+}
+
+// UpdateStatus implements [EventsRepo].
+func (r *EventsRepository) UpdateStatus(id, status string) error {
+	return r.db.Model(&model.Events{}).
+		Where("id = ?", id).
+		Update("status", status).Error
+}
+
+// UpdateBannerEvent implements EventsRepo.
+func (r *EventsRepository) UpdateBannerEvent(id, banner string) error {
+	return r.db.Model(&model.Events{}).
+		Where("id = ?", id).
+		Updates(&model.Events{
+			Banner:    &banner,
+			UpdatedAt: time.Now().UTC()}).Error
 }
 
 // IsCategoriesChanged implements EventsRepo.

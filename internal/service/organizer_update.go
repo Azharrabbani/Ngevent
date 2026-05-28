@@ -75,7 +75,9 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 		return errors.New("profile not found")
 	}
 
-	isFilesUpdates := updateData.NIBDocument != "" && updateData.NPWPDocument != ""
+	isNPWPUpdated := updateData.NPWPDocument != ""
+	isNIBUpdated := updateData.NIBDocument != ""
+	isFilesUpdates := isNPWPUpdated || isNIBUpdated
 
 	oldNPWPFile := fmt.Sprintf("%s/%s", npwpFilePath, profile.CompanyDetail.NPWPDocument)
 	oldNIBFile := fmt.Sprintf("%s/%s", nibFilePath, profile.CompanyDetail.NIBDocument)
@@ -97,27 +99,25 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 
 		// 2. [Opt] Copy file from staging to destination path
 		if isFilesUpdates {
-			npwpSrcPath := fmt.Sprintf("%s/%s", npwpStagePath, updateData.NPWPDocument)
-			nibSrcPath := fmt.Sprintf("%s/%s", nibStagePath, updateData.NIBDocument)
-
-			fileName := filepath.Base(updateData.NPWPDocument)
-			dstPath := fmt.Sprintf("%s/%s", npwpFilePath, fileName)
-
-			npwpFile, err := helper.CopyFile(npwpSrcPath, dstPath)
-			if err != nil {
-				return err
+			if isNPWPUpdated {
+				npwpSrcPath := fmt.Sprintf("%s/%s", npwpStagePath, updateData.NPWPDocument)
+				dstPath := fmt.Sprintf("%s/%s", npwpFilePath, filepath.Base(updateData.NPWPDocument))
+				npwpFile, err := helper.CopyFile(npwpSrcPath, dstPath)
+				if err != nil {
+					return err
+				}
+				profile.CompanyDetail.NPWPDocument = npwpFile
 			}
 
-			nibFileName := filepath.Base(updateData.NIBDocument)
-			nibDstPath := fmt.Sprintf("%s/%s", nibFilePath, nibFileName)
-
-			nibFile, err := helper.CopyFile(nibSrcPath, nibDstPath)
-			if err != nil {
-				return err
+			if isNIBUpdated {
+				nibSrcPath := fmt.Sprintf("%s/%s", nibStagePath, updateData.NIBDocument)
+				nibDstPath := fmt.Sprintf("%s/%s", nibFilePath, filepath.Base(updateData.NIBDocument))
+				nibFile, err := helper.CopyFile(nibSrcPath, nibDstPath)
+				if err != nil {
+					return err
+				}
+				profile.CompanyDetail.NIBDocument = nibFile
 			}
-
-			profile.CompanyDetail.NPWPDocument = npwpFile
-			profile.CompanyDetail.NIBDocument = nibFile
 		}
 
 		// 3. Update the data
@@ -137,16 +137,19 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 
 		// 5. [Opt] Remove old files
 		if isFilesUpdates {
-			if err := os.Remove(oldNPWPFile); err != nil {
-				profileX.Rollback()
-				updateX.Rollback()
-				return err
+			if isNPWPUpdated {
+				if err := os.Remove(oldNPWPFile); err != nil {
+					profileX.Rollback()
+					updateX.Rollback()
+					return err
+				}
 			}
-
-			if err := os.Remove(oldNIBFile); err != nil {
-				profileX.Rollback()
-				updateX.Rollback()
-				return err
+			if isNIBUpdated {
+				if err := os.Remove(oldNIBFile); err != nil {
+					profileX.Rollback()
+					updateX.Rollback()
+					return err
+				}
 			}
 		}
 

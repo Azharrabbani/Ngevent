@@ -19,7 +19,19 @@ const (
 	TypeEventEONotification     = "event:eo:notification"
 	TypeEventEOVerification     = "event:eo:verification"
 	TypeEventUpdateNotification = "updated_event:eo:notification"
+
+	TypeEventExpired        = "event:expired"
+	TypeUpdatedEventExpired = "updated_event:expired"
 )
+
+type EventExpiredPayload struct {
+	EventID string `json:"event_id"`
+}
+
+type UpdatedEventExpiredPayload struct {
+	UpdatedEventID string `json:"updated_event_id"`
+	EventID        string `json:"event_id"`
+}
 
 // Task payload for any unverified user related tasks.
 type UnverifiedUserPayload struct {

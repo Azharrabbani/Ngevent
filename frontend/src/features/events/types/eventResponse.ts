@@ -29,6 +29,9 @@ type UpdatedDetails = {
     description: string;
     start_time: number;
     end_time: number;
+    rejected_reason?: string;
+    reviewed_by?: Reviewer;
+    reviewed_at?: number;
 };
 
 type EoProfile = {
@@ -48,6 +51,14 @@ type EventDetail = {
     slug: string;
     status: string;
     description: string;
+    rejected_reason?: string;
+    reviewed_by?: Reviewer;
+    reviewed_at?: number;
+};
+
+type Reviewer = {
+    id?: string;
+    email?: string;
 };
 
 type EventAddress = {

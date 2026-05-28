@@ -128,23 +128,20 @@ export default function OrganizerProfileForm({ profile }: Props) {
         await updateProfile(payload);
     };
 
-    // Fetch blob when preview is opened
     const handleOpenNpwp = async () => {
         setPreviewNpwp(true)
-        if (npwpBlobUrl) return // already fetched
+        if (npwpBlobUrl) return
 
         const url = npwpPreview || profile?.company_detail?.npwp_file
         if (!url) return
 
-        // If it's a local blob (newly uploaded), use directly
         if (url.startsWith("blob:")) {
             setNpwpBlobUrl(url)
             return
         }
 
-        // Fetch from server
         const res = await fetch(url, {
-            credentials: "include"  // sends cookies automatically
+            credentials: "include"
         })
         const blob = await res.blob()
         setNpwpBlobUrl(URL.createObjectURL(blob))
@@ -163,13 +160,14 @@ export default function OrganizerProfileForm({ profile }: Props) {
         }
 
         const res = await fetch(url, {
-            credentials: "include"  // sends cookies automatically
+            credentials: "include"
         })
         const blob = await res.blob()
         setNpwpBlobUrl(URL.createObjectURL(blob))
     }
 
-    // Cleanup blob URLs on unmount
+    const isPending = profile?.status.status === "pending"
+
     useEffect(() => {
         return () => {
             if (npwpBlobUrl && npwpBlobUrl.startsWith("blob:")) URL.revokeObjectURL(npwpBlobUrl)
@@ -203,12 +201,28 @@ export default function OrganizerProfileForm({ profile }: Props) {
                     </div>
                 )}
             </UploadPhoto>
-            {(profile?.status.status === "pending" || profile?.status.status === "rejected") &&
+            {isPending ? (
                 <div className="space-y-0 text-center">
-                    <p className="italic text-sm">Your profile is being review by the admin</p>
-                    <p className="italic text-sm">please wait for the admin to approve your profile</p>
+                    <p className="italic text-sm text-yellow-600">
+                        Your profile is currently being reviewed by the admin.
+                    </p>
+
+                    <p className="italic text-sm text-gray-500">
+                        Please wait for the approval process to be completed.
+                    </p>
                 </div>
-            }
+            ) : (
+                <div className="space-y-0 text-center">
+                    <p className="italic text-sm text-red-600">
+                        Your profile has been rejected by the admin.
+                    </p>
+
+                    <p className="italic text-sm text-gray-500">
+                        Please review the rejection reason on your email and update your profile information.
+                    </p>
+                </div>
+
+            )}
 
             {previewOpen && (
                 <div

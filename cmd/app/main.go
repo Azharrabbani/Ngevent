@@ -61,6 +61,7 @@ func main() {
 	unverifiedUserTaskPublisher := tasks.NewUserTaskPublisher(server.ClientWoker, server.InspectorWorker)
 	unusedOTPTaskPublisher := tasks.NewOTPTaskPublisher(server.ClientWoker, server.InspectorWorker)
 	emailTaskPublisher := tasks.NewEmailTaskPublisher(server.ClientWoker, server.InspectorWorker)
+	eventExpiryPublisher := tasks.NewEventExpiryPublisher(server.ClientWoker, server.InspectorWorker)
 
 	// Init repository
 	userRepo := repository.NewUsersRepository(server.DB)
@@ -81,8 +82,8 @@ func main() {
 	organizerProfileService := service.NewOrganizerProfileService(organizerProfileRepo, userRepo, organizerUpdateRepo, emailTaskPublisher, server.RDB)
 	organizerUpdateService := service.NewOrganizerUpdateService(userRepo, organizerProfileRepo, organizerUpdateRepo, emailTaskPublisher, server.RDB)
 	categoryService := service.NewCategoryService(categoryRepo, server.RDB)
-	eventService := service.NewEventService(eventRepo, updateEventRepo, userRepo, organizerProfileRepo, categoryRepo, emailTaskPublisher, server.RDB)
-	updateEventService := service.NewUpdatedEventService(updateEventRepo, eventRepo, organizerProfileRepo, server.RDB, emailTaskPublisher)
+	eventService := service.NewEventService(eventRepo, updateEventRepo, userRepo, organizerProfileRepo, categoryRepo, eventExpiryPublisher, emailTaskPublisher, server.RDB)
+	updateEventService := service.NewUpdatedEventService(updateEventRepo, eventRepo, organizerProfileRepo, eventExpiryPublisher, server.RDB, emailTaskPublisher)
 	locationService := service.NewLocationService(server.RDB)
 
 	// Init handler

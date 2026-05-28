@@ -22,18 +22,24 @@ func main() {
 	attendeeProfileRepo := repository.NewAttendeeProfileRepository(worker.DB)
 	organizerProfileRepo := repository.NewOrganizerRepository(worker.DB)
 	otpRepo := repository.NewOtpRepository(worker.DB)
+	eventRepo := repository.NewEventsRepository(worker.DB)
+	updatedEventRepo := repository.NewUpdatedEventsRepository(worker.DB)
 
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, nil, nil, nil)
 	userService := service.NewUserService(userRepo, attendeeProfileRepo, organizerProfileRepo, otpRepo, nil, nil, nil, nil)
+	eventExpiryService := service.NewEventExpiryService(eventRepo, updatedEventRepo)
 
 	// Init tasks handler
 	userTaskHandler := tasks.NewUserTaskHandler(userService)
 	otpTaskHandler := tasks.NewOTPTaskHandler(authService)
+	eventExpiryHandler := tasks.NewEventExpiryHandler(eventExpiryService)
 
 	// Setup handlers
 	worker.Mux.HandleFunc(model.TypeVerifiedUser, userTaskHandler.HandlerUnverifiedTask)
 	worker.Mux.HandleFunc(model.TypeVerifiedOTP, otpTaskHandler.HandlerUnusedOTP)
+	worker.Mux.HandleFunc(model.TypeEventExpired, eventExpiryHandler.HandleEventExpired)
+	worker.Mux.HandleFunc(model.TypeUpdatedEventExpired, eventExpiryHandler.HandleUpdatedEventExpired)
 
 	// Email handlers
 	worker.Mux.HandleFunc(model.TypeEMailVerify, tasks.NewEmailTaskHandler().HandlerUserVerification)

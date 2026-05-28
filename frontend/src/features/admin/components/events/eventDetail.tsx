@@ -46,9 +46,11 @@ export default function EventDetailView({
     const { data, isLoading } = useGetEventByID(id!);
 
     const start = new Date(Number(data?.start_time) * 1000)
+    const reviewedAt = new Date(Number(data?.event?.reviewed_at) * 1000)
     const end = new Date(Number(data?.end_time) * 1000)
 
     const date = toDateString(start, "long")
+    const reviewDate = toDateString(reviewedAt, "long")
     const eventTimeRange = timeRange(start, end);
     const submittedAt = new Date(Number(data?.created_at) * 1000)
 
@@ -125,6 +127,23 @@ export default function EventDetailView({
                             </div>
                         )}
                     </div>
+
+                    {!isPending && (
+                        <div className="px-5 sm:px-6 py-4 border-b border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <InfoField label="Reviewed By">
+                                {data?.event?.reviewed_by?.email ?? "-"}
+                            </InfoField>
+                            {data?.event.status === "rejected" && (
+                                <InfoField label="Rejected Reason">
+                                    {data?.event?.rejected_reason ?? "-"}
+                                </InfoField>
+                            )}
+                            <InfoField label="Reviewed at">
+                                {reviewDate ?? "-"}
+                            </InfoField>
+                        </div>
+                    )}
+
 
                     <div className="px-5 sm:px-6 py-4 border-b border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <InfoField label="Date">

@@ -22,14 +22,21 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type NewTaskEventExpiryPublisher interface {
+	EnqueueEventExpiry(payload *model.EventExpiredPayload, endTime time.Time) error
+	EnqueueUpdatedEventExpiry(payload *model.UpdatedEventExpiredPayload, endTime time.Time) error
+	CancelEventExpiry(eventID string) error
+}
+
 type EventService struct {
-	EventRepo          repository.EventsRepo
-	UpdatedEventRepo   repository.EventsUpdateRepo
-	UserRepo           repository.UsersRepo
-	ProfileRepo        repository.OrganizerProfileRepo
-	CategoryRepo       repository.CategoriesRepo
-	EmailTaskPublisher NewTaskEmail
-	rdb                *redis.Client
+	EventRepo            repository.EventsRepo
+	UpdatedEventRepo     repository.EventsUpdateRepo
+	UserRepo             repository.UsersRepo
+	ProfileRepo          repository.OrganizerProfileRepo
+	CategoryRepo         repository.CategoriesRepo
+	EventExpiryPublisher NewTaskEventExpiryPublisher
+	EmailTaskPublisher   NewTaskEmail
+	rdb                  *redis.Client
 }
 
 func NewEventService(
@@ -38,17 +45,19 @@ func NewEventService(
 	userRepo repository.UsersRepo,
 	profileRepo repository.OrganizerProfileRepo,
 	categoryRepo repository.CategoriesRepo,
+	eventExpiryPublisher NewTaskEventExpiryPublisher,
 	emailTaskPublisher NewTaskEmail,
 	rdb *redis.Client,
 ) *EventService {
 	return &EventService{
-		EventRepo:          eventRepo,
-		UpdatedEventRepo:   updatedEventRepo,
-		UserRepo:           userRepo,
-		ProfileRepo:        profileRepo,
-		CategoryRepo:       categoryRepo,
-		EmailTaskPublisher: emailTaskPublisher,
-		rdb:                rdb,
+		EventRepo:            eventRepo,
+		UpdatedEventRepo:     updatedEventRepo,
+		UserRepo:             userRepo,
+		ProfileRepo:          profileRepo,
+		CategoryRepo:         categoryRepo,
+		EventExpiryPublisher: eventExpiryPublisher,
+		EmailTaskPublisher:   emailTaskPublisher,
+		rdb:                  rdb,
 	}
 }
 
@@ -193,6 +202,13 @@ func (s *EventService) ReviewEvent(req *dto.ReviewEventReq) error {
 
 	if err := s.EventRepo.ReviewEvent(event); err != nil {
 		return err
+	}
+
+	if req.Status == string(model.Active) {
+		payload := &model.EventExpiredPayload{EventID: event.ID}
+		if err := s.EventExpiryPublisher.EnqueueEventExpiry(payload, event.EndTime); err != nil {
+			log.Printf("[EXPIRY] failed to enqueue expiry for event %s: %v", event.ID, err)
+		}
 	}
 
 	utils.InvalidateCache(s.rdb, eventCache)
@@ -601,6 +617,10 @@ func (s *EventService) CancelEvent(id, userID string) error {
 	if err := s.EventRepo.CancelEvent(event.ID); err != nil {
 		log.Printf("[ERROR] error canceling event %v\n", err)
 		return errors.New("failed to cancel")
+	}
+
+	if err := s.EventExpiryPublisher.CancelEventExpiry(event.ID); err != nil {
+		log.Printf("[EXPIRY] failed to cancel expiry task for event %s: %v", event.ID, err)
 	}
 
 	// Invalidate cache after update

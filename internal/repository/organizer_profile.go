@@ -119,9 +119,10 @@ func (r *OrganizerRepository) VerifiedProfile(id string, req *dto.ApprovedReq) e
 		Model(&model.OrganizerProfiles{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
-			"status":      "approved",
-			"reviewed_by": req.ReviewedBy,
-			"reviewed_at": req.ReviewedAt,
+			"status":          "approved",
+			"rejected_reason": nil,
+			"reviewed_by":     req.ReviewedBy,
+			"reviewed_at":     req.ReviewedAt,
 		}).Error
 }
 

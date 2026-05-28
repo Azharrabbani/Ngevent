@@ -16,6 +16,7 @@ import ViewBannerModal from "./modal/bannerModal";
 import BannerPreview from "./modal/bannerPreview";
 import Modal from "../../../../components/modal";
 import RejectReasonModal from "./modal/rejectReasonModal";
+import InfoField from "./infoField";
 
 
 interface UpdateRequestViewProps {
@@ -63,9 +64,11 @@ export default function UpdateRequestView({
     const { data: updateData, isLoading: updateIsLoading } = useGetUpdateByEventID(id!, status!);
 
     const startDate = new Date(Number(updateData?.updated_details?.start_time) * 1000)
+    const reviewDate = new Date(Number(updateData?.updated_details?.reviewed_at) * 1000)
     const endDate = new Date(Number(updateData?.updated_details?.end_time) * 1000)
 
     const updateDate = toDateString(startDate, "long")
+    const reviewDateString = toDateString(reviewDate, "long")
     const updateEventTimeRange = timeRange(startDate, endDate);
 
     const requestedAt = new Date(Number(updateData?.created_at) * 1000)
@@ -146,6 +149,20 @@ export default function UpdateRequestView({
                             </div>
                         )}
                     </div>
+
+                    {!isPending && (
+                        <div className="px-5 sm:px-6 py-4 border-b border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <InfoField label="Reviewed By">
+                                {updateData?.updated_details?.reviewed_by?.email ?? "-"}
+                            </InfoField>
+                            <InfoField label="Rejected Reason">
+                                {updateData?.updated_details?.rejected_reason ?? "-"}
+                            </InfoField>
+                            <InfoField label="Reviewed at">
+                                {reviewDateString ?? "-"}
+                            </InfoField>
+                        </div>
+                    )}
 
                     {/* Card headers */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 border-b border-gray-200">

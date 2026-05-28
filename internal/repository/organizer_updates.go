@@ -56,7 +56,9 @@ func (r *OrganizerProfileUpdateRepository) FindByProfileID(id string) (*model.Or
 func (r *OrganizerProfileUpdateRepository) FindUpdatesByProfileID(pagination model.Pagination, profileID string) (*model.PaginationRow[*model.OrganizerProfilesUpdates], error) {
 	var profileUpdates []*model.OrganizerProfilesUpdates
 
-	if err := r.db.Scopes(Paginate(profileID, &pagination, r.db)).Where("profile_id = ?", profileID).Error; err != nil {
+	if err := r.db.Scopes(Paginate(profileID, &pagination, r.db)).
+		Where("profile_id = ?", profileID).
+		Find(&profileUpdates).Error; err != nil {
 		return nil, err
 	}
 
