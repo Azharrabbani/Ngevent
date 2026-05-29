@@ -47,7 +47,7 @@ export default function AdminSidebar({ children }: Props) {
             icon: <UserIcon />,
             subMenu: true,
             subMenuItems: [
-                { title: "Attendee", path: "/admin/attendee-list" },
+                { title: "Admin", path: "/admin/admin-list" },
                 { title: "Organizer", path: "/admin/organizer-list" }
             ],
         },

@@ -7,6 +7,12 @@ export const attendeeKeys = {
     me: () => [...attendeeKeys.all, "me"] as const,
 };
 
+export const userKeys = {
+    all: ["user"] as const,
+    lists: () => [...userKeys.all, "list"] as const,
+    list: (params: any) => [...userKeys.lists(), params] as const,
+};
+
 export const organizerKeys = {
     all: ["organizers"] as const,
     lists: () => [...organizerKeys.all, "list"] as const,

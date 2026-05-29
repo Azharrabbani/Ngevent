@@ -57,7 +57,7 @@ var userCache []string = []string{
 	"users:all:*",
 }
 
-func (s *UserService) CreateUser(email, password, confirmPassword, role string) (*dto.UsersResponse, error) {
+func (s *UserService) CreateUser(email, password, confirmPassword, role, userRole string) (*dto.UsersResponse, error) {
 	userX := s.UserRepo.GetDB().Begin()
 	otpX := s.OtpRepo.GetDB().Begin()
 
@@ -68,6 +68,14 @@ func (s *UserService) CreateUser(email, password, confirmPassword, role string) 
 			otpX.Rollback()
 		}
 	}()
+
+	// Check if the input role is admin
+	// Only admin can register another admin
+	if role == string(model.Admin) {
+		if userRole != string(model.Admin) {
+			return nil, errors.New("you don't have permission to perform this action")
+		}
+	}
 
 	// Check password
 	if password != confirmPassword {

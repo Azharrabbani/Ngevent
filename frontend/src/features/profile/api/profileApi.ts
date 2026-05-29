@@ -1,6 +1,8 @@
 import { api } from "../../../lib/api";
 import type { PaginatedResponse, successResponse } from "../../../types/apiResponse";
-import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq, UpdatePhotoReq, UpdateAttendeeProfileReq, UpdateOrganizerProfileReq, UserQueryParams, FilterAttendeeReq, FilterOrganizerReq, validateOrganizerReq, rejectOrganizerReq } from "../types/profileRequest";
+import type { UserFilterRequest } from "../types/userRequest";
+import type { UserResponse } from "../types/userResponse";
+import type { CreateAttendeeProfileReq, CreateOrganizerProfileReq, UpdatePhotoReq, UpdateAttendeeProfileReq, UpdateOrganizerProfileReq, FilterAttendeeReq, FilterOrganizerReq, validateOrganizerReq, rejectOrganizerReq } from "../types/profileRequest";
 import type { AttendeeResponse, OrganizerResponse, OrganizerUpdateResponse } from "../types/profileResponse";
 
 export const CheckProfile = async () => {
@@ -28,8 +30,8 @@ export const createAttendeeProfileApi = async (payload: CreateAttendeeProfileReq
     return res.data;
 };
 
-export const GetAttendeesProfileApi = async(params: FilterAttendeeReq) => {
-    const res = await api.get<PaginatedResponse<AttendeeResponse>>("/attendee", { 
+export const GetAttendeesProfileApi = async (params: FilterAttendeeReq) => {
+    const res = await api.get<PaginatedResponse<AttendeeResponse>>("/attendee", {
         params: {
             filter: params.filter,
             page: params.pagination?.page,
@@ -41,35 +43,35 @@ export const GetAttendeesProfileApi = async(params: FilterAttendeeReq) => {
     return res.data;
 }
 
-export const GetAttendeeDetailProfileApi = async(id: string) => {
+export const GetAttendeeDetailProfileApi = async (id: string) => {
     const res = await api.get<successResponse<AttendeeResponse>>(`/attendee/${id}`);
     return res.data;
 }
 
-export const GetAttendeeProfilePhotoApi = async(payload: string) => {
+export const GetAttendeeProfilePhotoApi = async (payload: string) => {
     const res = await api.get(`/attendee/photo/${payload}`);
     return res.data;
 }
 
-export const GetCurrentAttendeeProfileApi = async() => {
+export const GetCurrentAttendeeProfileApi = async () => {
     const res = await api.get<successResponse<AttendeeResponse>>("/attendee");
     return res.data;
 }
 
-export const updateAttendeePhotoApi = async(payload: UpdatePhotoReq) => {
+export const updateAttendeePhotoApi = async (payload: UpdatePhotoReq) => {
     const formData = new FormData();
 
     formData.append("photo", payload.photo);
 
     const res = await api.put<successResponse<string>>(
-        "/attendee/photo", 
+        "/attendee/photo",
         formData
     );
 
     return res.data;
 }
 
-export const updateAttendeeProfile = async(payload: UpdateAttendeeProfileReq) => {
+export const updateAttendeeProfile = async (payload: UpdateAttendeeProfileReq) => {
     const res = await api.put<successResponse<string>>("/attendee", payload);
     return res.data;
 }
@@ -97,8 +99,8 @@ export const CreateOrganizerProfileApi = async (payload: CreateOrganizerProfileR
     return res.data;
 };
 
-export const GetOrganizersProfileApi = async(params: FilterOrganizerReq) => {
-    const res = await api.get<PaginatedResponse<OrganizerResponse>>("/organizer/profiles", { 
+export const GetOrganizersProfileApi = async (params: FilterOrganizerReq) => {
+    const res = await api.get<PaginatedResponse<OrganizerResponse>>("/organizer/profiles", {
         params: {
             filter: params.filter,
             status: params.status,
@@ -111,12 +113,12 @@ export const GetOrganizersProfileApi = async(params: FilterOrganizerReq) => {
     return res.data;
 }
 
-export const GetOrganizerDetailProfileApi = async(id: string) => {
+export const GetOrganizerDetailProfileApi = async (id: string) => {
     const res = await api.get<successResponse<OrganizerResponse>>(`/organizer/${id}`);
     return res.data;
 }
 
-export const GetCurrentOrganizerProfileApi = async() => {
+export const GetCurrentOrganizerProfileApi = async () => {
     const res = await api.get<successResponse<OrganizerResponse>>("/organizer");
     return res.data;
 }
@@ -145,11 +147,11 @@ export const UpdateOrganizerProfileApi = async (payload: UpdateOrganizerProfileR
     formData.append("npwp_number", payload.npwp);
 
     if (payload.npwpFile) {
-      formData.append("npwp_file", payload.npwpFile);
+        formData.append("npwp_file", payload.npwpFile);
     }
 
     if (payload.nibFile) {
-      formData.append("nib_file", payload.nibFile);
+        formData.append("nib_file", payload.nibFile);
     }
 
     formData.append("description", payload.description);
@@ -164,7 +166,7 @@ export const UpdateOrganizerProfileApi = async (payload: UpdateOrganizerProfileR
     return res.data;
 }
 
-export const GetUpdateOrganizerReqApi = async (id : string) => {
+export const GetUpdateOrganizerReqApi = async (id: string) => {
     const res = await api.get<successResponse<OrganizerUpdateResponse>>(`/staging-organizer/update/${id}`);
     return res.data;
 }
@@ -174,7 +176,7 @@ export const ApproveOrganizerApi = async (id: string) => {
     return res.data;
 }
 
-export const RejectOrganizerApi = async (id: string, payload: rejectOrganizerReq ) => {
+export const RejectOrganizerApi = async (id: string, payload: rejectOrganizerReq) => {
     const res = await api.put<successResponse<string>>(`/organizer/reject/${id}`, payload);
     return res.data;
 }
@@ -184,10 +186,20 @@ export const ValidateOrganizerUpdateApi = async (id: string | null, payload: val
     return res.data;
 }
 
-// Get profile api
-export const ListUsersApi = async (params: UserQueryParams) => {
-    const res = await api.get("/user", {
-        params,
-    });
+export const listUsersApi = async (params: UserFilterRequest) => {
+    const res = await api.get<PaginatedResponse<UserResponse>>(
+        "/user",
+        {
+            params: {
+                role: params.role,
+                email: params.email,
+                page: params.pagination?.page,
+                limit: params.pagination?.limit,
+                sort: params.pagination?.sort,
+            }
+        }
+
+    )
+
     return res.data;
-};
+}

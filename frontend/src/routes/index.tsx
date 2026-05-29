@@ -12,7 +12,6 @@ import RoleGuard from "./roleGuard"
 import ProfileView from "../features/profile/views/profileView"
 import ProfileGuard from "./profileGuard"
 import AdminDashboard from "../features/admin/views/dashboard"
-import AttendeeList from "../features/admin/views/attendeeList"
 import OrganizerList from "../features/admin/views/organizerList"
 import ActiveEventList from "../features/admin/views/activeEventList"
 import PendingEventList from "../features/admin/views/pendingEventList"
@@ -27,6 +26,7 @@ import RejectedEventList from "../features/admin/views/rejectedEventList"
 import ReviewPage from "../features/admin/views/reviewPage"
 import CategoriesView from "../features/admin/views/categories"
 import UnauthorizedView from "../features/auth/views/unauthorizedView"
+import AdminList from "../features/admin/views/adminList"
 
 export default function AppRoutes() {
     return (
@@ -58,7 +58,7 @@ export default function AppRoutes() {
                     <Route element={<RoleGuard allowedRoles={["admin"]} />}>
                         <Route path="dashboard" element={<AdminDashboard />} />
                         <Route path="organizer-list" element={<OrganizerList />} />
-                        <Route path="attendee-list" element={<AttendeeList />} />
+                        <Route path="admin-list" element={<AdminList />} />
                         <Route path="events/active" element={<ActiveEventList />} />
                         <Route path="events/pending" element={<PendingEventList />} />
                         <Route path="events/done" element={<DoneEventList />} />

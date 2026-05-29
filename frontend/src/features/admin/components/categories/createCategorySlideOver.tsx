@@ -4,6 +4,7 @@ import Input from "../../../../components/input";
 import { useCreateCategory } from "../../../categories/hooks/useCreateCategory";
 import { CrossIcon } from "../../../../components/icon";
 import { CreateSlug } from "../../utils/slug";
+import Slider from "../slider";
 
 interface Props {
     isOpen: boolean;
@@ -44,17 +45,8 @@ export default function CreateCategorySlideOver({ isOpen, onClose }: Props) {
     };
 
     return (
-        <>
-            <div
-                className={`fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px] transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-                    }`}
-                onClick={onClose}
-            />
-
-            <div
-                className={`fixed top-0 right-0 z-50 h-full w-full max-w-md bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
-                    }`}
-            >
+        <Slider isOpen={isOpen} onClose={onClose}>
+            <>
                 <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
                     <div>
                         <h2 className="text-xl font-bold text-gray-900">New Category</h2>
@@ -130,7 +122,7 @@ export default function CreateCategorySlideOver({ isOpen, onClose }: Props) {
                         </Button>
                     </div>
                 </form>
-            </div>
-        </>
+            </>
+        </Slider>
     );
 }

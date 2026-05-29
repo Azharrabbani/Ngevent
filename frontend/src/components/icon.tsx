@@ -11,6 +11,7 @@ import { ImSpinner2 } from "react-icons/im";
 import { FiSearch } from "react-icons/fi";
 import { GoShield } from "react-icons/go";
 import { IoIosArrowRoundBack } from "react-icons/io";
+import { LuUserRoundCheck } from "react-icons/lu";
 
 interface Props {
     className?: string
@@ -92,5 +93,11 @@ export function ShieldIcon({ className, size }: Props) {
 export function LeftArrowIcon({ className, size }: Props) {
     return (
         <IoIosArrowRoundBack className={className} size={size} />
+    )
+}
+
+export function UserVerifiedIcon({ className, size }: Props) {
+    return (
+        <LuUserRoundCheck className={className} size={size} />
     )
 }

@@ -3,21 +3,23 @@ import { RiCalendarEventFill } from "react-icons/ri";
 import { useListUsers } from "../../profile/hooks/useListUsers";
 import AdminSidebar from "../components/sideBar";
 import { useNavigate } from "react-router-dom";
-import { useListAttendee } from "../../profile/hooks/attendee/useListAttendee";
 import { useGetEvents } from "../../events/hooks/useGetEvents";
 import { useGetAllUpdatedEvents } from "../../events/hooks/useGetAllUpdatedEvent";
 
 export default function AdminDashboard() {
-    const { data: attendees, isLoading: attendessLoading } = useListAttendee({
-        filter: "",
+    const organizers = useListUsers({
+        role: "event organizer",
+        pagination: { page: 1, limit: 1 }
     })
 
-    const organizers = useListUsers({
-        role: "event organizer"
+    const admins = useListUsers({
+        role: "admin",
+        pagination: { page: 1, limit: 1 }
     })
 
     const { data: activeEvents } = useGetEvents({
         status: "active",
+        pagination: { page: 1, limit: 1 }
     })
 
     const { data: pendingUpdates } = useGetAllUpdatedEvents({
@@ -108,13 +110,13 @@ export default function AdminDashboard() {
 
                     <div
                         className="bg-blue-500 rounded-xl p-4 text-white hover:-translate-y-1 hover:scale-110 transition duration-300 cursor-pointer ease-in-out"
-                        onClick={() => navigate("/admin/attendee-list")}
+                        onClick={() => navigate("/admin/admin-list")}
                     >
-                        <h1 className="text-lg">Attendees</h1>
+                        <h1 className="text-lg">Admins</h1>
                         <div className="flex items-center justify-between mt-4">
                             <FaRegUser className="text-4xl" />
-                            {attendessLoading && <h1>Loading...</h1>}
-                            <h1 className="text-2xl font-bold">{attendees?.total_rows}</h1>
+                            {admins.isLoading ? <h1>Loading...</h1> : null}
+                            <h1 className="text-2xl font-bold">{admins.data?.total_rows}</h1>
                         </div>
                     </div>
 

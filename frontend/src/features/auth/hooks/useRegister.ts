@@ -1,48 +1,35 @@
-import { useState } from "react"
-import type { RegisterRequest } from "../types/authRequest"
-import type { RegisterResponse } from "../types/authResponse"
-import { registerApi } from "../api/authApi"
-import type { successResponse } from "../../../types/apiResponse"
+import type { RegisterRequest } from "../types/authRequest";
+import { registerApi } from "../api/authApi";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { userKeys } from "../../../utils/cacheKey";
+import toast from "react-hot-toast";
 
 export const useRegister = () => {
-    const [loading, setLoading] = useState(false)
-    const [message, setMessage] = useState<string | null>(null)
-    const [error, setError] = useState<string | null>(null)
-    const [errors, setErrors] = useState<Record<string, string>>({})
+    const queryClient = useQueryClient();
 
-    const register = async(payload: RegisterRequest): Promise<successResponse<RegisterResponse> | null> => {
-        try{
-            setLoading(true)
-            setError(null)
-            setErrors({})
-            setMessage(null)
+    return useMutation({
+        mutationFn: (payload: RegisterRequest) =>
+            registerApi(payload),
 
-            const res = await registerApi(payload)
+        onSuccess: () => {
+            toast.success("Admin registered successfully");
 
-            localStorage.setItem("verify-email", res.data.email)
+            queryClient.invalidateQueries({
+                queryKey: userKeys.all,
+                exact: false,
+            });
+        },
 
-            setMessage(res.message);
-            return res
-        }catch(err: any) {
-            const validationError = err.response?.data?.error
+        onError: (err: any) => {
+            const validationError =
+                err?.response?.data?.errors;
 
-            if (Array.isArray(validationError)) {
-                const formatedError: Record<string, string> = {}
-
-                validationError.forEach((e: any) => {
-                    formatedError[e.field] = e.message
-                })
-
-                setErrors(formatedError)
-            } else {
-                setError(err.response?.data?.error || "Register failed")
+            if (!validationError) {
+                toast.error(
+                    err?.response?.data?.error ||
+                    "Failed register admin"
+                );
             }
-
-            return null
-        }finally {
-            setLoading(false)
-        }
-    }
-
-    return {register, loading, message, error, errors}
-}
+        },
+    });
+};

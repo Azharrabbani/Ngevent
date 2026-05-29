@@ -24,6 +24,12 @@ func NewUserHandler(userService *service.UserService, validate *validator.Valida
 }
 
 func (h *UserHandler) Register(c *fiber.Ctx) error {
+	role := c.Locals("role").(string)
+
+	if role == "" {
+		role = ""
+	}
+
 	var input dto.RegisterInput
 
 	if err := c.BodyParser(&input); err != nil {
@@ -46,7 +52,7 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 	}
 
 	// Store new user
-	user, err := h.UserService.CreateUser(input.Email, input.Password, input.ConfirmPassword, input.Role)
+	user, err := h.UserService.CreateUser(input.Email, input.Password, input.ConfirmPassword, input.Role, role)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,

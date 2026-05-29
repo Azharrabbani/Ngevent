@@ -48,6 +48,27 @@ func AuthMiddleware() fiber.Handler {
 	}
 }
 
+func OptionalAuthMiddleware() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		tokenString := c.Cookies("ngevent_cookie")
+
+		if tokenString == "" {
+			return c.Next()
+		}
+
+		claims, err := VerifyToken(tokenString)
+		if err != nil {
+			return c.Next()
+		}
+
+		c.Locals("user_id", claims.Sub)
+		c.Locals("role", claims.Role)
+		c.Locals("exp", claims.ExpiresAt)
+
+		return c.Next()
+	}
+}
+
 func VerifyToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (interface{}, error) {
 

@@ -166,7 +166,7 @@ export default function OrganizerProfileForm({ profile }: Props) {
         setNpwpBlobUrl(URL.createObjectURL(blob))
     }
 
-    const isPending = profile?.status.status === "pending"
+    const status = profile?.status?.status;
 
     useEffect(() => {
         return () => {
@@ -201,7 +201,8 @@ export default function OrganizerProfileForm({ profile }: Props) {
                     </div>
                 )}
             </UploadPhoto>
-            {isPending ? (
+
+            {status === "pending" && (
                 <div className="space-y-0 text-center">
                     <p className="italic text-sm text-yellow-600">
                         Your profile is currently being reviewed by the admin.
@@ -211,7 +212,9 @@ export default function OrganizerProfileForm({ profile }: Props) {
                         Please wait for the approval process to be completed.
                     </p>
                 </div>
-            ) : (
+            )}
+
+            {status === "rejected" && (
                 <div className="space-y-0 text-center">
                     <p className="italic text-sm text-red-600">
                         Your profile has been rejected by the admin.

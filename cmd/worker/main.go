@@ -28,7 +28,7 @@ func main() {
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, nil, nil, nil)
 	userService := service.NewUserService(userRepo, attendeeProfileRepo, organizerProfileRepo, otpRepo, nil, nil, nil, nil)
-	eventExpiryService := service.NewEventExpiryService(eventRepo, updatedEventRepo)
+	eventExpiryService := service.NewEventExpiryService(eventRepo, updatedEventRepo, nil)
 
 	// Init tasks handler
 	userTaskHandler := tasks.NewUserTaskHandler(userService)

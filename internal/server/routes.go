@@ -144,6 +144,9 @@ func (s *FiberServer) RegisterAuthRoutes(h *handler.AuthHandler) {
 
 func (s *FiberServer) RegisterUserRoutes(h *handler.UserHandler) {
 	user := v1.Group("/user")
+
+	user.Use(middleware.OptionalAuthMiddleware())
+
 	user.Post("/register", h.Register)
 
 	user.Use(middleware.AuthMiddleware())
