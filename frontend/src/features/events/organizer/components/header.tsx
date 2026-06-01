@@ -52,7 +52,7 @@ export default function Header({
             ? [
                 {
                     title: "Status",
-                    subMenu: ["pending", "reject", "done"],
+                    subMenu: ["pending", "rejected", "done"],
                 }
             ]
             : []),

@@ -27,6 +27,7 @@ import ReviewPage from "../features/admin/views/reviewPage"
 import CategoriesView from "../features/admin/views/categories"
 import UnauthorizedView from "../features/auth/views/unauthorizedView"
 import AdminList from "../features/admin/views/adminList"
+import EventViewPage from "../features/events/organizer/views/eventViewPage"
 
 export default function AppRoutes() {
     return (
@@ -71,27 +72,34 @@ export default function AppRoutes() {
 
                 <Route path="/organizer" element={<ProtectedRoute />}>
                     <Route element={<RoleGuard allowedRoles={["event organizer"]} />}>
+
                         <Route path="dashboard" element={
                             <OrganizerDashboard>
                                 <CheckEvents />
                             </OrganizerDashboard>
-                        }
-                        />
+                        } />
 
                         <Route path="cancel-event" element={
                             <OrganizerDashboard>
                                 <CancelEvent />
                             </OrganizerDashboard>
-                        }
-                        />
+                        } />
 
                         <Route path="draft-event" element={
                             <OrganizerDashboard>
                                 <DraftEvents />
                             </OrganizerDashboard>
-                        }
-                        />
+                        } />
 
+                        {/*
+            NEW: Event view page — accessible without profile/approve guards
+            so organizers can always view their event details.
+        */}
+                        <Route path="event/view/:id" element={
+                            <OrganizerDashboard>
+                                <EventViewPage />
+                            </OrganizerDashboard>
+                        } />
 
                         <Route element={<ProfileGuard />}>
                             <Route element={<ApproveGuard />}>

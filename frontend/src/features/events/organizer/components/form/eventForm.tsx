@@ -261,10 +261,8 @@ export default function EventForm({
         };
     }, [bannerPreview]);
 
-    // Button type depends on mode (create/update) and event status (draft/pending/active)
     const renderButtons = () => {
         if (!isEditMode) {
-            // Create mode: Draft + Create
             return (
                 <>
                     <Button
@@ -289,7 +287,7 @@ export default function EventForm({
         }
 
         if (eventStatus === "pending") {
-            return null; // No buttons available for pending events
+            return null;
         }
 
         if (eventStatus === "cancelled") {
@@ -313,21 +311,12 @@ export default function EventForm({
                         {isPending ? "Loading..." : "Republish"}
                     </Button>
                 </>
-            )
+            );
         }
 
         if (eventStatus === "draft") {
-            // Edit draft: Update (keep draft) + Publish (pending)
             return (
                 <>
-                    <Button
-                        type="button"
-                        onClick={() => setConfirmAction("delete")}
-                        disabled={deleteEventMutation.isPending}
-                        className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-red-500 hover:bg-red-600"
-                    >
-                        {deleteEventMutation.isPending ? "Deleting..." : "Delete"}
-                    </Button>
                     <Button
                         type="button"
                         onClick={handleSubmit((data) => handleUpdate("draft", data))}
@@ -349,27 +338,15 @@ export default function EventForm({
             );
         }
 
-        // Edit active event: Update only (goes to admin review)
         return (
-            <>
-                <Button
-                    type="button"
-                    onClick={() => setConfirmAction("cancel")}
-                    disabled={cancelEventMutation.isPending}
-                    className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-red-500 hover:bg-red-600"
-                >
-                    {cancelEventMutation.isPending ? "Canceling..." : "Cancel Event"}
-                </Button>
-
-                <Button
-                    type="button"
-                    onClick={handleSubmit((data) => handleUpdate("pending", data))}
-                    disabled={isPending}
-                    className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-[#003B95] hover:bg-[#004ec2]"
-                >
-                    {isPending ? "Loading..." : "Update"}
-                </Button>
-            </>
+            <Button
+                type="button"
+                onClick={handleSubmit((data) => handleUpdate("pending", data))}
+                disabled={isPending}
+                className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-[#003B95] hover:bg-[#004ec2]"
+            >
+                {isPending ? "Loading..." : "Update"}
+            </Button>
         );
     };
 

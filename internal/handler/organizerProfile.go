@@ -42,7 +42,7 @@ func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 
 	photo, _ := c.FormFile("photo")
 	if photo != nil {
-		// Check pdf size
+		// Check photo size
 		if photo.Size > (5 * 1024 * 1024) {
 			return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 				fiber.StatusBadRequest,
