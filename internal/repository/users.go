@@ -114,6 +114,12 @@ func (r *UsersRepository) Delete(id string) error {
 		Update("deleted_at", time.Now().UTC()).Error
 }
 
+func (r *UsersRepository) SoftDeleteUser(tx *gorm.DB, userID string) error {
+	return tx.Model(&model.Users{}).
+		Where("id = ?", userID).
+		Update("deleted_at", time.Now().UTC()).Error
+}
+
 func filterUserList(filter *dto.ListUsersReq) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		// Default list

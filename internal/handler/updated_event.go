@@ -56,13 +56,14 @@ func (h *UpdatedEventHandler) ListAllUpdated(c *fiber.Ctx) error {
 	}
 
 	filter := &dto.UpdatedEventFilter{
-		Title:  helper.StrPointerIfNotEmpty(title),
-		Search: helper.StrPointerIfNotEmpty(filterReq.Search),
-		Sort:   helper.StrPointerIfNotEmpty(filterReq.Sort),
-		Date:   helper.StrPointerIfNotEmpty(filterReq.Date),
-		Status: helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:  helper.TimeToPointer(start),
-		End:    helper.TimeToPointer(end),
+		Title:       helper.StrPointerIfNotEmpty(title),
+		Search:      helper.StrPointerIfNotEmpty(filterReq.Search),
+		Sort:        helper.StrPointerIfNotEmpty(filterReq.Sort),
+		WithDeleted: helper.BoolPtr(filterReq.WithDeleted),
+		Date:        helper.StrPointerIfNotEmpty(filterReq.Date),
+		Status:      helper.StrPointerIfNotEmpty(filterReq.Status),
+		Start:       helper.TimeToPointer(start),
+		End:         helper.TimeToPointer(end),
 	}
 
 	// Fix: parse pagination separately

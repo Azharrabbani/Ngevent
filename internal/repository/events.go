@@ -131,26 +131,74 @@ func (r *EventsRepository) Delete(id string) error {
 
 	now := time.Now().UTC()
 
-	// Update event
-	var event model.Events
-	if err := r.db.Where("id = ?", id).First(&event).Error; err != nil {
-		return err
-	}
-
-	if err := tx.Model(&event).
-		Update("deleted_at", now).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
+	// Draft events cannot have event_updates because
+	// staging updates are only created for active events.
 	if err := tx.Model(&model.EventCategories{}).
-		Where("event_id = ?", event.ID).
+		Where("event_id = ?", id).
 		Update("deleted_at", now).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := tx.Commit().Error; err != nil {
+	if err := tx.Model(&model.Events{}).
+		Where("id = ?", id).
+		Update("deleted_at", now).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
+}
+
+func (r *EventsRepository) HasBlockingEvents(profileID string) (bool, error) {
+	var count int64
+
+	err := r.db.Model(&model.Events{}).
+		Where(
+			"profile_id = ? AND status IN ? AND deleted_at IS NULL",
+			profileID,
+			[]string{string(model.Pending), string(model.Active)},
+		).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
+func (r *EventsRepository) SoftDeleteEvents(tx *gorm.DB, profileID string) error {
+	now := time.Now().UTC()
+
+	// Collect event IDs belonging to this profile
+	var eventIDs []string
+	if err := tx.Model(&model.Events{}).
+		Where("profile_id = ? AND deleted_at IS NULL", profileID).
+		Pluck("id", &eventIDs).Error; err != nil {
+		return err
+	}
+
+	if len(eventIDs) == 0 {
+		return nil
+	}
+
+	// Soft delete event_categories
+	if err := tx.Model(&model.EventCategories{}).
+		Where("event_id IN ? AND deleted_at IS NULL", eventIDs).
+		Updates(map[string]interface{}{
+			"deleted_at": now,
+			"updated_at": now,
+		}).Error; err != nil {
+		return err
+	}
+
+	// Soft delete events
+	if err := tx.Model(&model.Events{}).
+		Where("id IN ? AND deleted_at IS NULL", eventIDs).
+		Updates(map[string]interface{}{
+			"deleted_at": now,
+			"updated_at": now,
+		}).Error; err != nil {
 		return err
 	}
 

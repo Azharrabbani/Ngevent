@@ -21,6 +21,10 @@ type FilterProfileReq struct {
 	Status *string `json:"status" query:"status"`
 }
 
+type FilterPublicProfileReq struct {
+	Filter *string `json:"filter" query:"filter"`
+}
+
 type UpdateAttendeeProfileReq struct {
 	Name        string  `json:"name" validate:"required"`
 	Username    *string `json:"username"`

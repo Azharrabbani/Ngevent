@@ -25,6 +25,8 @@ type OrganizerProfileService struct {
 	OrganizerRepo       repository.OrganizerProfileRepo
 	UserRepo            repository.UsersRepo
 	OrganizerUpdateRepo repository.OrganizerProfileUpdateRepo
+	EventsRepo          repository.EventsRepo
+	EventsUpdateRepo    repository.EventsUpdateRepo
 	EmailTaskPublisher  NewTaskEmail
 	rdb                 *redis.Client
 }
@@ -34,12 +36,16 @@ func NewOrganizerProfileService(
 	userRepo repository.UsersRepo,
 	organizerUpdateRepo repository.OrganizerProfileUpdateRepo,
 	emailTaskPublisher NewTaskEmail,
+	eventsRepo repository.EventsRepo,
+	eventsUpdateRepo repository.EventsUpdateRepo,
 	rdb *redis.Client,
 ) *OrganizerProfileService {
 	return &OrganizerProfileService{
 		OrganizerRepo:       organizerRepo,
 		UserRepo:            userRepo,
 		OrganizerUpdateRepo: organizerUpdateRepo,
+		EventsRepo:          eventsRepo,
+		EventsUpdateRepo:    eventsUpdateRepo,
 		EmailTaskPublisher:  emailTaskPublisher,
 		rdb:                 rdb,
 	}
@@ -52,6 +58,7 @@ var (
 
 var organizerCache []string = []string{
 	"organizer:all:*",
+	"organizer:public:*",
 }
 
 func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProfileReq) error {
@@ -210,6 +217,107 @@ func (s *OrganizerProfileService) FindAll(pagination model.Pagination, filter *d
 	}
 
 	return organizers, nil
+}
+
+func (s *OrganizerProfileService) FindAllForPublic(pagination model.Pagination, filter *dto.FilterPublicProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
+	var organizers *model.PaginationRow[*dto.OrganizerProfilesResponse]
+
+	// Genereate cache key
+	cacheKey := fmt.Sprintf("organizer:public:%d:%d:%s:%s", pagination.Limit, pagination.Page, pagination.Sort, filter.Filter)
+
+	// Tru get from cache
+	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
+	if err == nil {
+		json.Unmarshal([]byte(val), &organizers)
+	}
+
+	if organizers == nil {
+		// if cache miss, get from db
+		organizers, err = s.OrganizerRepo.FindAllForPublic(pagination, filter)
+		if err != nil {
+			return nil, err
+		}
+
+		// Set cache with 15 minute TTL
+		if data, err := json.Marshal(organizers); err == nil {
+			s.rdb.Set(context.Background(), cacheKey, data, 15*time.Minute)
+		}
+	}
+
+	return organizers, nil
+}
+
+func (s *OrganizerProfileService) CloseAccount(userID string) (int, error) {
+	// 1. Find organizer profile by userID
+	profile, err := s.OrganizerRepo.FindByUserID(userID)
+	if err != nil {
+		return fiber.StatusNotFound, errors.New("profile not found")
+	}
+
+	// 2. Check for blocking events (pending or active)
+	hasBlocking, err := s.EventsRepo.HasBlockingEvents(profile.ID)
+	if err != nil {
+		return fiber.StatusInternalServerError, errors.New("failed to check events status")
+	}
+
+	if hasBlocking {
+		return fiber.StatusConflict, errors.New("account cannot be closed while you have active or pending events, please cancel or wait for them to complete first")
+	}
+
+	// 3. Begin shared transaction
+	tx := s.OrganizerRepo.GetDB().Begin()
+	if tx.Error != nil {
+		return fiber.StatusInternalServerError, errors.New("failed to start transaction")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			log.Printf("[PANIC] CloseAccount transaction rolled back: %v", r)
+		}
+	}()
+
+	// 4. Soft delete event update categories + event updates
+	if err := s.EventsUpdateRepo.SoftDeleteEventUpdates(tx, profile.ID); err != nil {
+		tx.Rollback()
+		return fiber.StatusInternalServerError, errors.New("failed to remove event updates")
+	}
+
+	// 5. Soft delete event categories + events
+	if err := s.EventsRepo.SoftDeleteEvents(tx, profile.ID); err != nil {
+		tx.Rollback()
+		return fiber.StatusInternalServerError, errors.New("failed to remove events")
+	}
+
+	// 6. Soft delete organizer profile updates
+	if err := s.OrganizerUpdateRepo.SoftDeleteProfileUpdates(tx, profile.ID); err != nil {
+		tx.Rollback()
+		return fiber.StatusInternalServerError, errors.New("failed to remove profile update requests")
+	}
+
+	// 7. Soft delete organizer profile (status → deactivated)
+	if err := s.OrganizerRepo.SoftDeleteProfile(tx, profile.ID); err != nil {
+		tx.Rollback()
+		return fiber.StatusInternalServerError, errors.New("failed to deactivate organizer profile")
+	}
+
+	// 8. Soft delete user
+	if err := s.UserRepo.SoftDeleteUser(tx, userID); err != nil {
+		tx.Rollback()
+		return fiber.StatusInternalServerError, errors.New("failed to close user account")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return fiber.StatusInternalServerError, errors.New("failed to commit account closure")
+	}
+
+	utils.InvalidateCache(s.rdb, organizerCache)
+	utils.InvalidateCache(s.rdb, organizerUpdateCache)
+	utils.InvalidateCache(s.rdb, eventCache)
+	utils.InvalidateCache(s.rdb, updatedEventCache)
+	utils.InvalidateCache(s.rdb, userCache)
+
+	return fiber.StatusOK, nil
 }
 
 func (s *OrganizerProfileService) FindByCountry(

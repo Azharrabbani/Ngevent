@@ -18,4 +18,5 @@ type UsersRepo interface {
 	FindByEmail(email string) (*model.Users, error)
 	Update(users *model.Users) (*model.Users, error)
 	Delete(id string) error
+	SoftDeleteUser(tx *gorm.DB, userID string) error
 }

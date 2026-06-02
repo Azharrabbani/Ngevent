@@ -30,6 +30,18 @@ func (r *OrganizerProfileUpdateRepository) Delete(id string) error {
 	return r.db.Delete(&model.OrganizerProfilesUpdates{}).Error
 }
 
+// SoftDeleteProfileUpdates implements SoftDeleteProfileUpdates.
+func (r *OrganizerProfileUpdateRepository) SoftDeleteProfileUpdates(tx *gorm.DB, profileID string) error {
+	now := time.Now().UTC()
+
+	return tx.Model(&model.OrganizerProfilesUpdates{}).
+		Where("profile_id = ? AND deleted_at IS NULL", profileID).
+		Updates(map[string]interface{}{
+			"deleted_at": now,
+			"updated_at": now,
+		}).Error
+}
+
 // FindByID implements OrganizerProfileUpdateRepo.
 func (r *OrganizerProfileUpdateRepository) FindByID(id string) (*model.OrganizerProfilesUpdates, error) {
 	var profileUpdate *model.OrganizerProfilesUpdates

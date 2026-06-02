@@ -114,12 +114,12 @@ export const GetOrganizersProfileApi = async (params: FilterOrganizerReq) => {
 }
 
 export const GetOrganizerDetailProfileApi = async (id: string) => {
-    const res = await api.get<successResponse<OrganizerResponse>>(`/organizer/${id}`);
+    const res = await api.get<successResponse<OrganizerResponse>>(`/organizer/public/${id}`);
     return res.data;
 }
 
 export const GetCurrentOrganizerProfileApi = async () => {
-    const res = await api.get<successResponse<OrganizerResponse>>("/organizer");
+    const res = await api.get<successResponse<OrganizerResponse>>("/organizer/me");
     return res.data;
 }
 
@@ -185,6 +185,11 @@ export const ValidateOrganizerUpdateApi = async (id: string | null, payload: val
     const res = await api.put<successResponse<string>>(`/staging-organizer/${id}`, payload);
     return res.data;
 }
+
+export const CloseOrganizerAccountApi = async () => {
+    const res = await api.delete<successResponse<string>>("/organizer/close-account");
+    return res.data;
+};;
 
 export const listUsersApi = async (params: UserFilterRequest) => {
     const res = await api.get<PaginatedResponse<UserResponse>>(

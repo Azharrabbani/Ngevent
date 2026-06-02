@@ -66,6 +66,27 @@ func (r *OrganizerRepository) FindAll(pagination model.Pagination, filter *dto.F
 	}, nil
 }
 
+// FindAllForPublic implements [OrganizerProfileRepo].
+func (r *OrganizerRepository) FindAllForPublic(pagination model.Pagination, filter *dto.FilterPublicProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
+	var profiles []*model.OrganizerProfiles
+
+	query := r.db.Scopes(filterOrganizerForPublic(filter))
+
+	if err := query.Preload("User").
+		Scopes(Paginate(profiles, &pagination, query)).
+		Find(&profiles).Error; err != nil {
+		return nil, err
+	}
+
+	// Transform data to response struct
+	organizers := toOrganizerResponse(profiles)
+
+	return &model.PaginationRow[*dto.OrganizerProfilesResponse]{
+		Pagination: pagination,
+		Rows:       organizers,
+	}, nil
+}
+
 // FindByCountry implements OrganizerProfileRepo.
 func (r *OrganizerRepository) FindByCountry(country string, pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
 	var profiles []*model.OrganizerProfiles
@@ -153,8 +174,22 @@ func (r *OrganizerRepository) UpdatePhotoProfile(userID string, photo string) er
 			UpdatedAt:    time.Now().UTC()}).Error
 }
 
-func filterOrganizer(filter *dto.FilterProfileReq) func(*gorm.DB) *gorm.DB {
+func (r *OrganizerRepository) SoftDeleteProfile(tx *gorm.DB, profileID string) error {
+	now := time.Now().UTC()
+
+	return tx.Model(&model.OrganizerProfiles{}).
+		Where("id = ?", profileID).
+		Updates(map[string]interface{}{
+			"status":     "deactivated",
+			"deleted_at": now,
+			"updated_at": now,
+		}).Error
+}
+
+func filterOrganizerForPublic(filter *dto.FilterPublicProfileReq) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
+		db = db.Where("organizer_profiles.deleted_at IS NULL")
+
 		if filter.Filter != nil {
 			query := "%" + strings.ToLower(*filter.Filter) + "%"
 			db = db.Joins("JOIN users ON users.id = organizer_profiles.user_id").
@@ -165,8 +200,32 @@ func filterOrganizer(filter *dto.FilterProfileReq) func(*gorm.DB) *gorm.DB {
 				)
 		}
 
-		if filter.Status != nil {
-			db = db.Where("status = ?", filter.Status)
+		return db
+	}
+}
+
+func filterOrganizer(filter *dto.FilterProfileReq) func(*gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+
+		if filter.Status != nil && *filter.Status == "deactivated" {
+			db = db.Where("organizer_profiles.deleted_at IS NOT NULL")
+		} else {
+			db = db.Where("organizer_profiles.deleted_at IS NULL")
+		}
+
+		if filter.Filter != nil {
+			query := "%" + strings.ToLower(*filter.Filter) + "%"
+
+			db = db.Joins("JOIN users ON users.id = organizer_profiles.user_id").
+				Where(
+					db.Where("LOWER(users.email) LIKE ?", query).
+						Or("LOWER(organizer_profiles.name) LIKE ?", query).
+						Or("LOWER(organizer_profiles.country) LIKE ?", query),
+				)
+		}
+
+		if filter.Status != nil && *filter.Status != "deactivated" {
+			db = db.Where("organizer_profiles.status = ?", *filter.Status)
 		}
 
 		return db

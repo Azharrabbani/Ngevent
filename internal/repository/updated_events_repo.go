@@ -16,4 +16,5 @@ type EventsUpdateRepo interface {
 	FindByEventID(eventID, status string) (*model.UpdatedEvents, error)
 	ReviewEvent(id, status string) error
 	Cancel(id string) error
+	SoftDeleteEventUpdates(tx *gorm.DB, profileID string) error
 }

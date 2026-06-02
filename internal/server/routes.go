@@ -182,18 +182,23 @@ func (s *FiberServer) RegisterOrganizerProfileRoutes(h *handler.OrganizerProfile
 	profile.Static("/photo", "./storage/profiles")
 	profile.Static("/npwp", "./storage/npwp")
 	profile.Static("/nib", "./storage/nib")
+
+	profile.Get("/", h.GetAllProfileForPublic)
+	profile.Get("/public/:id", h.GetProfileByID)
+
 	profile.Use(middleware.AuthMiddleware())
 	{
 		profile.Post("/", middleware.AuthorizeRoles(string(model.Organizer)), h.CreateProfile)
-		profile.Get("/profiles", h.GetAllProfile)
-		profile.Get("/", h.GetProfileByUserID)
-		profile.Get("/:id", h.GetProfileByID)
+		profile.Get("/profiles", middleware.AuthorizeRoles(string(model.Admin)), h.GetAllProfile)
+		profile.Get("/me", h.GetProfileByUserID)
 		profile.Get("/filter", h.FilterProfile)
 		profile.Put("/photo", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.UpdatePhotoProfile)
 		profile.Put("/", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.UpdateProfile)
 		profile.Put("/approve/:id", middleware.AuthorizeRoles(string(model.Admin)), h.ApprovedProfile)
 		profile.Put("/reject/:id", middleware.AuthorizeRoles(string(model.Admin)), h.RejectProfile)
+		profile.Delete("/close-account", middleware.AuthorizeRoles(string(model.Organizer)), h.CloseAccount)
 	}
+
 }
 
 func (s *FiberServer) RegisterOrganizerUpdateRoutes(h *handler.OrganizerUpdateHandler) {
@@ -266,7 +271,6 @@ func (s *FiberServer) RegisterUpdatedEventRoutes(h *handler.UpdatedEventHandler)
 		updateEvent.Get("/:event_id", middleware.AuthorizeRoles(string(model.Admin)), h.GetUpdatedByEventID)
 		updateEvent.Put("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.CancelUpdate)
 	}
-
 }
 
 func (s *FiberServer) RegisterLocationRoutes(h *handler.LocationHandler) {

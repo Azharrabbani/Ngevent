@@ -5,6 +5,7 @@ import (
 	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
+	"ngevent/internal/utils/helper"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -13,15 +14,18 @@ import (
 
 type OrganizerProfileHandler struct {
 	OrganizerService *service.OrganizerProfileService
+	AuthService      *service.AuthService
 	Validate         *validator.Validate
 }
 
 func NewOrganizerProfileHandler(
 	organizerService *service.OrganizerProfileService,
+	authService *service.AuthService,
 	validate *validator.Validate,
 ) *OrganizerProfileHandler {
 	return &OrganizerProfileHandler{
 		OrganizerService: organizerService,
+		AuthService:      authService,
 		Validate:         validate,
 	}
 }
@@ -207,6 +211,53 @@ func (h *OrganizerProfileHandler) GetAllProfile(c *fiber.Ctx) error {
 	}
 
 	organizers, err := h.OrganizerService.FindAll(*page, filter)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		organizers,
+	))
+}
+
+func (h *OrganizerProfileHandler) GetAllProfileForPublic(c *fiber.Ctx) error {
+	filter := new(dto.FilterPublicProfileReq)
+
+	if err := c.QueryParser(filter); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"error",
+			"error",
+			err.Error(),
+		))
+	}
+
+	paginate := new(model.Pagination)
+
+	if err := c.QueryParser(paginate); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	page := &model.Pagination{
+		Page:  paginate.Page,
+		Limit: paginate.Limit,
+		Sort:  paginate.Sort,
+	}
+
+	organizers, err := h.OrganizerService.FindAllForPublic(*page, filter)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -444,5 +495,49 @@ func (h *OrganizerProfileHandler) RejectProfile(c *fiber.Ctx) error {
 		"success",
 		"success",
 		"rejected success",
+	))
+}
+
+func (h *OrganizerProfileHandler) CloseAccount(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+
+	refreshToken := c.Cookies("refresh_token")
+	if refreshToken == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			"missing refresh token",
+		))
+	}
+
+	status, err := h.OrganizerService.CloseAccount(userID)
+	if err != nil {
+		return c.Status(status).JSON(dto.Error(
+			status,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	err = h.AuthService.Logout(refreshToken)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	helper.ClearAuthCookies(c)
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		"your account has been closed",
 	))
 }

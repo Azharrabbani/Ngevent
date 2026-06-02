@@ -87,7 +87,7 @@ export default function OrganizerList() {
                             <div
                                 className="absolute z-10 mt-2 w-full md:w-40 bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden"
                             >
-                                {["approved", "pending", "rejected"].map((item) => (
+                                {["approved", "pending", "rejected", "deactivated"].map((item) => (
                                     <button
                                         key={item}
                                         type="button"

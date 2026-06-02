@@ -640,8 +640,12 @@ func (s *EventService) DeleteEvent(id, userID string) error {
 	}
 
 	// Only delete event with status draft
-	if event.Status == string(model.Draft) {
-		return s.EventRepo.Delete(id)
+	if event.Status != string(model.Draft) {
+		return errors.New("only draft event can be deleted")
+	}
+
+	if err := s.EventRepo.Delete(id); err != nil {
+		return err
 	}
 
 	utils.InvalidateCache(s.rdb, eventCache)

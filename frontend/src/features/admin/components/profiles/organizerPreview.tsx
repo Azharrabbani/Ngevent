@@ -83,9 +83,9 @@ export default function OrganizerPreview({
 
                             <span
                                 className={`px-3 py-1 rounded-full text-xs font-semibold capitalize
-                                ${profile?.status?.status === "approved"
+                                ${(profile?.status?.status === "approved")
                                         ? "bg-green-100 text-green-700"
-                                        : profile?.status?.status === "rejected"
+                                        : (profile?.status?.status === "rejected" || profile?.status?.status === "deactivated")
                                             ? "bg-red-100 text-red-700"
                                             : "bg-yellow-100 text-yellow-700"
                                     }`}
@@ -113,7 +113,6 @@ export default function OrganizerPreview({
                     </div>
                 </div>
 
-                {/* Company Detail */}
                 <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">
                         Company Detail
@@ -147,7 +146,6 @@ export default function OrganizerPreview({
                     </div>
                 </div>
 
-                {/* Legal Document */}
                 <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">
                         Legal Documents
@@ -202,7 +200,6 @@ export default function OrganizerPreview({
                     </div>
                 </div>
 
-                {/* Social Media */}
                 <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">
                         Social Media
@@ -246,7 +243,6 @@ export default function OrganizerPreview({
                     </div>
                 </div>
 
-                {/* Rejected Review Info */}
                 {isRejected && (
                     <div className="border border-red-200 rounded-2xl p-5 bg-red-50 shadow-sm">
                         <h3 className="text-lg font-bold text-red-700 mb-4">
@@ -287,7 +283,6 @@ export default function OrganizerPreview({
                     </div>
                 )}
 
-                {/* File Preview */}
                 {previewFile && (
                     <FilePreview
                         setPreview={() => setPreviewFile(null)}

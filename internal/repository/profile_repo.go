@@ -23,6 +23,7 @@ type OrganizerProfileRepo interface {
 	Create(profile *model.OrganizerProfiles) error
 	HasProfile(userID string) (bool, error)
 	FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error)
+	FindAllForPublic(pagination model.Pagination, filter *dto.FilterPublicProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error)
 	FindByID(id string) (*model.OrganizerProfiles, error)
 	FindByUserID(userID string) (*model.OrganizerProfiles, error)
 	FindByCountry(country string, pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error)
@@ -31,6 +32,7 @@ type OrganizerProfileRepo interface {
 	Update(profile *model.OrganizerProfiles) error
 	UpdatePhotoProfile(userID, photo string) error
 	Delete(id string) error
+	SoftDeleteProfile(tx *gorm.DB, profileID string) error
 }
 
 type OrganizerProfileUpdateRepo interface {
@@ -41,4 +43,5 @@ type OrganizerProfileUpdateRepo interface {
 	FindUpdatesByProfileID(pagination model.Pagination, profileID string) (*model.PaginationRow[*model.OrganizerProfilesUpdates], error)
 	Validate(id, status string) error
 	Delete(id string) error
+	SoftDeleteProfileUpdates(tx *gorm.DB, profileID string) error
 }

@@ -72,6 +72,43 @@ func (r *UpdatedEventsRepository) Cancel(id string) error {
 		}).Error
 }
 
+func (r *UpdatedEventsRepository) SoftDeleteEventUpdates(tx *gorm.DB, profileID string) error {
+	now := time.Now().UTC()
+
+	// Collect event_update IDs
+	var eventUpdateIDs []string
+	if err := tx.Model(&model.UpdatedEvents{}).
+		Joins("JOIN events ON events.id = event_updates.event_id").
+		Where("events.profile_id = ? AND event_updates.deleted_at IS NULL", profileID).
+		Pluck("event_updates.id", &eventUpdateIDs).Error; err != nil {
+		return err
+	}
+
+	if len(eventUpdateIDs) == 0 {
+		return nil
+	}
+
+	if err := tx.Model(&model.EventCategoriesUpdate{}).
+		Where("event_update_id IN ? AND deleted_at IS NULL", eventUpdateIDs).
+		Updates(map[string]interface{}{
+			"deleted_at": now,
+			"updated_at": now,
+		}).Error; err != nil {
+		return err
+	}
+
+	if err := tx.Model(&model.UpdatedEvents{}).
+		Where("id IN ? AND deleted_at IS NULL", eventUpdateIDs).
+		Updates(map[string]interface{}{
+			"deleted_at": now,
+			"updated_at": now,
+		}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // FindAll implements EventsUpdateRepo.
 func (r *UpdatedEventsRepository) FindAll(filter *dto.UpdatedEventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsUpdatesResp], error) {
 	var updatedEvents []*model.UpdatedEvents
@@ -182,7 +219,11 @@ func (r *UpdatedEventsRepository) ReviewEvent(id string, status string) error {
 
 func filterUpdatedEventList(filter *dto.UpdatedEventFilter) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		db = db.Where("event_updates.deleted_at IS NULL")
+		if filter.WithDeleted != nil && *filter.WithDeleted {
+			db = db.Unscoped()
+		} else {
+			db = db.Where("events.deleted_at IS NULL")
+		}
 
 		if filter.EventID != nil {
 			db = db.Where("event_updates.event_id = ?", *filter.EventID)

@@ -24,5 +24,7 @@ type EventsRepo interface {
 	UpdateBannerEvent(id, banner string) error
 	ReviewEvent(event *model.Events) error
 	CancelEvent(id string) error
+	HasBlockingEvents(profileID string) (bool, error)
 	Delete(id string) error
+	SoftDeleteEvents(tx *gorm.DB, profileID string) error
 }

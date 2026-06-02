@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "postgis";
 
 CREATE TYPE "public"."role" AS ENUM ('user', 'admin', 'event organizer');
 CREATE TYPE "public"."type_verification" AS ENUM ('verified_email', 'reset_password');
-CREATE TYPE "public"."organizer_profile_status" AS ENUM ('pending', 'approved', 'rejected');
+CREATE TYPE "public"."organizer_profile_status" AS ENUM ('pending', 'approved', 'rejected', 'deactivated');
 CREATE TYPE "public"."event_status" AS ENUM ('draft', 'active', 'approved', 'pending', 'rejected', 'done', 'cancelled');
 CREATE TYPE "public"."ticket_type" AS ENUM ('regular', 'premium', 'vip');
 
@@ -84,6 +84,7 @@ CREATE TABLE "public"."organizer_profiles"(
 	"nib_document" TEXT NOT NULL,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"deleted_at" TIMESTAMPTZ NULL,
 	CONSTRAINT "organizer_profiles_pk" PRIMARY KEY("id"),
 	CONSTRAINT "fk_users_organizer_profiles" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE
 );
@@ -105,6 +106,7 @@ CREATE TABLE "public"."organizer_profiles_updates"(
 	"nib_document" TEXT NOT NULL,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"deleted_at" TIMESTAMPTZ NULL,
 	CONSTRAINT "organizer_profiles_updates_pk" PRIMARY KEY("id"),
 	CONSTRAINT "fk_organizer_profiles_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."organizer_profiles" ("id") ON DELETE CASCADE
 );
@@ -223,29 +225,40 @@ CREATE TABLE "public"."event_update_categories"(
 -- Create Unique Index
 CREATE UNIQUE INDEX "unique_approved_npwp"
 ON "public"."organizer_profiles"("npwp_number")
-WHERE status = 'approved';
+WHERE status = 'approved'
+AND "deleted_at" IS NULL;
 
 CREATE UNIQUE INDEX "unique_approved_nib"
 ON "public"."organizer_profiles"("nib_number")
-WHERE status = 'approved';
+WHERE status = 'approved'
+AND "deleted_at" IS NULL;
 
 CREATE UNIQUE INDEX "unique_pending_update"
 ON "public"."organizer_profiles_updates" ("profile_id")
-WHERE status = 'pending';
+WHERE status = 'pending'
+AND "deleted_at" IS NULL;
 
 CREATE UNIQUE INDEX "unique_category_event"
-ON "public"."event_categories"("event_id", "category_id");
+ON "public"."event_categories"("event_id", "category_id")
+WHERE "deleted_at" IS NULL;
 
 CREATE UNIQUE INDEX "unique_event_updates"
 ON "public"."event_updates" ("event_id")
-WHERE "status_id" = 2;
+WHERE "status" = 'pending'
+AND "deleted_at" IS NULL;
 
 CREATE UNIQUE INDEX "unique_ticket_type" 
 ON "public"."tickets"("event_id", "ticket_type");
 
+CREATE UNIQUE INDEX "unique_users_email"
+ON "public"."users"("email")
+WHERE "deleted_at" IS NULL;
+
 -- Crete index
 CREATE INDEX "idx_users_role" ON "public"."users"("role");
 CREATE INDEX "idx_users_deleted_at" ON "public"."users"("deleted_at");
+CREATE INDEX "idx_organizer_profiles_deleted_at" ON "public"."organizer_profiles"("deleted_at");
+CREATE INDEX "idx_organizer_profiles_updates_deleted_at" ON "public"."organizer_profiles_updates"("deleted_at");
 CREATE INDEX "idx_sessions_user_id" ON "public"."sessions"("user_id");
 CREATE INDEX "idx_otp_user_id" ON "public"."otp_verifications"("user_id");
 CREATE INDEX "idx_eo_profile_id" ON "public"."organizer_profiles_updates"("profile_id");
@@ -255,6 +268,8 @@ CREATE INDEX "idx_event_status" ON "public"."events"("status");
 CREATE INDEX "idx_event_city" ON "public"."events"("city");
 CREATE INDEX "idx_ticket_type" ON "public"."tickets"("ticket_type");
 CREATE INDEX "idx_event_id" ON "public"."event_categories"("event_id");
+CREATE INDEX "idx_events_deleted_at" ON "public"."events"("deleted_at");
+CREATE INDEX "idx_event_categories_deleted_at" ON "public"."event_categories"("deleted_at");
 CREATE INDEX "idx_category_id" ON "public"."event_categories"("category_id");
 CREATE INDEX "idx_events_coordinates" ON "public"."events" USING GIST ("coordinates");
 CREATE INDEX "event_update_event_id" ON "public"."event_updates" ("event_id");

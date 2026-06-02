@@ -5,8 +5,8 @@ import (
 	"ngevent/internal/model"
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
+	"ngevent/internal/utils/helper"
 	"strconv"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -306,23 +306,7 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 		))
 	}
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "ngevent_cookie",
-		Value:    "",
-		Expires:  time.Now().Add(-time.Hour),
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "None",
-	})
-
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    "",
-		Expires:  time.Now().Add(-time.Hour),
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "None",
-	})
+	helper.ClearAuthCookies(c)
 
 	return c.Status(fiber.StatusOK).JSON(dto.Success(
 		fiber.StatusOK,
