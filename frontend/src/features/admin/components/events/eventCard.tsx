@@ -68,7 +68,12 @@ export default function EventCard({ status, isReview, data }: Props) {
                                     <p className="text-sm text-gray-500 mt-1">{date}</p>
                                     <div className="mt-4">
                                         <p className="text-xs text-gray-400">Organizer</p>
-                                        <h2 className="text-sm font-medium text-gray-700">{item?.eo_profile?.name}</h2>
+                                        <div className="flex items-center gap-1">
+                                            <h2 className="text-sm font-medium text-gray-700">{item?.eo_profile?.name}</h2>
+                                            {item.eo_profile.status === "deactivated" && (
+                                                <span className="px-2 py-1 rounded-full text-sm bg-red-100 text-red-600">Deactivated</span>
+                                            )}
+                                        </div>
                                         <p className="text-sm text-gray-500 break-all">{item?.eo_profile?.email}</p>
                                     </div>
                                     <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

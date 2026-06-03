@@ -132,16 +132,15 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 	}
 
 	filter := &dto.EventFilter{
-		Title:       helper.StrPointerIfNotEmpty(title),
-		Search:      helper.StrPointerIfNotEmpty(filterReq.Search),
-		Sort:        helper.StrPointerIfNotEmpty(filterReq.Sort),
-		Date:        helper.StrPointerIfNotEmpty(filterReq.Date),
-		WithDeleted: helper.BoolPtr(filterReq.WithDeleted),
-		Category:    filterReq.Category,
-		Status:      helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:       helper.TimeToPointer(start),
-		End:         helper.TimeToPointer(end),
-		Location:    helper.StrPointerIfNotEmpty(filterReq.Location),
+		Title:    helper.StrPointerIfNotEmpty(title),
+		Search:   helper.StrPointerIfNotEmpty(filterReq.Search),
+		Sort:     helper.StrPointerIfNotEmpty(filterReq.Sort),
+		Date:     helper.StrPointerIfNotEmpty(filterReq.Date),
+		Category: filterReq.Category,
+		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
+		Start:    helper.TimeToPointer(start),
+		End:      helper.TimeToPointer(end),
+		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 
 	pagination := new(model.Pagination)
@@ -474,7 +473,8 @@ func (h *EventHandler) UpdateEvent(c *fiber.Ctx) error {
 		banner = nil
 	}
 
-	if err := h.EventService.UpdateEvent(banner, req); err != nil {
+	status, err := h.EventService.UpdateEvent(banner, req)
+	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"failed",
@@ -487,7 +487,7 @@ func (h *EventHandler) UpdateEvent(c *fiber.Ctx) error {
 		fiber.StatusOK,
 		"success",
 		"success",
-		"event updated",
+		status,
 	))
 
 }

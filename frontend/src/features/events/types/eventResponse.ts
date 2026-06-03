@@ -37,6 +37,7 @@ type UpdatedDetails = {
 type EoProfile = {
     id: string;
     is_verified: boolean;
+    status: string;
     email: string;
     name: string;
     photo_profile?: string;
@@ -50,6 +51,7 @@ type EventDetail = {
     tickets: Tickets[];
     slug: string;
     status: string;
+    request_updates?: boolean;
     description: string;
     rejected_reason?: string;
     reviewed_by?: Reviewer;

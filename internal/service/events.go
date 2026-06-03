@@ -30,7 +30,6 @@ type NewTaskEventExpiryPublisher interface {
 
 type EventService struct {
 	EventRepo            repository.EventsRepo
-	UpdatedEventRepo     repository.EventsUpdateRepo
 	UserRepo             repository.UsersRepo
 	ProfileRepo          repository.OrganizerProfileRepo
 	CategoryRepo         repository.CategoriesRepo
@@ -41,7 +40,6 @@ type EventService struct {
 
 func NewEventService(
 	eventRepo repository.EventsRepo,
-	updatedEventRepo repository.EventsUpdateRepo,
 	userRepo repository.UsersRepo,
 	profileRepo repository.OrganizerProfileRepo,
 	categoryRepo repository.CategoriesRepo,
@@ -51,7 +49,6 @@ func NewEventService(
 ) *EventService {
 	return &EventService{
 		EventRepo:            eventRepo,
-		UpdatedEventRepo:     updatedEventRepo,
 		UserRepo:             userRepo,
 		ProfileRepo:          profileRepo,
 		CategoryRepo:         categoryRepo,
@@ -101,7 +98,7 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 	}
 
 	// Get coordinates from req
-	location := getLocation(req.Address.Lat, req.Address.Long)
+	location := getLocation(req.Address.Lat, req.Address.Long, req.Address)
 	if location.Err != nil {
 		return *location.Err
 	}
@@ -429,42 +426,47 @@ func (s *EventService) FindNearestEvent(user model.Location, pagination model.Pa
 	return events, nil
 }
 
-func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventReq) error {
+func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventReq) (string, error) {
 	// Search the eo profile
 	profile, err := s.ProfileRepo.FindByUserID(req.UserID)
 	if err != nil {
-		return errors.New("profile not found")
+		return "", errors.New("profile not found")
 	}
 
 	// Validate event
 	event, err := s.EventRepo.FindByID(*req.ID)
 	if err != nil {
-		return errors.New("event not found")
+		return "", errors.New("event not found")
 	}
 
 	originalStatus := event.Status
 
 	// Validate the user
 	if !helper.IsAuthorized(event.ProfileID, profile.ID) {
-		return errors.New("unauthorized action")
+		return "", errors.New("unauthorized action")
 	}
 
 	// Event with status pending cannot be updated
 	if event.Status == string(model.Pending) {
-		return errors.New(fmt.Sprintf("event status is %s", event.Status))
+		return "", errors.New(fmt.Sprintf("event status is %s", event.Status))
 	}
 
 	// If event status already active
 	// The organizer can't update it to draft
 	if event.Status == string(model.Active) && req.Status == string(model.Draft) {
-		return errors.New(fmt.Sprintf("An active event cannot be reverted to %s status", req.Status))
+		return "", errors.New(fmt.Sprintf("An active event cannot be reverted to %s status", req.Status))
 	}
 
 	// Check if its critical changed
 	// It only happen if the event already approve by the admin
 	if event.Status == string(model.Active) {
-		if err := s.CreateUpdateEvent(banner, event, req); err != nil {
-			return err
+		updatedEvent, updatedCategories, err := s.BuildStagedUpdate(banner, event, req)
+		if err != nil {
+			return "", err
+		}
+
+		if err := s.EventRepo.CreateStagedUpdate(event, updatedEvent, updatedCategories); err != nil {
+			return "", err
 		}
 
 		// Invalidate cache after update
@@ -489,13 +491,13 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 			}
 		}
 
-		return nil
+		return "your update will be reviewed by our admins", nil
 	}
 
 	// Get categories
 	categories, err := s.CategoryRepo.FindByIDs(req.Categories)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Convert unix to date
@@ -503,9 +505,9 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	endTime := helper.ConvertUnixtoDate(req.EndTime)
 
 	// Get coordinates from req
-	location := getLocation(req.Address.Lat, req.Address.Long)
+	location := getLocation(req.Address.Lat, req.Address.Long, req.Address)
 	if location.Err != nil {
-		return *location.Err
+		return "", *location.Err
 	}
 
 	// Save events
@@ -516,7 +518,7 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	// if the event owner decide to publish draft event
 	// Check the banner is uploaded or not
 	if event.Status == string(model.Pending) && banner == nil {
-		return errors.New("banner is required")
+		return "", errors.New("banner is required")
 	}
 
 	// If banner changed
@@ -526,7 +528,7 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 		_, fileName, err := helper.SaveToLocal(banner, eventBannerPath)
 		if err != nil {
 			log.Printf("[ERROR] failed to save banner %v\n", err)
-			return err
+			return "", err
 		}
 		event.Banner = &fileName
 
@@ -548,7 +550,7 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	event.EndTime = endTime
 
 	if err := s.EventRepo.Update(event, categories); err != nil {
-		return err
+		return "", err
 	}
 
 	// Invalidate cache after update
@@ -581,7 +583,7 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 		}
 	}
 
-	return nil
+	return "event updated", nil
 }
 
 func (s *EventService) CancelEvent(id, userID string) error {
@@ -653,120 +655,89 @@ func (s *EventService) DeleteEvent(id, userID string) error {
 	return nil
 }
 
-func (s *EventService) CreateUpdateEvent(banner *multipart.FileHeader, event *model.Events, req *dto.EventReq) error {
-	// Update only permitted 1 week before the event
+func (s *EventService) BuildStagedUpdate(banner *multipart.FileHeader, event *model.Events, req *dto.EventReq) (*model.UpdatedEvents, []*model.Categories, error) {
 	if time.Until(event.StartTime) < 7*24*time.Hour {
-		return errors.New("event cannot be updated within 7 days of the event date")
+		return nil, nil, errors.New("event cannot be updated within 7 days of the event date")
 	}
 
-	// Validate len categories & tickets
 	if len(req.Categories) == 0 {
-		return errors.New("categories cannot be empty")
+		return nil, nil, errors.New("categories cannot be empty")
 	}
 
 	categories, err := s.CategoryRepo.FindByIDs(req.Categories)
 	if err != nil {
-		return errors.New("category not found")
+		return nil, nil, errors.New("category not found")
 	}
 
-	// Get coordinates from req
-	location := getLocation(req.Address.Lat, req.Address.Long)
+	location := getLocation(req.Address.Lat, req.Address.Long, req.Address)
 	if location.Err != nil {
-		return *location.Err
+		return nil, nil, *location.Err
 	}
 
-	// If banner changed
-	// Save to temporary storage
-	var updatedEvent *model.UpdatedEvents
+	var bannerFileName string
 	if banner != nil {
 		_, fileName, err := helper.SaveToLocal(banner, updatedEventBannerPath)
 		if err != nil {
-			log.Printf("[ERROR] failed to save banner %v\n", err)
-			return err
+			return nil, nil, err
 		}
-
-		updatedEvent = &model.UpdatedEvents{
-			EventID:       event.ID,
-			Name:          req.Name,
-			Banner:        &fileName,
-			Slug:          utils.CreateSlug(req.Name),
-			Status:        string(model.Pending),
-			Description:   req.Description,
-			Address:       *location.Address,
-			City:          *location.City,
-			Country:       *location.Country,
-			DetailAddress: req.Address.DetailAddress,
-			Coordinates:   *location.Coordinates,
-			StartTime:     helper.ConvertUnixtoDate(req.StartTime),
-			EndTime:       helper.ConvertUnixtoDate(req.EndTime),
-		}
-
-		if err := s.UpdatedEventRepo.Create(updatedEvent, categories); err != nil {
-			log.Printf("[ERROR] failed to update event %v\n", err)
-			return err
-		}
+		bannerFileName = fileName
 	} else {
-		fileName := *event.Banner
-
-		eventBannerSrc := filepath.Join(eventBannerPath, fileName)
-		dstPath := filepath.Join(eventBannerPath, fileName)
-
-		bannerFile, err := helper.CopyFile(eventBannerSrc, dstPath)
+		// Reuse existing banner
+		src := filepath.Join(eventBannerPath, *event.Banner)
+		dst := filepath.Join(updatedEventBannerPath, *event.Banner)
+		bannerFileName, err = helper.CopyFile(src, dst)
 		if err != nil {
-			return err
-		}
-
-		updatedEvent = &model.UpdatedEvents{
-			EventID:       event.ID,
-			Name:          req.Name,
-			Banner:        &bannerFile,
-			Slug:          utils.CreateSlug(req.Name),
-			Status:        string(model.Pending),
-			Description:   req.Description,
-			Address:       *location.Address,
-			City:          *location.City,
-			Country:       *location.Country,
-			DetailAddress: req.Address.DetailAddress,
-			Coordinates:   *location.Coordinates,
-			StartTime:     helper.ConvertUnixtoDate(req.StartTime),
-			EndTime:       helper.ConvertUnixtoDate(req.EndTime),
-		}
-
-		if err := s.UpdatedEventRepo.Create(updatedEvent, categories); err != nil {
-			log.Printf("[ERROR] failed to update event %v\n", err)
-			return err
+			return nil, nil, err
 		}
 	}
 
-	return nil
+	updatedEvent := &model.UpdatedEvents{
+		EventID:       event.ID,
+		Name:          req.Name,
+		Banner:        &bannerFileName,
+		Slug:          utils.CreateSlug(req.Name),
+		Status:        string(model.Pending),
+		Description:   req.Description,
+		Address:       *location.Address,
+		City:          *location.City,
+		Country:       *location.Country,
+		DetailAddress: req.Address.DetailAddress,
+		Coordinates:   *location.Coordinates,
+		StartTime:     helper.ConvertUnixtoDate(req.StartTime),
+		EndTime:       helper.ConvertUnixtoDate(req.EndTime),
+	}
+
+	return updatedEvent, categories, nil
 }
 
-func getLocation(lat, lon string) *dto.LocationResp {
+func getLocation(lat, lon string, req dto.EventAddressReq) *dto.LocationResp {
 	coordinates := fmt.Sprintf("POINT(%s %s)", lon, lat)
+
+	// Use data from frontend if available, skip the reverse geocode call
+	if req.DisplayName != "" && req.City != "" && req.Country != "" {
+		return &dto.LocationResp{
+			Coordinates: &coordinates,
+			Address:     &req.DisplayName,
+			City:        &req.City,
+			Country:     &req.Country,
+			Err:         nil,
+		}
+	}
+
+	// Fallback to reverse geocode only if frontend didn't send address data
 	reverseResp, err := utils.ReverseGeocode(lat, lon)
 	if err != nil {
-		log.Printf(err.Error())
-		return &dto.LocationResp{
-			Coordinates: nil,
-			Address:     nil,
-			City:        nil,
-			Country:     nil,
-			Err:         &err,
-		}
+		return &dto.LocationResp{Err: &err}
 	}
 
 	address := reverseResp.DisplayName
-
 	city := reverseResp.Address.City
-
 	if city == "" {
 		city = reverseResp.Address.Town
 	}
-
 	if city == "" {
 		city = reverseResp.Address.Village
 	}
-
 	country := reverseResp.Address.Country
 
 	return &dto.LocationResp{

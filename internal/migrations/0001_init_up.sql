@@ -127,6 +127,7 @@ CREATE TABLE "public"."events"(
 	"name" VARCHAR(255) NOT NULL,
 	"slug" VARCHAR(255) NOT NULL,
 	"status" event_status NOT NULL DEFAULT 'pending',
+	"request_updates" BOOLEAN NOT NULL DEFAULT false,
 	"description" TEXT NOT NULL,
 	"address" TEXT NOT NULL,
 	"city" VARCHAR(150) NOT NULL,

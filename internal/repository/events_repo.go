@@ -21,6 +21,7 @@ type EventsRepo interface {
 	UpdateStatus(id, status string) error
 	IsCategoriesChanged(eventID string, ids []int64) bool
 	Update(event *model.Events, categories []*model.Categories) error
+	CreateStagedUpdate(event *model.Events, updatedEvent *model.UpdatedEvents, updatedCategories []*model.Categories) error
 	UpdateBannerEvent(id, banner string) error
 	ReviewEvent(event *model.Events) error
 	CancelEvent(id string) error

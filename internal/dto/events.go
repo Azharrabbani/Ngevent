@@ -63,35 +63,36 @@ type RouteResp struct {
 }
 
 type EventFilterReq struct {
-	Title       string `json:"title" query:"title"`
-	Search      string `json:"search" query:"search"` // global search
-	Sort        string `json:"sort" query:"sort"`
-	Date        string `json:"date" query:"date"`
-	Category    []int  `json:"category" query:"category"`
-	Status      string `json:"status" query:"status"`
-	WithDeleted bool   `json:"with_deleted" query:"with_deleted"`
-	StartTime   int64  `json:"start_time" query:"start_time"`
-	Location    string `json:"location" query:"location"`
+	Title     string `json:"title" query:"title"`
+	Search    string `json:"search" query:"search"` // global search
+	Sort      string `json:"sort" query:"sort"`
+	Date      string `json:"date" query:"date"`
+	Category  []int  `json:"category" query:"category"`
+	Status    string `json:"status" query:"status"`
+	StartTime int64  `json:"start_time" query:"start_time"`
+	Location  string `json:"location" query:"location"`
 }
 
 type EventFilter struct {
-	ProfileID   *string    `json:"profile_id"`
-	Title       *string    `json:"title" query:"title"`
-	Search      *string    `json:"search" query:"search"` // global search
-	Sort        *string    `json:"sort"`
-	Date        *string    `json:"date"`
-	Category    []int      `json:"category" query:"category"`
-	Status      *string    `json:"status" query:"status"`
-	WithDeleted *bool      `json:"with_deleted" query:"with_deleted"`
-	Start       *time.Time `json:"start" query:"start"`
-	End         *time.Time `json:"end" query:"end"`
-	Location    *string    `json:"location" query:"location"`
+	ProfileID *string    `json:"profile_id"`
+	Title     *string    `json:"title" query:"title"`
+	Search    *string    `json:"search" query:"search"` // global search
+	Sort      *string    `json:"sort"`
+	Date      *string    `json:"date"`
+	Category  []int      `json:"category" query:"category"`
+	Status    *string    `json:"status" query:"status"`
+	Start     *time.Time `json:"start" query:"start"`
+	End       *time.Time `json:"end" query:"end"`
+	Location  *string    `json:"location" query:"location"`
 }
 
 type EventAddressReq struct {
 	DetailAddress string `json:"detail_address" validate:"required"`
 	Lat           string `json:"lat" validate:"required"`
 	Long          string `json:"long" validate:"required"`
+	DisplayName   string `json:"display_name"`
+	City          string `json:"city"`
+	Country       string `json:"country"`
 }
 
 type ReviewEventReq struct {
@@ -146,6 +147,7 @@ type EventRespReq struct {
 type EOProfiles struct {
 	ID           string  `json:"id"`
 	IsVerified   bool    `json:"is_verified"`
+	Status       string  `json:"status"`
 	Email        string  `json:"email"`
 	Name         string  `json:"name"`
 	PhotoProfile *string `json:"photo_profile,omitempty"`
@@ -158,6 +160,7 @@ type EventDetail struct {
 	Categories     []EventCategories `json:"categories"`
 	Slug           string            `json:"slug"`
 	Status         string            `json:"status"`
+	RequestUpdates bool              `json:"request_updates"`
 	Description    string            `json:"description"`
 	RejectedReason *string           `json:"rejected_reason,omitempty"`
 	ReviewedBy     *Reviewer         `json:"reviewed_by,omitempty"`
@@ -213,6 +216,7 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 		EOProfile: EOProfiles{
 			ID:           req.Organizer.ID,
 			IsVerified:   req.Organizer.User.IsVerified,
+			Status:       req.Organizer.Status.Status,
 			Email:        req.Organizer.User.Email,
 			Name:         req.Organizer.Name,
 			PhotoProfile: req.Organizer.PhotoProfile,
@@ -224,6 +228,7 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 			Categories:     req.EventCategories,
 			Slug:           req.Event.Slug,
 			Status:         req.Event.Status,
+			RequestUpdates: req.Event.RequestUpdates,
 			Description:    req.Event.Description,
 			RejectedReason: req.Event.RejectedReason,
 			ReviewedBy:     reviewer,

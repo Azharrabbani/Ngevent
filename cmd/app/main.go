@@ -82,7 +82,7 @@ func main() {
 	organizerProfileService := service.NewOrganizerProfileService(organizerProfileRepo, userRepo, organizerUpdateRepo, emailTaskPublisher, eventRepo, updateEventRepo, server.RDB)
 	organizerUpdateService := service.NewOrganizerUpdateService(userRepo, organizerProfileRepo, organizerUpdateRepo, emailTaskPublisher, server.RDB)
 	categoryService := service.NewCategoryService(categoryRepo, server.RDB)
-	eventService := service.NewEventService(eventRepo, updateEventRepo, userRepo, organizerProfileRepo, categoryRepo, eventExpiryPublisher, emailTaskPublisher, server.RDB)
+	eventService := service.NewEventService(eventRepo, userRepo, organizerProfileRepo, categoryRepo, eventExpiryPublisher, emailTaskPublisher, server.RDB)
 	updateEventService := service.NewUpdatedEventService(updateEventRepo, eventRepo, organizerProfileRepo, eventExpiryPublisher, server.RDB, emailTaskPublisher)
 	locationService := service.NewLocationService(server.RDB)
 

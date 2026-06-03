@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { GoArrowLeft } from "react-icons/go";
 import { GoDotFill } from "react-icons/go";
-import { FiClock, FiCalendar, FiMapPin, FiTag, FiAlertCircle } from "react-icons/fi";
+import { FiClock, FiCalendar, FiMapPin, FiTag, FiAlertCircle, FiInfo } from "react-icons/fi";
 import { MdOutlineLocationOn } from "react-icons/md";
 import { FaBullhorn } from "react-icons/fa";
 import { useState } from "react";
@@ -88,7 +88,6 @@ export default function EventViewPage() {
     const timeRangeVal = timeRange(start, end);
     const statusStyle = statusColorMap[status] ?? statusColorMap["draft"];
 
-    // Conditional action buttons
     const renderButtons = () => {
         if (status === "active") {
             return (
@@ -104,7 +103,8 @@ export default function EventViewPage() {
                     <Button
                         type="button"
                         onClick={() => navigate(`/organizer/event/edit/${id}`)}
-                        className="w-full sm:w-auto rounded-xl px-8 py-3 text-white font-semibold bg-[#003B95] hover:bg-[#004ec2] transition"
+                        disabled={event.request_updates}
+                        className="w-full sm:w-auto rounded-xl px-8 py-3 text-white font-semibold bg-[#003B95] hover:bg-[#004ec2] transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Edit Event
                     </Button>
@@ -134,7 +134,6 @@ export default function EventViewPage() {
             );
         }
 
-        // pending, rejected, cancelled, done — no action buttons
         return null;
     };
 
@@ -188,6 +187,25 @@ export default function EventViewPage() {
                             {renderButtons()}
                         </div>
 
+                        {event.request_updates && (
+                            <div className="flex gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
+                                <div className="shrink-0 mt-0.5">
+                                    <FiInfo className="text-amber-500" size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-amber-600 mb-0.5">
+                                        Update Under Review
+                                    </p>
+                                    <p className="text-sm text-amber-500 leading-relaxed">
+                                        You have a pending update request for this event. Editing is
+                                        disabled until the current update has been reviewed by our
+                                        admins.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Rejection reason ─────────────────────────────── */}
                         {status === "rejected" && event.rejected_reason && (
                             <div className="flex gap-3 p-4 rounded-xl bg-red-50 border border-red-200">
                                 <div className="shrink-0 mt-0.5">

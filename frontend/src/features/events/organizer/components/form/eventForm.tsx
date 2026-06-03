@@ -133,6 +133,20 @@ export default function EventForm({
         if (eventData.event.banner) {
             setBannerPreview(eventData.event.banner);
         }
+
+        if (eventData.event_address) {
+            setSelectedLocation({
+                display_name: eventData.event_address.address,
+                lat: eventData.event_address.coordinates.lat.toString(),
+                lon: eventData.event_address.coordinates.lon.toString(),
+                address: {
+                    city: eventData.event_address.city,
+                    town: "",
+                    village: "",
+                    country: eventData.event_address.country,
+                },
+            });
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isEditMode, eventData]);
 
@@ -210,6 +224,9 @@ export default function EventForm({
                 detail_address: data.detail_address,
                 lat: position[0].toString(),
                 long: position[1].toString(),
+                display_name: selectedLocation?.display_name,
+                city: selectedLocation?.address?.city || selectedLocation?.address?.town || selectedLocation?.address?.village,
+                country: selectedLocation?.address?.country,
             },
         };
     };

@@ -218,6 +218,14 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		return errors.New("review updated event failed")
 	}
 
+	if err := eventX.Model(&model.Events{}).
+		Where("id = ?", updatedEvent.EventID).
+		Update("request_updates", false).Error; err != nil {
+		updatedX.Rollback()
+		eventX.Rollback()
+		return errors.New("failed to reset request_updates flag")
+	}
+
 	if req.Status == "approved" {
 		update := &dto.UpdateEvent{
 			EventTx:      eventX,

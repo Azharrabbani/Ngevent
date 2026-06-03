@@ -459,14 +459,57 @@ func (r *EventsRepository) Update(event *model.Events, categories []*model.Categ
 	return nil
 }
 
+func (r *EventsRepository) CreateStagedUpdate(event *model.Events, updatedEvent *model.UpdatedEvents, updatedCategories []*model.Categories) error {
+	// Make transaction
+	tx := r.db.Begin()
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			log.Printf("[PANIC] Transaction rolled back: %v", r)
+		}
+	}()
+
+	// Update event
+	if err := tx.Model(&model.Events{ID: event.ID}).Update("request_updates", true).Error; err != nil {
+		tx.Rollback()
+
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return errors.New("Cannot request an update while a previous update is still in review")
+		}
+		return err
+	}
+
+	// Create stage update
+	if err := tx.Create(updatedEvent).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Create stage  udpate categories
+	if len(updatedCategories) > 0 {
+		var eventCategories []*model.EventCategoriesUpdate
+		for _, category := range updatedCategories {
+			eventCategories = append(eventCategories, &model.EventCategoriesUpdate{
+				EventUpdateID: updatedEvent.ID,
+				CategoryID:    category.ID,
+			})
+		}
+		if err := tx.Create(eventCategories).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		if filter.WithDeleted != nil && *filter.WithDeleted {
-			db = db.Unscoped()
-		} else {
-			db = db.Where("events.deleted_at IS NULL")
-		}
-
 		if filter.ProfileID != nil {
 			db = db.Where("events.profile_id = ?", filter.ProfileID)
 		}
@@ -517,7 +560,8 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 		if filter.Status != nil {
 			db = db.Where("events.status = ?", *filter.Status)
 		} else {
-			db = db.Where("events.status = ?", model.Active)
+			status := []string{string(model.Active), string(model.Pending), string(model.Done), string(model.Rejected)}
+			db = db.Where("status IN ?", status)
 		}
 
 		if filter.Title != nil {
@@ -578,6 +622,7 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 			EOProfile: dto.EOProfiles{
 				ID:         event.Profile.ID,
 				IsVerified: event.Profile.User.IsVerified,
+				Status:     event.Profile.Status.Status,
 				Email:      event.Profile.User.Email,
 				Name:       event.Profile.Name,
 				PhotoProfile: helper.StrPointerIfNotEmpty(
@@ -603,6 +648,7 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 				Categories:     categories,
 				Slug:           event.Slug,
 				Status:         event.Status,
+				RequestUpdates: event.RequestUpdates,
 				Description:    event.Description,
 				RejectedReason: event.RejectedReason,
 				ReviewedBy:     reviewer,

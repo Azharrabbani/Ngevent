@@ -59,7 +59,6 @@ func (h *UpdatedEventHandler) ListAllUpdated(c *fiber.Ctx) error {
 		Title:       helper.StrPointerIfNotEmpty(title),
 		Search:      helper.StrPointerIfNotEmpty(filterReq.Search),
 		Sort:        helper.StrPointerIfNotEmpty(filterReq.Sort),
-		WithDeleted: helper.BoolPtr(filterReq.WithDeleted),
 		Date:        helper.StrPointerIfNotEmpty(filterReq.Date),
 		Status:      helper.StrPointerIfNotEmpty(filterReq.Status),
 		Start:       helper.TimeToPointer(start),

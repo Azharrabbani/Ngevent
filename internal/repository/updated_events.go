@@ -3,7 +3,6 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"log"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"ngevent/internal/utils/helper"
@@ -19,46 +18,6 @@ type UpdatedEventsRepository struct {
 
 func NewUpdatedEventsRepository(db *gorm.DB) EventsUpdateRepo {
 	return &UpdatedEventsRepository{db: db}
-}
-
-// Create implements EventsUpdateRepo.
-func (r *UpdatedEventsRepository) Create(event *model.UpdatedEvents, categories []*model.Categories) error {
-	// Make transaction
-	tx := r.db.Begin()
-
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			log.Printf("[PANIC] Transaction rolled back: %v", r)
-		}
-	}()
-
-	// Create event
-	if err := tx.Create(event).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Create event categories
-	if len(categories) > 0 {
-		var eventCategories []*model.EventCategoriesUpdate
-		for _, category := range categories {
-			eventCategories = append(eventCategories, &model.EventCategoriesUpdate{
-				EventUpdateID: event.ID,
-				CategoryID:    category.ID,
-			})
-		}
-		if err := tx.Create(eventCategories).Error; err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Delete implements EventsUpdateRepo.
@@ -219,12 +178,6 @@ func (r *UpdatedEventsRepository) ReviewEvent(id string, status string) error {
 
 func filterUpdatedEventList(filter *dto.UpdatedEventFilter) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		if filter.WithDeleted != nil && *filter.WithDeleted {
-			db = db.Unscoped()
-		} else {
-			db = db.Where("events.deleted_at IS NULL")
-		}
-
 		if filter.EventID != nil {
 			db = db.Where("event_updates.event_id = ?", *filter.EventID)
 		}
@@ -313,6 +266,7 @@ func toUpdatedEventsResp(updatedEvents []*model.UpdatedEvents) ([]*dto.EventsUpd
 			EOProfile: dto.EOProfiles{
 				ID:           profile.ID,
 				IsVerified:   profile.User.IsVerified,
+				Status:       profile.Status.Status,
 				Email:        profile.User.Email,
 				Name:         profile.Name,
 				PhotoProfile: profile.PhotoProfile,

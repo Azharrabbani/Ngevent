@@ -24,6 +24,7 @@ type Events struct {
 	Categories     []*EventCategories `json:"categories" gorm:"foreignKey:EventID"`
 	Slug           string             `json:"slug"`
 	Status         string             `json:"status"`
+	RequestUpdates  bool               `json:"request_updates" gorm:"default:false"`
 	Description    string             `json:"description"`
 	Address        string             `json:"address"`
 	City           string             `json:"city"`

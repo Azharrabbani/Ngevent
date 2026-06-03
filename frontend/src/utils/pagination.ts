@@ -1,6 +1,6 @@
 export const defaultPagination = (page: number) => ({
     page: page,
-    limit: 9,
+    limit: 8,
 });
 
 export const getPage = (

@@ -20,7 +20,6 @@ type UpdatedEventFilterReq struct {
 	Title       string `json:"title"  query:"title"`
 	Search      string `json:"search" query:"search"`
 	Sort        string `json:"sort"   query:"sort"`
-	WithDeleted bool   `json:"with_deleted" query:"with_deleted"`
 	Date        string `json:"date"   query:"date"`
 	StartTime   int64  `json:"start_time" query:"start_time"`
 	Status      string `json:"status" query:"status" validate:"omitempty,oneof=pending approved rejected canceled"`
@@ -29,7 +28,6 @@ type UpdatedEventFilterReq struct {
 type UpdatedEventFilter struct {
 	EventID     *string    `json:"event_id"`
 	Title       *string    `json:"title"`
-	WithDeleted *bool      `json:"with_deleted"`
 	Search      *string    `json:"search"`
 	Sort        *string    `json:"sort"`
 	Date        *string    `json:"date"`

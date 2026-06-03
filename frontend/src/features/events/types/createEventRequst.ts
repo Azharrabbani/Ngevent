@@ -14,5 +14,8 @@ interface eventAddress {
     detail_address: string;
     lat: string;
     long: string;
+    display_name?: string;
+    city?: string;
+    country?: string;
 };
 

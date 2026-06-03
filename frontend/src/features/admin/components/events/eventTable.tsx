@@ -77,7 +77,12 @@ export default function EventTable({ status, isReview, data }: Props) {
                                     </td>
                                     <td className="px-8 py-6 border-b border-gray-100">
                                         <div>
-                                            <h1 className="font-semibold text-gray-800">{item.eo_profile.name}</h1>
+                                            <div className="flex items-center gap-1">
+                                                <h1 className="font-semibold text-gray-800">{item.eo_profile.name}</h1>
+                                                {item.eo_profile.status === "deactivated" && (
+                                                    <span className="px-2 py-1 rounded-full text-sm bg-red-100 text-red-600">Deactivated</span>
+                                                )}
+                                            </div>
                                             <p className="text-gray-500 text-sm">{item.eo_profile.email}</p>
                                         </div>
                                     </td>
