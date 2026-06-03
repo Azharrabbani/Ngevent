@@ -6,7 +6,6 @@ import (
 	"ngevent/internal/service"
 	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -42,13 +41,7 @@ func (h *UpdatedEventHandler) ListAllUpdated(c *fiber.Ctx) error {
 		))
 	}
 
-	var start, end time.Time
-	if filterReq.StartTime != 0 {
-		loc, _ := time.LoadLocation("Asia/Jakarta")
-		unix := time.Unix(filterReq.StartTime, 0).In(loc)
-		start = time.Date(unix.Year(), unix.Month(), unix.Day(), 0, 0, 0, 0, time.UTC)
-		end = start.Add(24 * time.Hour)
-	}
+	startPtr, endPtr := helper.BuildEventDateRange(filterReq.StartTime, filterReq.Month, filterReq.Year)
 
 	var title string
 	if filterReq.Title != "" {
@@ -56,13 +49,13 @@ func (h *UpdatedEventHandler) ListAllUpdated(c *fiber.Ctx) error {
 	}
 
 	filter := &dto.UpdatedEventFilter{
-		Title:       helper.StrPointerIfNotEmpty(title),
-		Search:      helper.StrPointerIfNotEmpty(filterReq.Search),
-		Sort:        helper.StrPointerIfNotEmpty(filterReq.Sort),
-		Date:        helper.StrPointerIfNotEmpty(filterReq.Date),
-		Status:      helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:       helper.TimeToPointer(start),
-		End:         helper.TimeToPointer(end),
+		Title:  helper.StrPointerIfNotEmpty(title),
+		Search: helper.StrPointerIfNotEmpty(filterReq.Search),
+		Sort:   helper.StrPointerIfNotEmpty(filterReq.Sort),
+		Date:   helper.StrPointerIfNotEmpty(filterReq.Date),
+		Status: helper.StrPointerIfNotEmpty(filterReq.Status),
+		Start:  startPtr,
+		End:    endPtr,
 	}
 
 	// Fix: parse pagination separately
@@ -111,13 +104,7 @@ func (h *UpdatedEventHandler) ListAllUpdatedByEventID(c *fiber.Ctx) error {
 		))
 	}
 
-	var start, end time.Time
-	if filterReq.StartTime != 0 {
-		loc, _ := time.LoadLocation("Asia/Jakarta")
-		unix := time.Unix(filterReq.StartTime, 0).In(loc)
-		start = time.Date(unix.Year(), unix.Month(), unix.Day(), 0, 0, 0, 0, time.UTC)
-		end = start.Add(24 * time.Hour)
-	}
+	startPtr, endPtr := helper.BuildEventDateRange(filterReq.StartTime, filterReq.Month, filterReq.Year)
 
 	var title string
 	if filterReq.Title != "" {
@@ -130,8 +117,8 @@ func (h *UpdatedEventHandler) ListAllUpdatedByEventID(c *fiber.Ctx) error {
 		Sort:   helper.StrPointerIfNotEmpty(filterReq.Sort),
 		Date:   helper.StrPointerIfNotEmpty(filterReq.Date),
 		Status: helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:  helper.TimeToPointer(start),
-		End:    helper.TimeToPointer(end),
+		Start:  startPtr,
+		End:    endPtr,
 	}
 
 	pagination := new(model.Pagination)

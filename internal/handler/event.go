@@ -9,7 +9,6 @@ import (
 	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
 	"strconv"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -97,8 +96,6 @@ func (h *EventHandler) CreateEvent(c *fiber.Ctx) error {
 }
 
 func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
-	role := c.Locals("role").(string)
-
 	filterReq := new(dto.EventFilterReq)
 	if err := c.QueryParser(filterReq); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
@@ -109,22 +106,7 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 		))
 	}
 
-	if filterReq.Status != "" && role != "admin" {
-		return c.Status(fiber.StatusUnauthorized).JSON(dto.Error(
-			fiber.StatusUnauthorized,
-			"failed",
-			"error",
-			"unauthorized action",
-		))
-	}
-
-	var start, end time.Time
-	if filterReq.StartTime != 0 {
-		loc, _ := time.LoadLocation("Asia/Jakarta")
-		unix := time.Unix(filterReq.StartTime, 0).In(loc)
-		start = time.Date(unix.Year(), unix.Month(), unix.Day(), 0, 0, 0, 0, time.UTC)
-		end = start.Add(24 * time.Hour)
-	}
+	startPtr, endPtr := helper.BuildEventDateRange(filterReq.StartTime, filterReq.Month, filterReq.Year)
 
 	var title string
 	if filterReq.Title != "" {
@@ -138,8 +120,8 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 		Date:     helper.StrPointerIfNotEmpty(filterReq.Date),
 		Category: filterReq.Category,
 		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:    helper.TimeToPointer(start),
-		End:      helper.TimeToPointer(end),
+		Start:    startPtr,
+		End:      endPtr,
 		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 
@@ -159,6 +141,70 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 	}
 
 	events, err := h.EventService.GetEvents(filter, *page)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		events,
+	))
+}
+
+// Public user handler
+func (h *EventHandler) GetActiveEvents(c *fiber.Ctx) error {
+	filterReq := new(dto.EventFilterReq)
+	if err := c.QueryParser(filterReq); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	startPtr, endPtr := helper.BuildEventDateRange(filterReq.StartTime, filterReq.Month, filterReq.Year)
+
+	var title string
+	if filterReq.Title != "" {
+		title = utils.CreateSlug(filterReq.Title)
+	}
+
+	filter := &dto.EventFilter{
+		Title:    helper.StrPointerIfNotEmpty(title),
+		Search:   helper.StrPointerIfNotEmpty(filterReq.Search),
+		Sort:     helper.StrPointerIfNotEmpty(filterReq.Sort),
+		Date:     helper.StrPointerIfNotEmpty(filterReq.Date),
+		Category: filterReq.Category,
+		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
+		Start:    startPtr,
+		End:      endPtr,
+		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
+	}
+
+	pagination := new(model.Pagination)
+	if err := c.QueryParser(pagination); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	page := &model.Pagination{
+		Limit: pagination.Limit,
+		Page:  pagination.Page,
+	}
+
+	events, err := h.EventService.GetActiveEvents(filter, *page)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -332,13 +378,7 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 		))
 	}
 
-	var start, end time.Time
-	if filterReq.StartTime != 0 {
-		loc, _ := time.LoadLocation("Asia/Jakarta")
-		unix := time.Unix(filterReq.StartTime, 0).In(loc)
-		start = time.Date(unix.Year(), unix.Month(), unix.Day(), 0, 0, 0, 0, time.UTC)
-		end = start.Add(24 * time.Hour)
-	}
+	starPtr, endPtr := helper.BuildEventDateRange(filterReq.StartTime, filterReq.Month, filterReq.Year)
 
 	var title string
 	if filterReq.Title != "" {
@@ -349,8 +389,8 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 		Title:    helper.StrPointerIfNotEmpty(title),
 		Category: filterReq.Category,
 		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:    helper.TimeToPointer(start),
-		End:      helper.TimeToPointer(end),
+		Start:    starPtr,
+		End:      endPtr,
 		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 

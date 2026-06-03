@@ -1,29 +1,39 @@
 import { useEffect, useState } from "react";
 import { useGetCurrentOrganizerProfile } from "../../../profile/hooks/organizer/useGetCurrentOrganizerProfile";
 import { useGetOrganizerEvents } from "../../hooks/useGetOrganizerEvents";
-import { converDate } from "../../../../utils/dateConverter";
 import { defaultPagination } from "../../../../utils/pagination";
 import { useListCategories } from "../../../categories/hooks/useListCategories";
 import Sidebar from "../components/sidebar";
 import Header from "../components/header";
 import EventsContent from "../components/eventsContent";
 import Pagination from "../../../../components/pagination";
+import { buildEventDateFilters, type DateFilterType } from "../../../../utils/dateFilter";
 
 export default function CancelEvent() {
     const [currentPage, setCurrentPage] = useState(1);
     const [location, setLocation] = useState<string | undefined>(undefined);
     const [event, setEvent] = useState<string | undefined>(undefined);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
-    const [date, setDate] = useState<Date | null>(null);
+    const [dateFilterType, setDateFilterType] = useState<DateFilterType>("all");
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
+    const [selectedYear, setSelectedYear] = useState<number | undefined>();
 
     const organizer = useGetCurrentOrganizerProfile();
+
+    const dateFilters = buildEventDateFilters(
+        dateFilterType,
+        selectedDate,
+        selectedMonth,
+        selectedYear
+    );
 
     const { data, isLoading } = useGetOrganizerEvents({
         title: event,
         location: location,
         category: selectedCategories.length ? selectedCategories : undefined,
         status: "cancelled",
-        start_time: date ? converDate(date) : undefined,
+        ...dateFilters,
         pagination: defaultPagination(currentPage),
     });
 
@@ -36,7 +46,11 @@ export default function CancelEvent() {
         setLocation(undefined);
         setEvent(undefined);
         setSelectedCategories([]);
-        setDate(null);
+        setDateFilterType("all");
+        setSelectedDate(null);
+        setSelectedMonth(undefined);
+        setSelectedYear(undefined);
+
         setCurrentPage(1);
     };
 
@@ -59,8 +73,14 @@ export default function CancelEvent() {
                     categoriesLoading={categoriesLoading}
                     selectedCategories={selectedCategories}
                     setSelectedCategories={setSelectedCategories}
-                    date={date}
-                    setDate={setDate}
+                    dateFilterType={dateFilterType}
+                    setDateFilterType={setDateFilterType}
+                    selectedDate={selectedDate}
+                    setSelectedDate={setSelectedDate}
+                    selectedMonth={selectedMonth}
+                    setSelectedMonth={setSelectedMonth}
+                    selectedYear={selectedYear}
+                    setSelectedYear={setSelectedYear}
                     setEvent={setEvent}
                     organizerName={organizer?.data?.name}
                     onSearch={handleSearch}

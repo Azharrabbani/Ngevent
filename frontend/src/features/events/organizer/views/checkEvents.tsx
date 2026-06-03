@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import { useGetOrganizerEvents } from "../../hooks/useGetOrganizerEvents";
 import { defaultPagination } from "../../../../utils/pagination";
 import { useGetCurrentOrganizerProfile } from "../../../profile/hooks/organizer/useGetCurrentOrganizerProfile";
-import { converDate } from "../../../../utils/dateConverter";
 import { useListCategories } from "../../../categories/hooks/useListCategories";
 import EventsContent from "../components/eventsContent";
+import { buildEventDateFilters, type DateFilterType } from "../../../../utils/dateFilter";
 
 export default function CheckEvents() {
     const [currentPage, setCurrentPage] = useState(1);
@@ -15,16 +15,27 @@ export default function CheckEvents() {
     const [event, setEvent] = useState<string | undefined>(undefined);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [status, setStatus] = useState<string | undefined>(undefined);
-    const [date, setDate] = useState<Date | null>(null);
+
+    const [dateFilterType, setDateFilterType] = useState<DateFilterType>("all");
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
+    const [selectedYear, setSelectedYear] = useState<number | undefined>();
 
     const organizer = useGetCurrentOrganizerProfile();
+
+    const dateFilters = buildEventDateFilters(
+        dateFilterType,
+        selectedDate,
+        selectedMonth,
+        selectedYear
+    );
 
     const { data, isLoading } = useGetOrganizerEvents({
         title: event,
         location: location,
         category: selectedCategories.length ? selectedCategories : undefined,
         status: status,
-        start_time: date ? converDate(date) : undefined,
+        ...dateFilters,
         pagination: defaultPagination(currentPage),
     });
 
@@ -37,7 +48,11 @@ export default function CheckEvents() {
         setLocation(undefined);
         setEvent(undefined);
         setSelectedCategories([]);
-        setDate(null);
+        setStatus(undefined);
+        setDateFilterType("all");
+        setSelectedDate(null);
+        setSelectedMonth(undefined);
+        setSelectedYear(undefined);
         setCurrentPage(1);
     };
 
@@ -61,8 +76,14 @@ export default function CheckEvents() {
                     selectedCategories={selectedCategories}
                     setSelectedCategories={setSelectedCategories}
                     status={status}
-                    date={date}
-                    setDate={setDate}
+                    dateFilterType={dateFilterType}
+                    setDateFilterType={setDateFilterType}
+                    selectedDate={selectedDate}
+                    setSelectedDate={setSelectedDate}
+                    selectedMonth={selectedMonth}
+                    setSelectedMonth={setSelectedMonth}
+                    selectedYear={selectedYear}
+                    setSelectedYear={setSelectedYear}
                     setStatus={setStatus}
                     setEvent={setEvent}
                     organizerName={organizer?.data?.name}

@@ -245,16 +245,20 @@ func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 
 	event := v1.Group("/event")
 	event.Static("/banner", "./storage/event/banner")
+
+	// Public routes
+	event.Get("/active", h.GetActiveEvents)
+	event.Get("/nearest", h.FindNearestEvents)
+	event.Get("/route/:id", routeLimiter, h.GetEventRoute)
+	event.Get("/view/:id", h.GetEventByID)
+
 	event.Use(middleware.AuthMiddleware())
 	{
 		event.Post("/", middleware.AuthorizeRoles(string(model.Organizer)), h.CreateEvent)
-		event.Get("/", middleware.AuthorizeRoles(string(model.Attendee), string(model.Admin)), h.GetEvents)
-		event.Get("/nearest", middleware.AuthorizeRoles(string(model.Attendee)), h.FindNearestEvents)
+		event.Get("/", middleware.AuthorizeRoles(string(model.Admin)), h.GetEvents)
 		event.Get("/organizer-events", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.GetEventsByProfileID)
-		event.Get("/route/:id", routeLimiter, h.GetEventRoute)
 		event.Put("/review/:id", middleware.AuthorizeRoles(string(model.Admin)), h.ReviewEvent)
 		event.Put("/cancel/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.CancelEvent)
-		event.Get("/:id", h.GetEventByID)
 		event.Put("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.UpdateEvent)
 		event.Delete("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.DeleteEvent)
 	}

@@ -8,6 +8,8 @@ export interface FilterEventsRequest {
     category?: number[];
     status?: string;
     start_time?: number;
+    month?: number;
+    year?: number;
     location?: string;
     with_deleted?: boolean;
     pagination?: PaginationParams;
@@ -15,9 +17,11 @@ export interface FilterEventsRequest {
 
 export interface FilterUpdatedEventsRequest {
     title?: string;
-    search?: string;   
-    sort?: string;     
-    date?: string;     
+    search?: string;
+    sort?: string;
+    date?: string;
+    month?: number;
+    year?: number;
     status?: string;
     pagination?: PaginationParams;
 }

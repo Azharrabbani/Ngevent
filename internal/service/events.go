@@ -260,6 +260,39 @@ func (s *EventService) GetEvents(filter *dto.EventFilter, pagination model.Pagin
 	return events, nil
 }
 
+func (s *EventService) GetActiveEvents(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
+	var events *model.PaginationRow[*dto.EventsResp]
+
+	filter.Status = helper.StrPointerIfNotEmpty(string(model.Active))
+
+	filterBytes, _ := json.Marshal(filter)
+	hash := sha1.Sum(filterBytes)
+	filterHash := hex.EncodeToString(hash[:])
+
+	cacheKey := fmt.Sprintf("events:all:%d:%d:%s:%s", pagination.Page, pagination.Limit, pagination.Sort, filterHash)
+
+	// Try to get from cache
+	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
+	if err == nil {
+		json.Unmarshal([]byte(val), &events)
+	}
+
+	if events == nil {
+		// If cache miss, get from db
+		events, err = s.EventRepo.FindActiveEvents(filter, pagination)
+		if err != nil {
+			return nil, err
+		}
+
+		// Set cache with 15 minute TTL
+		if data, err := json.Marshal(events); err == nil {
+			s.rdb.Set(context.Background(), cacheKey, data, 15*time.Minute)
+		}
+	}
+
+	return events, nil
+}
+
 func (s *EventService) GetEventsByProfileID(userID string, filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
 	profile, err := s.ProfileRepo.FindByUserID(userID)
 	if err != nil {

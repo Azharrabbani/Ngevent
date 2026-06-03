@@ -1,10 +1,10 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { IoIosArrowDown, IoIosSearch } from "react-icons/io";
 import { IoAddOutline } from "react-icons/io5";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import type { categoriesResp } from "../../../categories/types/categoryResponse";
 import { useNavigate } from "react-router-dom";
+import type { DateFilterType } from "../../../../utils/dateFilter";
+import DateFilterDropdown from "../../../../components/dateFilter/dateFilterDropdown";
 
 interface Props {
     organizerName: string | undefined;
@@ -17,8 +17,21 @@ interface Props {
     status?: string | undefined;
     setStatus?: Dispatch<SetStateAction<string | undefined>>;
     setSelectedCategories: Dispatch<SetStateAction<number[]>>;
-    date: Date | null;
-    setDate: (val: Date | null) => void;
+    dateFilterType: DateFilterType;
+    setDateFilterType:
+    Dispatch<SetStateAction<DateFilterType>>;
+
+    selectedDate: Date | null;
+    setSelectedDate:
+    Dispatch<SetStateAction<Date | null>>;
+
+    selectedMonth?: number;
+    setSelectedMonth:
+    Dispatch<SetStateAction<number | undefined>>;
+
+    selectedYear?: number;
+    setSelectedYear:
+    Dispatch<SetStateAction<number | undefined>>;
     setEvent: (val: string | undefined) => void;
     onSearch: () => void;
     toggleStatus: boolean
@@ -34,11 +47,16 @@ export default function Header({
     selectedCategories,
     status,
     setStatus,
-    date,
-    setDate,
+    dateFilterType,
+    setDateFilterType,
+    selectedDate,
+    setSelectedDate,
+    selectedMonth,
+    setSelectedMonth,
+    selectedYear,
+    setSelectedYear,
     setSelectedCategories,
     setEvent,
-    onSearch,
     toggleStatus,
 }: Props) {
     const navigate = useNavigate();
@@ -134,7 +152,6 @@ export default function Header({
                                         <form
                                             onSubmit={(e) => {
                                                 e.preventDefault();
-                                                onSearch();
                                             }}
                                             className="relative"
                                         >
@@ -151,15 +168,15 @@ export default function Header({
 
                                     {/* DATE */}
                                     {menu.title === "Date" && (
-                                        <DatePicker
-                                            selected={date}
-                                            onChange={(date: Date | null) => setDate(date)}
-                                            className="w-full border px-3 py-2 rounded-lg"
-                                            placeholderText="Select date"
-                                            portalId="root"
-                                            popperPlacement="bottom-start"
-                                            popperClassName="z-50"
-                                            calendarClassName="shadow-lg border rounded-xl"
+                                        <DateFilterDropdown
+                                            dateFilterType={dateFilterType}
+                                            setDateFilterType={setDateFilterType}
+                                            selectedDate={selectedDate}
+                                            setSelectedDate={setSelectedDate}
+                                            selectedMonth={selectedMonth}
+                                            setSelectedMonth={setSelectedMonth}
+                                            selectedYear={selectedYear}
+                                            setSelectedYear={setSelectedYear}
                                         />
                                     )}
 
@@ -208,7 +225,6 @@ export default function Header({
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setStatus?.(prev => prev === item ? undefined : item);
-                                                            onSearch();
                                                         }}
                                                         className={`flex justify-between items-center px-2 py-1 rounded cursor-pointer
                                                             ${isSelected
@@ -236,7 +252,6 @@ export default function Header({
                     className="relative w-full xl:w-72"
                     onSubmit={(e) => {
                         e.preventDefault();
-                        onSearch();
                     }}
                 >
                     <IoIosSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

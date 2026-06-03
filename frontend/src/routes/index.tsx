@@ -28,17 +28,22 @@ import CategoriesView from "../features/admin/views/categories"
 import UnauthorizedView from "../features/auth/views/unauthorizedView"
 import AdminList from "../features/admin/views/adminList"
 import EventViewPage from "../features/events/organizer/views/eventViewPage"
+import PublicDashboard from "../features/events/attendee/views/dashboard"
 
 export default function AppRoutes() {
     return (
         <BrowserRouter>
             <Routes>
+
+                {/* Public routes */}
                 <Route path="/login" element={<LoginView />} />
                 <Route path="/register" element={<RegisterView />} />
                 <Route path="/forget" element={<ForgetPassword />} />
                 <Route path="/reset-password" element={<ResetPasswordView />} />
                 <Route path="/verified-email" element={<VerifiedEmailView />} />
+                <Route path="/" element={<PublicDashboard />} />
 
+                {/* Protected routes */}
                 <Route element={<ProtectedRoute />}>
                     <Route path="/select-role" element={<SelectRoleView />} />
                     <Route path="/unauthorized" element={<UnauthorizedView />} />
@@ -91,10 +96,6 @@ export default function AppRoutes() {
                             </OrganizerDashboard>
                         } />
 
-                        {/*
-            NEW: Event view page — accessible without profile/approve guards
-            so organizers can always view their event details.
-        */}
                         <Route path="event/view/:id" element={
                             <OrganizerDashboard>
                                 <EventViewPage />

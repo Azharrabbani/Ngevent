@@ -31,6 +31,23 @@ export const GetEventsApi = async (params: FilterEventsRequest) => {
     return res.data;
 }
 
+export const getEventsActiveApi = async (params: FilterEventsRequest) => {
+    const res = await api.get<PaginatedResponse<EventsResponse>>("/event/active", {
+        params: {
+            search: params.search,
+            category: params.category,
+            sort: params.sort,
+            date: params.date,
+            location: params.location,
+            month: params.month,
+            year: params.year,
+            page: params.pagination?.page,
+            limit: params.pagination?.limit,
+        },
+    })
+    return res.data
+}
+
 export const GetAllUpdatedEventsApi = async (params: FilterUpdatedEventsRequest) => {
     const res = await api.get<PaginatedResponse<UpdateEventResponse>>("/updated-event", {
         params: {
@@ -53,6 +70,8 @@ export const GetOrganizerEventsApi = async (params: FilterEventsRequest) => {
             category: params.category,
             status: params.status,
             start_time: params.start_time,
+            month: params.month,
+            year: params.year,
             location: params.location,
             page: params.pagination?.page,
             limit: params.pagination?.limit,
@@ -64,7 +83,7 @@ export const GetOrganizerEventsApi = async (params: FilterEventsRequest) => {
 };
 
 export const GetEventByID = async (id: string) => {
-    const res = await api.get<successResponse<EventsResponse>>(`event/${id}`);
+    const res = await api.get<successResponse<EventsResponse>>(`event/view/${id}`);
     return res.data;
 }
 

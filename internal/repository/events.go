@@ -248,14 +248,15 @@ func (r *EventsRepository) FindAll(filter *dto.EventFilter, pagination model.Pag
 func (r *EventsRepository) FindActiveEvents(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
 	var events []*model.Events
 
-	if filter.Status != nil {
-		return nil, errors.New("unauthorized action")
-	}
-
-	query := r.db.Scopes(filterEventList(filter))
+	query := r.db.Select(
+		`events.*,
+		ST_Y(events.coordinates::geometry) AS lat,
+		ST_X(events.coordinates::geometry) AS lon`,
+	).Scopes(filterEventList(filter))
 
 	if err := query.
 		Scopes(Paginate(events, &pagination, query)).
+		Order("created_at DESC").
 		Preload("Profile.User").
 		Preload("Categories.Category").
 		Find(&events).Error; err != nil {
