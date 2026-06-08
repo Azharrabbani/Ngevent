@@ -4,6 +4,7 @@ import RegisterForm from "../components/registerForm";
 import Link from "../../../components/link";
 import { useRegister } from "../hooks/useRegister";
 import { useNavigate } from "react-router-dom";
+import { IoIosArrowRoundBack } from "react-icons/io";
 
 export default function RegisterView() {
     const baseUrlPort = import.meta.env.VITE_URL_PORT;
@@ -48,11 +49,23 @@ export default function RegisterView() {
                 />
             </div>
 
-            {/* Form */}
             <div className="md:w-1/2 my-6 px-8 md:px-16">
-                <h2 className="font-bold text-2xl text-center">
-                    Register
-                </h2>
+                <div
+                    className="flex items-center gap-2 cursor-pointer hover:text-gray-500 transition-colors"
+                    onClick={() => navigate(`/`)}
+                >
+                    <IoIosArrowRoundBack />
+                    <h2 className="text-gray-700">Back to dashboard</h2>
+                </div>
+
+                <div className="mt-4">
+                    <h2 className="font-bold text-2xl text-center">
+                        Register
+                    </h2>
+                    <p className="text-sm text-center mt-2">
+                        Sign up to become event creator on Ngevent
+                    </p>
+                </div>
 
                 <RegisterForm
                     onSubmit={handleRegister}

@@ -14,7 +14,6 @@ export function mapUpdateToEventResponse(
             banner: update.updated_details.banner,
             name: update.event_title,
             categories: update.updated_categories,
-            tickets: [],
             slug: "",
             status: update.updated_details.status,
             description: update.updated_details.description,

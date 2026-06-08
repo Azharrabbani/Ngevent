@@ -216,12 +216,15 @@ func (s *FiberServer) RegisterOrganizerUpdateRoutes(h *handler.OrganizerUpdateHa
 
 func (s *FiberServer) RegisterCategoriesRoutes(h *handler.CategoriesHandler) {
 	category := v1.Group("/category")
+
+	// Public routes
+	category.Get("/", h.ListCategories)
+	category.Get("/filter", h.ListByCatName)
+
 	category.Use(middleware.AuthMiddleware())
 	{
 		category.Post("/", middleware.AuthorizeRoles(string(model.Admin)), h.CreateCategory)
-		category.Get("/", h.ListCategories)
 		category.Get("/list", middleware.AuthorizeRoles(string(model.Admin)), h.ListWithPagination)
-		category.Get("/filter", h.ListByCatName)
 		category.Put("/:id", middleware.AuthorizeRoles(string(model.Admin)), h.UpdateCategory)
 		category.Delete("/:id", middleware.AuthorizeRoles(string(model.Admin)), h.DeleteCategory)
 	}

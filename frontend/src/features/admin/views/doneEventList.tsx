@@ -2,12 +2,19 @@ import { useEffect, useState } from "react";
 import EventList from "../components/events/eventList";
 import AdminSidebar from "../components/sideBar";
 import { useGetEvents } from "../../events/hooks/useGetEvents";
+import { buildEventDateFilters, type DateFilterType } from "../../../utils/dateFilter";
 
 export default function DoneEventList() {
     const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState<string | undefined>(undefined);
     const [sort, setSort] = useState<string | undefined>("desc");
     const [filter, setFilter] = useState<string | undefined>(undefined);
+    const [dateFilterType, setDateFilterType] = useState<DateFilterType>("all");
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
+    const [selectedYear, setSelectedYear] = useState<number | undefined>();
+
+    const dateFilters = buildEventDateFilters(dateFilterType, selectedDate, selectedMonth, selectedYear);
 
 
     const { data, isLoading } = useGetEvents({
@@ -15,6 +22,7 @@ export default function DoneEventList() {
         search: search,
         sort: sort,
         date: filter,
+        ...dateFilters,
         pagination: {
             limit: 4,
             page: currentPage,
@@ -46,6 +54,14 @@ export default function DoneEventList() {
                     setSort={setSort}
                     dateFilter={filter}
                     setDateFilter={setFilter}
+                    dateFilterType={dateFilterType}
+                    setDateFilterType={setDateFilterType}
+                    selectedDate={selectedDate}
+                    setSelectedDate={setSelectedDate}
+                    selectedMonth={selectedMonth}
+                    setSelectedMonth={setSelectedMonth}
+                    selectedYear={selectedYear}
+                    setSelectedYear={setSelectedYear}
                     setCurrentPage={setCurrentPage}
                 />
             </>

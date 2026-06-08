@@ -12,6 +12,7 @@ import { FiSearch } from "react-icons/fi";
 import { GoShield } from "react-icons/go";
 import { IoIosArrowRoundBack } from "react-icons/io";
 import { LuUserRoundCheck } from "react-icons/lu";
+import { MdOutlineDashboard } from "react-icons/md";
 
 interface Props {
     className?: string
@@ -99,5 +100,11 @@ export function LeftArrowIcon({ className, size }: Props) {
 export function UserVerifiedIcon({ className, size }: Props) {
     return (
         <LuUserRoundCheck className={className} size={size} />
+    )
+}
+
+export function DashboardIcon({ className, size }: Props) {
+    return (
+        <MdOutlineDashboard className={className} size={size} />
     )
 }

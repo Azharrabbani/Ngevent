@@ -48,7 +48,6 @@ type EventDetail = {
     banner?: string;
     name: string;
     categories: EventCategories[];
-    tickets: Tickets[];
     slug: string;
     status: string;
     request_updates?: boolean;
@@ -79,12 +78,4 @@ type Coordinates = {
 type EventCategories = {
     id: string;
     name: string;
-};
-
-type Tickets = {
-    id: string;
-    name: string;
-    price: string;
-    quantity: number;
-    ticket_type: string;
 };

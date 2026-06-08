@@ -13,7 +13,7 @@ interface Props {
     setDateFilter?: (val: string | undefined) => void;
 }
 
-export default function DateFilterDropdown({ dateFilter, setDateFilter }: Props) {
+export default function EventCreateDateFilterDropdown({ dateFilter, setDateFilter }: Props) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 

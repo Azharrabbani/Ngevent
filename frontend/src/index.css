@@ -7,6 +7,15 @@ body {
   color: #111827;
 }
 
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 .leaflet-container {
   z-index: 0;
 }
@@ -57,7 +66,7 @@ button {
   padding-left: 1.5rem;
 }
 
-/* Prose display styles (for rendering saved HTML) */
+/* Prose display styles */
 .prose p {
   margin: 0.5rem 0;
 }

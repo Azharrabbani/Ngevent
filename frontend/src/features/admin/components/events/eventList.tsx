@@ -5,6 +5,8 @@ import type { EventsResponse } from "../../../events/types/eventResponse";
 import type { PaginatedData } from "../../../../types/apiResponse";
 import EventsHeader from "./header";
 import { SpinnerIcon } from "../../../../components/icon";
+import type { DateFilterType } from "../../../../utils/dateFilter";
+import type { Dispatch, SetStateAction } from "react";
 
 
 interface Props {
@@ -21,6 +23,14 @@ interface Props {
     setSort?: React.Dispatch<React.SetStateAction<string | undefined>>;
     dateFilter?: string;
     setDateFilter?: React.Dispatch<React.SetStateAction<string | undefined>>;
+    dateFilterType: DateFilterType;
+    setDateFilterType: Dispatch<SetStateAction<DateFilterType>>;
+    selectedDate: Date | null;
+    setSelectedDate: Dispatch<SetStateAction<Date | null>>;
+    selectedMonth?: number;
+    setSelectedMonth: Dispatch<SetStateAction<number | undefined>>;
+    selectedYear?: number;
+    setSelectedYear: Dispatch<SetStateAction<number | undefined>>;
     getUpdate?: boolean;
     setGetupdate?: (val: boolean | undefined) => void;
 }
@@ -38,12 +48,20 @@ export default function EventList({
     setSort,
     dateFilter,
     setDateFilter,
+    dateFilterType,
+    setDateFilterType,
+    selectedDate,
+    setSelectedDate,
+    selectedMonth,
+    setSelectedMonth,
+    selectedYear,
+    setSelectedYear,
     getUpdate,
     setGetupdate }: Props) {
     const isEmpty = !data || data.total_rows === 0;
 
     return (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100">
             <EventsHeader
                 reviewEvent={reviewEvent}
                 status={status}
@@ -53,6 +71,14 @@ export default function EventList({
                 setSort={setSort}
                 dateFilter={dateFilter}
                 setDateFilter={setDateFilter}
+                dateFilterType={dateFilterType}
+                setDateFilterType={setDateFilterType}
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
+                selectedMonth={selectedMonth}
+                setSelectedMonth={setSelectedMonth}
+                selectedYear={selectedYear}
+                setSelectedYear={setSelectedYear}
                 getUpdate={getUpdate}
                 setGetupdate={setGetupdate}
             />

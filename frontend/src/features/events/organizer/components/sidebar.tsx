@@ -7,6 +7,7 @@ import { MdOutlineCancel } from "react-icons/md";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLogout } from "../../../auth/hooks/useLogout";
 import { CgLogOut } from "react-icons/cg";
+import { DashboardIcon } from "../../../../components/icon";
 
 interface Props {
     children: React.ReactElement;
@@ -18,7 +19,7 @@ export default function Sidebar({ children, photoProfile }: Props) {
 
     const [isOpen, setIsOpen] = useState(false);
 
-    const location = useLocation(); 
+    const location = useLocation();
 
     const { mutateAsync: logout, isPending, isError } = useLogout();
 
@@ -34,6 +35,11 @@ export default function Sidebar({ children, photoProfile }: Props) {
     }
 
     const menus = [
+        {
+            title: "Dashboard",
+            icon: <DashboardIcon />,
+            path: "/"
+        },
         {
             title: "Cancel",
             icon: <MdOutlineCancel />,

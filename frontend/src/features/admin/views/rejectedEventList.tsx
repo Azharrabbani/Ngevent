@@ -6,6 +6,7 @@ import { useGetAllUpdatedEvents } from "../../events/hooks/useGetAllUpdatedEvent
 import { mapUpdateToEventResponse } from "../../events/utils/mapUpdateToEvent";
 import type { EventsResponse } from "../../events/types/eventResponse";
 import type { PaginatedData } from "../../../types/apiResponse";
+import { buildEventDateFilters, type DateFilterType } from "../../../utils/dateFilter";
 
 export default function RejectedEventList() {
     const [currentPage, setCurrentPage] = useState(1);
@@ -13,6 +14,12 @@ export default function RejectedEventList() {
     const [sort, setSort] = useState<string | undefined>("desc");
     const [dateFilter, setDateFilter] = useState<string | undefined>(undefined);
     const [getUpdate, setGetUpdate] = useState<boolean | undefined>(undefined);
+    const [dateFilterType, setDateFilterType] = useState<DateFilterType>("all");
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
+    const [selectedYear, setSelectedYear] = useState<number | undefined>();
+
+    const dateFilters = buildEventDateFilters(dateFilterType, selectedDate, selectedMonth, selectedYear);
 
     const isShowingUpdates = getUpdate === true;
 
@@ -22,6 +29,7 @@ export default function RejectedEventList() {
             search,
             sort,
             date: dateFilter,
+            ...dateFilters,
             pagination: { limit: 4, page: currentPage },
         },
         !isShowingUpdates
@@ -73,6 +81,14 @@ export default function RejectedEventList() {
                     setGetupdate={setGetUpdate}
                     dateFilter={dateFilter}
                     setDateFilter={setDateFilter}
+                    dateFilterType={dateFilterType}
+                    setDateFilterType={setDateFilterType}
+                    selectedDate={selectedDate}
+                    setSelectedDate={setSelectedDate}
+                    selectedMonth={selectedMonth}
+                    setSelectedMonth={setSelectedMonth}
+                    selectedYear={selectedYear}
+                    setSelectedYear={setSelectedYear}
                     setCurrentPage={setCurrentPage}
                 />
             </>

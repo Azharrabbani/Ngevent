@@ -7,7 +7,7 @@ import { GoArrowLeft } from "react-icons/go";
 import { IoIosArrowDown } from "react-icons/io";
 import { HiSwatch } from "react-icons/hi2";
 import { useAuth } from "../../../lib/auth";
-import { CategoryIcon, EventIcon, HomeIcon, UserIcon } from "../../../components/icon";
+import { CategoryIcon, DashboardIcon, EventIcon, HomeIcon, UserIcon } from "../../../components/icon";
 
 interface Props {
     children: React.ReactElement;
@@ -66,6 +66,11 @@ export default function AdminSidebar({ children }: Props) {
             title: "Categories",
             icon: <CategoryIcon />,
             path: "/admin/categories"
+        },
+        {
+            title: "Dashboard",
+            icon: <DashboardIcon />,
+            path: "/"
         },
     ];
 
