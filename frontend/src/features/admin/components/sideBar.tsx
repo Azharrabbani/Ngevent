@@ -5,7 +5,6 @@ import { CgLogOut } from "react-icons/cg";
 import { HiMenu } from "react-icons/hi";
 import { GoArrowLeft } from "react-icons/go";
 import { IoIosArrowDown } from "react-icons/io";
-import { HiSwatch } from "react-icons/hi2";
 import { useAuth } from "../../../lib/auth";
 import { CategoryIcon, DashboardIcon, EventIcon, HomeIcon, UserIcon } from "../../../components/icon";
 
@@ -28,7 +27,7 @@ export default function AdminSidebar({ children }: Props) {
     const handleLogout = async () => {
         try {
             await logout();
-            navigate("/login");
+            navigate("/");
         } catch (err) {
             if (isError) {
                 return;
@@ -121,8 +120,14 @@ export default function AdminSidebar({ children }: Props) {
                     onClick={() => setIsMobileOpen(false)}
                 />
 
-                <div className="inline-flex">
-                    <HiSwatch className="bg-white text-4xl text-blue-500 rounded p-1" />
+                <div className="inline-flex items-center">
+                    <div className="bg-white rounded-full">
+                        <img
+                            src="/initial_logo.png"
+                            alt="Ngevent"
+                            className="w-10 h-10 object-contain"
+                        />
+                    </div>
                     <h1 className={`text-white text-2xl ml-2 duration-300 ${isCollapsed && "hidden"}`}>
                         Ngevent
                     </h1>

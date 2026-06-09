@@ -26,7 +26,7 @@ export default function Sidebar({ children, photoProfile }: Props) {
     const handleLogout = async () => {
         try {
             await logout();
-            navigate("/login");
+            navigate("/");
         } catch (err) {
             if (isError) {
                 return;

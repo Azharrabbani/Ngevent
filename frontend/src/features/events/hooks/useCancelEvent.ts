@@ -1,25 +1,23 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import toast from "react-hot-toast"
 import { CancelEventApi } from "../api/eventsApi"
-import { eventsKeys } from "../../../utils/cacheKey"
+import { eventsKeys, eventsPublicKeys } from "../../../utils/cacheKey"
 
 export const useCancelEvent = () => {
     const queryClient = useQueryClient()
 
     return useMutation({
         mutationFn: (id: string) => CancelEventApi(id),
-        onSuccess: (success, variable) => {
+        onSuccess: (success) => {
             toast.success(success.data)
             // Invalidate list queries
             queryClient.invalidateQueries({
-                queryKey: eventsKeys.lists(),
-                exact: false,
+                queryKey: eventsKeys.all,
                 refetchType: "active"
             });
 
-            // Invalidate the specific event detail
             queryClient.invalidateQueries({
-                queryKey: eventsKeys.detail(variable),
+                queryKey: eventsPublicKeys.all,
                 refetchType: "active"
             });
         },

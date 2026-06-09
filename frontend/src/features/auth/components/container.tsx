@@ -1,20 +1,31 @@
-import type React from "react"
-import { cn } from "../../../utils/cn"
+import { cn } from "../../../utils/cn";
 
-interface AuthContainerProps  {
-    children: React.ReactNode
-    className?: string
+interface AuthContainerProps {
+    children: React.ReactNode;
+    className?: string;
 }
 
-export default function AuthContainer({children, className=""}: AuthContainerProps) {
+export default function AuthContainer({
+    children,
+    className = "",
+}: AuthContainerProps) {
     return (
-        <section className="bg-gray-50 min-h-screen flex items-center justify-center">
-            <div className={cn(
-                "bg-gray-100 flex rounded-2xl shadow-lg  max-w-4xl items-center",
-                className
-            )}>
+        <section
+            className="min-h-screen flex items-center justify-center px-4"
+            style={{
+                backgroundImage: "url('/auth-bg.webp')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+            }}
+        >
+            <div
+                className={cn(
+                    "w-full max-w-md bg-white/90 backdrop-blur-lg rounded-3xl shadow-xl border border-white/30",
+                    className
+                )}
+            >
                 {children}
             </div>
         </section>
-    )
+    );
 }

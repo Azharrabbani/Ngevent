@@ -16,7 +16,7 @@ type EventsRepo interface {
 	FindActiveEvents(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error)
 	FindByProfileID(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error)
 	FindByID(id string) (*model.Events, error)
-	FindBySlug(slug string, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error)
+	FindBySlug(slug string) (*model.Events, error)
 	FindNearestEvents(lat, lon float64, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error)
 	UpdateStatus(id, status string) error
 	IsCategoriesChanged(eventID string, ids []int64) bool

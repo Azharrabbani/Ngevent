@@ -159,6 +159,54 @@ export default function EventDetailView({
                         <InfoField label="Country">{data?.event_address?.country}</InfoField>
                     </div>
 
+                    <div className="px-5 sm:px-6 py-4 border-b border-gray-100">
+                        <h2 className="text-base font-bold text-gray-900 mb-4">
+                            Event Owner Information
+                        </h2>
+
+                        <div className="flex flex-col sm:flex-row items-start gap-4">
+                            <img
+                                src={data?.eo_profile?.photo_profile}
+                                alt={data?.eo_profile?.name}
+                                className="w-16 h-16 rounded-full object-cover border border-gray-200"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src =
+                                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                            data?.eo_profile?.name || "EO"
+                                        )}`;
+                                }}
+                            />
+
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-semibold text-gray-900">
+                                        {data?.eo_profile?.name}
+                                    </h3>
+
+                                    {data?.eo_profile?.is_verified && (
+                                        data?.eo_profile?.status === "approved" ? (
+                                            <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">
+                                                Verified
+                                            </span>
+                                        ) : (
+                                            <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
+                                                Deactivated
+                                            </span>
+                                        )
+                                    )}
+                                </div>
+
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {data?.eo_profile?.email}
+                                </p>
+
+                                <p className="text-sm text-gray-500">
+                                    {data?.eo_profile?.phone_number}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="p-5 sm:p-6 flex flex-col lg:flex-row gap-6">
                         <div className="flex-1">
                             <h2 className="text-base font-bold text-gray-900 mb-3">

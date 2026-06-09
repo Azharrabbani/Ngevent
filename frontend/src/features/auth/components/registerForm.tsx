@@ -35,13 +35,13 @@ export default function RegisterForm({
     return (
         <form
             onSubmit={handleSubmit}
-            className="flex flex-col gap-4 mb-2"
+            className="flex flex-col gap-5"
         >
             <Input
                 type="email"
                 name="email"
                 placeholder="email"
-                className="mt-8"
+                className="mt-6 h-12 w-96"
                 onChange={(e) => setEmail(e.target.value)}
                 error={errors.email}
             />
@@ -63,10 +63,11 @@ export default function RegisterForm({
             />
 
             <Button
+                className="h-12 text-base font-semibold"
                 disabled={loading}
                 type="submit"
             >
-                {loading ? "Loading..." : "Register"}
+                {loading ? "Loading..." : "Create Account"}
             </Button>
         </form>
     );

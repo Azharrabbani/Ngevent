@@ -120,7 +120,7 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 		ProfileID:     profile.ID,
 		Banner:        eventBanner,
 		Name:          req.Name,
-		Slug:          utils.CreateSlug(req.Name),
+		Slug:          utils.GenerateEventSlug(req.Name),
 		Status:        status,
 		Description:   req.Description,
 		Address:       *location.Address,
@@ -331,7 +331,7 @@ func (s *EventService) GetEventsByProfileID(userID string, filter *dto.EventFilt
 	return events, nil
 }
 
-func (s *EventService) GetEventByID(id string, userLat, userLon float64) (*dto.EventsResp, error) {
+func (s *EventService) GetEventByID(id string) (*dto.EventsResp, error) {
 	// Search the event
 	event, err := s.EventRepo.FindByID(id)
 	if err != nil {
@@ -369,7 +369,7 @@ func (s *EventService) GetEventByID(id string, userLat, userLon float64) (*dto.E
 			if organizer.PhotoProfile == nil {
 				return ""
 			}
-			return fmt.Sprintf("http://localhost:8080/api/v1/profile/photo/%s", *organizer.PhotoProfile)
+			return fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", *organizer.PhotoProfile)
 		}(),
 	)
 
@@ -381,8 +381,62 @@ func (s *EventService) GetEventByID(id string, userLat, userLon float64) (*dto.E
 		})
 	}
 
-	havDist := utils.Haversine(userLat, userLon, event.Lat, event.Lon)
-	distance := fmt.Sprintf("%.2f km", havDist)
+	respReq := &dto.EventRespReq{
+		Event:           event,
+		Organizer:       organizer,
+		EventCategories: eventCategories,
+		StartTime:       helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339)),
+		EndTime:         helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339)),
+		CreatedAt:       helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
+		UpdatedAt:       helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
+		DeletedAt:       helper.TimePtrToUnix(event.DeletedAt),
+	}
+	eventResp, err := dto.ToEventResp(respReq)
+	if err != nil {
+		return nil, err
+	}
+
+	return eventResp, nil
+}
+
+func (s *EventService) GetEventBySlug(slug string, userLat, userLon float64) (*dto.EventsResp, error) {
+	// Search the event
+	event, err := s.EventRepo.FindBySlug(slug)
+	if err != nil {
+		return nil, errors.New("event not found")
+	}
+
+	event.Banner = helper.StrPointerIfNotEmpty(
+		func() string {
+			if event.Banner == nil {
+				return ""
+			}
+			return fmt.Sprintf("http://localhost:8080/api/v1/event/banner/%s", *event.Banner)
+		}(),
+	)
+
+	// Get the organizer profile
+	organizer, err := s.ProfileRepo.FindByID(event.ProfileID)
+	if err != nil {
+		return nil, errors.New("organizer not found")
+	}
+
+	organizer.PhotoProfile = helper.StrPointerIfNotEmpty(
+		func() string {
+			if organizer.PhotoProfile == nil {
+				return ""
+			}
+			return fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", *organizer.PhotoProfile)
+		}(),
+	)
+
+	var eventCategories []dto.EventCategories
+	for _, category := range event.Categories {
+		eventCategories = append(eventCategories, dto.EventCategories{
+			ID:   category.Category.ID,
+			Name: category.Category.Name,
+		})
+	}
 
 	respReq := &dto.EventRespReq{
 		Event:           event,
@@ -390,15 +444,22 @@ func (s *EventService) GetEventByID(id string, userLat, userLon float64) (*dto.E
 		EventCategories: eventCategories,
 		StartTime:       helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339)),
 		EndTime:         helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339)),
-		Distance:        distance,
-		Path: []dto.PathPoint{
+		CreatedAt:       helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
+		UpdatedAt:       helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
+		DeletedAt:       helper.TimePtrToUnix(event.DeletedAt),
+	}
+
+	if userLat != 0 && userLon != 0 {
+		havDist := utils.Haversine(userLat, userLon, event.Lat, event.Lon)
+		distance := fmt.Sprintf("%.2f km", havDist)
+
+		respReq.Distance = distance
+		respReq.Path = []dto.PathPoint{
 			{Name: "user", Lat: userLat, Lon: userLon},
 			{Name: event.Name, Lat: event.Lat, Lon: event.Lon},
-		},
-		CreatedAt: helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
-		UpdatedAt: helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
-		DeletedAt: helper.TimePtrToUnix(event.DeletedAt),
+		}
 	}
+
 	eventResp, err := dto.ToEventResp(respReq)
 	if err != nil {
 		return nil, err
@@ -572,7 +633,7 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	}
 
 	event.Name = req.Name
-	event.Slug = utils.CreateSlug(req.Name)
+	event.Slug = utils.GenerateEventSlug(req.Name)
 	event.Description = req.Description
 	event.Address = *location.Address
 	event.City = *location.City
@@ -728,7 +789,7 @@ func (s *EventService) BuildStagedUpdate(banner *multipart.FileHeader, event *mo
 		EventID:       event.ID,
 		Name:          req.Name,
 		Banner:        &bannerFileName,
-		Slug:          utils.CreateSlug(req.Name),
+		Slug:          utils.GenerateEventSlug(req.Name),
 		Status:        string(model.Pending),
 		Description:   req.Description,
 		Address:       *location.Address,

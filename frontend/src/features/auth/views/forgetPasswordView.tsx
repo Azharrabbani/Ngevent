@@ -1,42 +1,61 @@
+import { IoIosArrowRoundBack } from "react-icons/io";
 import AuthContainer from "../components/container";
 import Link from "../../../components/link";
 import ForgetPasswordForm from "../components/forgetPasswordForm";
 import { useForgetPassword } from "../hooks/useForgetPassword";
 
 export default function ForgetPassword() {
-    const baseUrlPort = import.meta.env.VITE_URL_PORT
+    const baseUrlPort = import.meta.env.VITE_URL_PORT;
 
-    const {forgetPassword, loading, message, error, errors} = useForgetPassword()
+    const {
+        forgetPassword,
+        loading,
+        message,
+        error,
+        errors,
+    } = useForgetPassword();
 
-    const handleForgetPassword = async(email: string) => {
-        await forgetPassword({email})
-    }
-
+    const handleForgetPassword = async (email: string) => {
+        await forgetPassword({ email });
+    };
 
     return (
-        <AuthContainer>
-            <div className="md:block hidden w-1/2">
-                <img className="rounded-2xl h-132" 
-                src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/i/2327ffa4-20e9-41b6-b77c-462d26f7bfea/d3ecbzg-045f95bb-8610-4dbb-84ab-e1d08fb037d7.jpg" 
-                alt="login-img" />
-            </div>
+        <AuthContainer className="max-w-lg w-full">
+            <div className="w-full px-10 py-10">
+                <div className="flex items-center gap-2">
+                    <IoIosArrowRoundBack className="text-blue-500 text-xl" />
 
-            {/* Form */}
-            <div className="md:w-1/2 px-8 md:px-16 sm:py-7">
-                <div className="mb-8 flex gap-1 items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-arrow-left text-blue-500" viewBox="0 0 16 16">
-                      <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
-                    </svg>
                     <Link endpoint={`http://localhost:${baseUrlPort}/login`}>
-                        Back
+                        Back to Login
                     </Link>
                 </div>
-                
-                <h2 className="font-bold text-2xl text-center">Forget passsword</h2>
-                <ForgetPasswordForm onSubmit={handleForgetPassword} loading={loading} errors={errors}/>
-                {message && <p className="text-green-600 mt-3">{message}</p>}
-                {error && <p className="text-red-500 mt-3">{error}</p>}
+
+                <h2 className="mt-6 font-bold text-3xl text-center">
+                    Forgot Password
+                </h2>
+
+                <p className="text-center text-gray-500 mt-2 mb-6">
+                    Enter your email address and we'll send you a password reset link.
+                </p>
+
+                <ForgetPasswordForm
+                    onSubmit={handleForgetPassword}
+                    loading={loading}
+                    errors={errors}
+                />
+
+                {message && (
+                    <p className="text-green-600 mt-4 text-center">
+                        {message}
+                    </p>
+                )}
+
+                {error && (
+                    <p className="text-red-500 mt-4 text-center">
+                        {error}
+                    </p>
+                )}
             </div>
         </AuthContainer>
-    )
+    );
 }

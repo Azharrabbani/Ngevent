@@ -188,16 +188,23 @@ func (r *OrganizerRepository) SoftDeleteProfile(tx *gorm.DB, profileID string) e
 
 func filterOrganizerForPublic(filter *dto.FilterPublicProfileReq) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		db = db.Where("organizer_profiles.deleted_at IS NULL")
+		db = db.Where(
+			"organizer_profiles.deleted_at IS NULL",
+		).Where(
+			"organizer_profiles.status = ?",
+			model.Approved,
+		)
 
-		if filter.Filter != nil {
+		if filter != nil && filter.Filter != nil {
 			query := "%" + strings.ToLower(*filter.Filter) + "%"
-			db = db.Joins("JOIN users ON users.id = organizer_profiles.user_id").
-				Where(
-					db.Where("LOWER(users.email) LIKE ?", query).
-						Or("LOWER(organizer_profiles.name) LIKE ?", query).
-						Or("LOWER(organizer_profiles.country) LIKE ?", query),
-				)
+
+			db = db.Joins(
+				"JOIN users ON users.id = organizer_profiles.user_id",
+			).Where(`
+                LOWER(users.email) LIKE ?
+                OR LOWER(organizer_profiles.name) LIKE ?
+                OR LOWER(organizer_profiles.country) LIKE ?
+            `, query, query, query)
 		}
 
 		return db

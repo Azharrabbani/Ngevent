@@ -1,29 +1,67 @@
+import { IoIosArrowRoundBack } from "react-icons/io";
 import AuthContainer from "../components/container";
+import Link from "../../../components/link";
 import ResetPasswordForm from "../components/resetPasswordForm";
 import { useResetPassword } from "../hooks/useResetPassword";
 
 export default function ResetPasswordView() {
-    const {resetPassword, loading, message, error, errors} = useResetPassword()
+    const baseUrlPort = import.meta.env.VITE_URL_PORT;
 
-    const handleResetPassword = async(new_password: string, confirm_password: string) => {
-        await resetPassword({new_password, confirm_password})
-    }
+    const {
+        resetPassword,
+        loading,
+        message,
+        error,
+        errors,
+    } = useResetPassword();
+
+    const handleResetPassword = async (
+        new_password: string,
+        confirm_password: string
+    ) => {
+        await resetPassword({
+            new_password,
+            confirm_password,
+        });
+    };
 
     return (
-        <AuthContainer>
-            <div className="md:block hidden w-1/2">
-                <img className="rounded-2xl h-132" 
-                src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/i/2327ffa4-20e9-41b6-b77c-462d26f7bfea/d3ecbzg-045f95bb-8610-4dbb-84ab-e1d08fb037d7.jpg" 
-                alt="reset-password-img" />
-            </div>
+        <AuthContainer className="max-w-lg w-full">
+            <div className="w-full px-10 py-10">
+                <div className="flex items-center gap-2">
+                    <IoIosArrowRoundBack className="text-blue-500 text-xl" />
 
-            {/* Form */}
-            <div className="md:w-1/2 px-8 md:px-16 sm:py-7">
-                <h2 className="font-bold text-2xl text-center">Reset passsword</h2>
-                <ResetPasswordForm onSubmit={handleResetPassword} loading={loading} errors={errors}/>
-                {message && <p className="text-green-400 mt-3">{message}</p>}
-                {error && <p className="text-red-500 mt-3">{error}</p>}
+                    <Link endpoint={`http://localhost:${baseUrlPort}/login`}>
+                        Back to Login
+                    </Link>
+                </div>
+
+                <h2 className="mt-6 font-bold text-3xl text-center">
+                    Reset Password
+                </h2>
+
+                <p className="text-center text-gray-500 mt-2 mb-6">
+                    Create a new password for your account.
+                </p>
+
+                <ResetPasswordForm
+                    onSubmit={handleResetPassword}
+                    loading={loading}
+                    errors={errors}
+                />
+
+                {message && (
+                    <p className="text-green-600 mt-4 text-center">
+                        {message}
+                    </p>
+                )}
+
+                {error && (
+                    <p className="text-red-500 mt-4 text-center">
+                        {error}
+                    </p>
+                )}
             </div>
         </AuthContainer>
-    )
+    );
 }

@@ -152,6 +152,7 @@ func (s *FiberServer) RegisterUserRoutes(h *handler.UserHandler) {
 	user.Use(middleware.AuthMiddleware())
 	{
 		user.Get("/me", h.FindCurrentUser)
+		user.Post("/admin/register", middleware.AuthorizeRoles(string(model.Admin)), h.RegisterAdmin)
 		user.Get("/", middleware.AuthorizeRoles(string(model.Admin)), h.ListUsers)
 		user.Put("/role", h.SelectRole)
 		user.Get("/id", h.FindUserByID)
@@ -253,7 +254,7 @@ func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 	event.Get("/active", h.GetActiveEvents)
 	event.Get("/nearest", h.FindNearestEvents)
 	event.Get("/route/:id", routeLimiter, h.GetEventRoute)
-	event.Get("/view/:id", h.GetEventByID)
+	event.Get("/view/:slug", h.GetEventBySlug)
 
 	event.Use(middleware.AuthMiddleware())
 	{
@@ -262,6 +263,7 @@ func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 		event.Get("/organizer-events", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.GetEventsByProfileID)
 		event.Put("/review/:id", middleware.AuthorizeRoles(string(model.Admin)), h.ReviewEvent)
 		event.Put("/cancel/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.CancelEvent)
+		event.Get("/:id", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.GetEventByID)
 		event.Put("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.UpdateEvent)
 		event.Delete("/:id", middleware.AuthorizeRoles(string(model.Organizer)), h.DeleteEvent)
 	}

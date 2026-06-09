@@ -38,7 +38,7 @@ var categoryCache []string = []string{
 func (s *CategoryService) Create(req *dto.CreateCatReq) error {
 	category := &model.Categories{
 		Name: req.Name,
-		Slug: utils.CreateSlug(req.Name),
+		Slug: utils.GenerateEventSlug(req.Name),
 	}
 
 	if err := s.CategoryRepo.Create(category); err != nil {
@@ -119,7 +119,7 @@ func (s *CategoryService) FindByID(id string) (*model.Categories, error) {
 
 func (s *CategoryService) FindBySlug(title string, pagination model.Pagination) (*model.PaginationRow[*model.Categories], error) {
 	var categories *model.PaginationRow[*model.Categories]
-	title = utils.CreateSlug(title)
+	title = utils.GenerateEventSlug(title)
 
 	// Generate cache key
 	cacheKey := fmt.Sprintf("category:all:%s:%d:%d:%s", title, pagination.Page, pagination.Limit, pagination.Sort)
@@ -156,7 +156,7 @@ func (s *CategoryService) Update(updateReq *dto.UpdateCatReq) error {
 
 	// Update the category
 	category.Name = updateReq.Name
-	category.Slug = utils.CreateSlug(updateReq.Name)
+	category.Slug = utils.GenerateEventSlug(updateReq.Name)
 
 	// Save the update
 	if err := s.CategoryRepo.Update(category); err != nil {

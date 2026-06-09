@@ -1,6 +1,7 @@
 import { useState } from "react"
 import type { VerifyEmailRequest } from "../types/authRequest"
 import { verifyEmailApi } from "../api/authApi"
+import toast from "react-hot-toast"
 
 export const useVerifyEmail = () => {
     const [loading, setLoading] = useState(false)
@@ -9,14 +10,14 @@ export const useVerifyEmail = () => {
     const [message, setMessage] = useState<string | null>(null)
     const baseUrlPort = import.meta.env.VITE_URL_PORT
 
-    const verifyEmail = async(payload: VerifyEmailRequest) => {
+    const verifyEmail = async (payload: VerifyEmailRequest) => {
         try {
             setLoading(true)
             setError(null)
             setErrors({})
             setMessage(null)
 
-            const email = localStorage.getItem("verify-email")
+            const email = localStorage.getItem("verification_email")
 
             if (!email) {
                 setError("Session expired, please register again")
@@ -28,13 +29,15 @@ export const useVerifyEmail = () => {
                 email
             })
 
+            toast.success(res.data)
+
             setMessage(res.data)
 
-            localStorage.removeItem("verify-email")
+            localStorage.removeItem("verification_email")
 
             window.location.href = `http://localhost:${baseUrlPort}/login`
 
-        } catch(err: any) {
+        } catch (err: any) {
             const validationError = err.response?.data?.error
 
             if (Array.isArray(validationError)) {
@@ -55,5 +58,5 @@ export const useVerifyEmail = () => {
         }
     }
 
-    return {verifyEmail, loading, message, error, errors}
+    return { verifyEmail, loading, message, error, errors }
 }

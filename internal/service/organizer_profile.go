@@ -222,8 +222,16 @@ func (s *OrganizerProfileService) FindAll(pagination model.Pagination, filter *d
 func (s *OrganizerProfileService) FindAllForPublic(pagination model.Pagination, filter *dto.FilterPublicProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
 	var organizers *model.PaginationRow[*dto.OrganizerProfilesResponse]
 
+	filterValue := ""
+
+	if filter != nil && filter.Filter != nil {
+		filterValue = strings.TrimSpace(
+			strings.ToLower(*filter.Filter),
+		)
+	}
+
 	// Genereate cache key
-	cacheKey := fmt.Sprintf("organizer:public:%d:%d:%s:%s", pagination.Limit, pagination.Page, pagination.Sort, filter.Filter)
+	cacheKey := fmt.Sprintf("organizer:public:%d:%d:%s:%s", pagination.Limit, pagination.Page, pagination.Sort, filterValue)
 
 	// Tru get from cache
 	val, err := s.rdb.Get(context.Background(), cacheKey).Result()

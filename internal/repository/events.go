@@ -368,29 +368,23 @@ func (r *EventsRepository) FindByID(id string) (*model.Events, error) {
 }
 
 // FindBySlug implements EventsRepo.
-func (r *EventsRepository) FindBySlug(slug string, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
-	var events []*model.Events
+func (r *EventsRepository) FindBySlug(slug string) (*model.Events, error) {
+	var event *model.Events
 
-	query := r.db.Where("LOWER(slug) LIKE LOWER(?)", "%"+slug+"%")
-
-	if err := query.
-		Scopes(Paginate(events, &pagination, query)).
+	if err := r.db.
+		Select(`
+			events.*,
+			ST_Y(coordinates::geometry) AS lat,
+			ST_X(coordinates::geometry) AS lon
+		`).
+		Where("slug = ?", slug).
 		Preload("Profile.User").
 		Preload("Categories.Category").
-		Preload("Reviewer").
-		Find(&events).Error; err != nil {
-		return nil, errors.New("event not found")
-	}
-
-	eventsResp, err := toEventResponse(events)
-	if err != nil {
+		First(&event).Error; err != nil {
 		return nil, err
 	}
 
-	return &model.PaginationRow[*dto.EventsResp]{
-		Pagination: pagination,
-		Rows:       eventsResp,
-	}, nil
+	return event, nil
 }
 
 // Update implements EventsRepo.
@@ -511,6 +505,12 @@ func (r *EventsRepository) CreateStagedUpdate(event *model.Events, updatedEvent 
 
 func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
+		if filter.Role != nil && *filter.Role == "admin" {
+			db = db.Unscoped()
+		} else {
+			db = db.Where("events.deleted_at IS NULL")
+		}
+
 		if filter.ProfileID != nil {
 			db = db.Where("events.profile_id = ?", filter.ProfileID)
 		}

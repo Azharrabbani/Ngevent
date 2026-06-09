@@ -36,6 +36,15 @@ export const eventsKeys = {
     me: () => [...eventsKeys.all, "me"] as const,
 };
 
+export const eventsPublicKeys = {
+    all: ["events-public"] as const,
+    lists: () => [...eventsPublicKeys.all, "list"] as const,
+    list: (params: any) => [...eventsPublicKeys.lists(), params] as const,
+    details: () => [...eventsPublicKeys.all, "detail"] as const,
+    detail: (id: string) => [...eventsPublicKeys.details(), id] as const,
+    me: () => [...eventsPublicKeys.all, "me"] as const,
+};
+
 export const updateEventKeys = {
     all: ["update-event"] as const,
     lists: () => [...updateEventKeys.all, "list"] as const,

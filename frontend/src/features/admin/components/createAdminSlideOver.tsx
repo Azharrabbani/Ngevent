@@ -4,7 +4,7 @@ import Slider from "./slider";
 import Input from "../../../components/input";
 import Button from "../../../components/Button";
 import PasswordInput from "../../../components/passwordInput";
-import { useRegister } from "../../auth/hooks/useRegister";
+import { useRegisterAdmin } from "../../auth/hooks/useRegisterAdmin";
 
 interface Props {
     isOpen: boolean;
@@ -23,12 +23,12 @@ export default function CreateAdminSlideOver({ isOpen, onClose }: Props) {
         mutateAsync: register,
         isPending,
         error,
-    } = useRegister();
+    } = useRegisterAdmin();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!email.trim() && !password.trim() && !confirmPassword.trim()) return;
-        register({ email: email, password: password, confirm_password: confirmPassword, role: "admin" });
+        register({ email: email, password: password, confirm_password: confirmPassword });
     };
 
     const validationErrors =

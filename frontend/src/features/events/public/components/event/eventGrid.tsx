@@ -1,3 +1,4 @@
+import { NoEventsIcon } from "../../../../../components/icon";
 import type { EventsResponse } from "../../../types/eventResponse";
 import EventCard from "./eventCard";
 
@@ -10,7 +11,7 @@ export default function EventGrid({ events }: Props) {
         return (
             <div className="py-24 flex flex-col items-center text-center">
                 <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                    <span className="text-3xl">🎭</span>
+                    <NoEventsIcon className="text-3xl text-indigo-500" />
                 </div>
                 <h3 className="text-lg font-semibold text-slate-800">
                     Event not found

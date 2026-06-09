@@ -13,7 +13,6 @@ export const useDeleteEvent = () => {
             // Invalidate list queries
             queryClient.invalidateQueries({
                 queryKey: eventsKeys.lists(),
-                exact: false,
                 refetchType: "active"
             });
 

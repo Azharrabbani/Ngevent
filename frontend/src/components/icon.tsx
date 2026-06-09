@@ -13,6 +13,8 @@ import { GoShield } from "react-icons/go";
 import { IoIosArrowRoundBack } from "react-icons/io";
 import { LuUserRoundCheck } from "react-icons/lu";
 import { MdOutlineDashboard } from "react-icons/md";
+import { PiMaskSadFill } from "react-icons/pi";
+import { ImShocked2 } from "react-icons/im";
 
 interface Props {
     className?: string
@@ -106,5 +108,17 @@ export function UserVerifiedIcon({ className, size }: Props) {
 export function DashboardIcon({ className, size }: Props) {
     return (
         <MdOutlineDashboard className={className} size={size} />
+    )
+}
+
+export function NoEventsIcon({ className, size }: Props) {
+    return (
+        <PiMaskSadFill className={className} size={size} />
+    )
+}
+
+export function ShockIcon({ className, size }: Props) {
+    return (
+        <ImShocked2 className={className} size={size} />
     )
 }

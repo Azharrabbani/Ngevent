@@ -28,7 +28,9 @@ import CategoriesView from "../features/admin/views/categories"
 import UnauthorizedView from "../features/auth/views/unauthorizedView"
 import AdminList from "../features/admin/views/adminList"
 import EventViewPage from "../features/events/organizer/views/eventViewPage"
-import PublicDashboard from "../features/events/attendee/views/dashboard"
+import PublicDashboard from "../features/events/public/views/dashboard"
+import AuthDashboard from "../layout/authDashboard"
+import EventViewPublicPage from "../features/events/public/views/eventViewPage"
 
 export default function AppRoutes() {
     return (
@@ -36,12 +38,32 @@ export default function AppRoutes() {
             <Routes>
 
                 {/* Public routes */}
-                <Route path="/login" element={<LoginView />} />
-                <Route path="/register" element={<RegisterView />} />
-                <Route path="/forget" element={<ForgetPassword />} />
-                <Route path="/reset-password" element={<ResetPasswordView />} />
+                <Route path="/login" element={
+                    <AuthDashboard>
+                        <LoginView />
+                    </AuthDashboard>
+                } />
+                <Route path="/register" element={
+                    <AuthDashboard>
+                        <RegisterView />
+                    </AuthDashboard>
+                } />
+
+                <Route path="/forget" element={
+                    <AuthDashboard>
+                        <ForgetPassword />
+                    </AuthDashboard>
+                } />
+
+                <Route path="/reset-password" element={
+                    <AuthDashboard>
+                        <ResetPasswordView />
+                    </AuthDashboard>
+                } />
+
                 <Route path="/verified-email" element={<VerifiedEmailView />} />
                 <Route path="/" element={<PublicDashboard />} />
+                <Route path="/events/:slug" element={<EventViewPublicPage />} />
 
                 {/* Protected routes */}
                 <Route element={<ProtectedRoute />}>

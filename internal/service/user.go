@@ -57,7 +57,7 @@ var userCache []string = []string{
 	"users:all:*",
 }
 
-func (s *UserService) CreateUser(email, password, confirmPassword, role, userRole string) (*dto.UsersResponse, error) {
+func (s *UserService) CreateUser(email, password, confirmPassword string) (*dto.UsersResponse, error) {
 	userX := s.UserRepo.GetDB().Begin()
 	otpX := s.OtpRepo.GetDB().Begin()
 
@@ -68,14 +68,6 @@ func (s *UserService) CreateUser(email, password, confirmPassword, role, userRol
 			otpX.Rollback()
 		}
 	}()
-
-	// Check if the input role is admin
-	// Only admin can register another admin
-	if role == string(model.Admin) {
-		if userRole != string(model.Admin) {
-			return nil, errors.New("you don't have permission to perform this action")
-		}
-	}
 
 	// Check password
 	if password != confirmPassword {
@@ -88,28 +80,7 @@ func (s *UserService) CreateUser(email, password, confirmPassword, role, userRol
 		return nil, err
 	}
 
-	if role == string(model.Admin) {
-		user := &model.Users{
-			Email:      email,
-			IsVerified: true,
-			Role:       &role,
-			Password:   HashPassword,
-		}
-
-		newUser, err := s.UserRepo.Create(user)
-		if err != nil {
-			userX.Rollback()
-			return nil, errors.New("email already registred")
-		}
-
-		userResp, err := toUserResponse(newUser)
-		if err != nil {
-			userX.Rollback()
-			return nil, err
-		}
-
-		return userResp, nil
-	}
+	role := string(model.Organizer)
 
 	user := &model.Users{
 		Email:    email,
@@ -188,6 +159,41 @@ func (s *UserService) CreateUser(email, password, confirmPassword, role, userRol
 	s.EmailTaskPublisher.Enqueue(model.TypeEMailVerify, emailPayload)
 
 	return userResp, nil
+}
+
+func (s *UserService) RegisterAdmin(email, password, confirmPassword string) (*dto.UsersResponse, error) {
+	// Check password
+	if password != confirmPassword {
+		return nil, errors.New("password not match")
+	}
+
+	// Hash the password
+	HashPassword, err := helper.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+
+	role := string(model.Admin)
+
+	user := &model.Users{
+		Email:      email,
+		IsVerified: true,
+		Role:       &role,
+		Password:   HashPassword,
+	}
+
+	newUser, err := s.UserRepo.Create(user)
+	if err != nil {
+		return nil, errors.New("email already registered")
+	}
+
+	userResp, err := toUserResponse(newUser)
+	if err != nil {
+		return nil, err
+	}
+
+	return userResp, nil
+
 }
 
 func (s *UserService) UpdateRole(id, role string) error {

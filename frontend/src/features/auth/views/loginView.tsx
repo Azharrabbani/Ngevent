@@ -1,10 +1,10 @@
-import AuthContainer from "../components/container";
-import GoogleButton from "../components/googleButton";
-import LoginForm from "../components/loginForm";
-import Link from "../../../components/link";
-import { useLogin } from "../hooks/useLogin";
 import { useNavigate } from "react-router-dom";
+import { useLogin } from "../hooks/useLogin";
+import AuthContainer from "../components/container";
 import { IoIosArrowRoundBack } from "react-icons/io";
+import Link from "../../../components/link";
+import LoginForm from "../components/loginForm";
+import GoogleButton from "../components/googleButton";
 
 export default function LoginView() {
     const baseUrlPort = import.meta.env.VITE_URL_PORT;
@@ -25,51 +25,68 @@ export default function LoginView() {
         if (user.role === "event organizer") {
             navigate("/organizer/dashboard");
         }
-    }
+    };
 
     return (
-        <AuthContainer>
-            {/* Image */}
-            <div className="md:block hidden w-1/2">
-                <img className="rounded-2xl h-132"
-                    src="https://plus.unsplash.com/premium_photo-1701760184917-38e25718ee3e?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8bG9naW4lMjBiYWNrZ3JvdW5kfGVufDB8fDB8fHww"
-                    alt="login-img" />
-            </div>
+        <AuthContainer className="max-w-lg w-full">
+            <div className="w-full px-10 py-10">
+                <div className="flex items-center gap-2 cursor-pointer">
+                    <IoIosArrowRoundBack className="text-blue-500 text-xl" />
 
-            <div className="md:w-1/2 px-8 md:px-16 sm:py-7">
-                <div
-                    className="flex items-center gap-2 cursor-pointer hover:text-gray-500 transition-colors"
-                    onClick={() => navigate(`/`)}
-                >
-                    <IoIosArrowRoundBack />
-                    <h2 className="text-gray-700">Back to dashboard</h2>
+                    <Link endpoint={`http://localhost:${baseUrlPort}/`}>
+                        Back to dashboard
+                    </Link>
                 </div>
 
-                <h2 className="mt-4 font-bold text-2xl text-center">Login</h2>
-                <LoginForm onSubmit={handleLogin} loading={loading} errors={errors} />
-                {error && <p className="text-red-500 mt-3">{error}</p>}
+                <h2 className="mt-6 font-bold text-3xl text-center">
+                    Welcome Back!
+                </h2>
+
+                <p className="text-center text-gray-500 mt-2 mb-6">
+                    Sign in to your Ngevent account
+                </p>
+
+                <LoginForm
+                    onSubmit={handleLogin}
+                    loading={loading}
+                    errors={errors}
+                />
+
+                <div className="flex justify-end mt-2">
+                    <Link
+                        endpoint={`http://localhost:${baseUrlPort}/forget`}
+                        className="text-sm text-blue-500 hover:text-blue-600"
+                    >
+                        Forgot Password?
+                    </Link>
+                </div>
+
+                {error && (
+                    <p className="text-red-500 mt-3 text-center">
+                        {error}
+                    </p>
+                )}
+
                 <div className="mt-6 grid grid-cols-3 items-center text-gray-400">
-                    <hr className="border-gray-400" />
+                    <hr className="border-gray-300" />
                     <p className="text-center text-sm">or</p>
-                    <hr className="border-gray-400" />
+                    <hr className="border-gray-300" />
                 </div>
 
                 <GoogleButton />
 
-                <div className="mt-2 text-sm py-4 text-center">
-                    <Link endpoint={`http://localhost:${baseUrlPort}/forget`}>
-                        Forget password
-                    </Link>
-                </div>
+                <hr className="border-gray-200 my-6" />
 
-                <hr className="border-gray-400" />
-                <div className="my-3 text-sm px-3 flex justify-center items-center gap-2">
-                    <p>If you don't have an account...</p>
+                <div className="text-sm flex justify-center gap-2">
+                    <p className="text-gray-500">
+                        Don't have an account?
+                    </p>
+
                     <Link endpoint={`http://localhost:${baseUrlPort}/register`}>
                         Register
                     </Link>
                 </div>
             </div>
         </AuthContainer>
-    )
+    );
 }

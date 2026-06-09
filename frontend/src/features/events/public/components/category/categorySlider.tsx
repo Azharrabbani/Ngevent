@@ -44,7 +44,6 @@ export default function CategorySlider({
 
     return (
         <div className="relative mt-6">
-            {/* Left scroll button */}
             {canScrollLeft && (
                 <button
                     onClick={scrollLeft}
@@ -64,7 +63,6 @@ export default function CategorySlider({
                 </button>
             )}
 
-            {/* Right scroll button */}
             {canScrollRight && (
                 <button
                     onClick={scrollRight}
@@ -84,7 +82,6 @@ export default function CategorySlider({
                 </button>
             )}
 
-            {/* Scrollable container */}
             <div
                 ref={sliderRef}
                 className="

@@ -24,12 +24,6 @@ func NewUserHandler(userService *service.UserService, validate *validator.Valida
 }
 
 func (h *UserHandler) Register(c *fiber.Ctx) error {
-	role := c.Locals("role").(string)
-
-	if role == "" {
-		role = ""
-	}
-
 	var input dto.RegisterInput
 
 	if err := c.BodyParser(&input); err != nil {
@@ -52,7 +46,48 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 	}
 
 	// Store new user
-	user, err := h.UserService.CreateUser(input.Email, input.Password, input.ConfirmPassword, input.Role, role)
+	user, err := h.UserService.CreateUser(input.Email, input.Password, input.ConfirmPassword)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(dto.Success(
+		fiber.StatusCreated,
+		"success",
+		"register-success",
+		user,
+	))
+}
+
+func (h *UserHandler) RegisterAdmin(c *fiber.Ctx) error {
+	var input dto.RegisterInput
+
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"invalid-request",
+			err.Error(),
+		))
+	}
+
+	if err := h.Validate.Struct(input); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"validation-error",
+			msg,
+		))
+	}
+
+	// Store new admin
+	user, err := h.UserService.RegisterAdmin(input.Email, input.Password, input.ConfirmPassword)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,

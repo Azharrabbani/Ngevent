@@ -3,8 +3,9 @@ import type { PaginatedResponse, successResponse } from "../../../types/apiRespo
 import type { CreateEventReq } from "../types/createEventRequst"
 import type { locationReq } from "../types/locationRequest"
 import type { locationResp } from "../types/locationResponse"
-import type { FilterEventsRequest, FilterUpdatedEventsRequest } from "../types/eventRequest"
+import type { FilterEventsRequest, FilterUpdatedEventsRequest, UserLatLonRequest } from "../types/eventRequest"
 import type { EventsResponse, UpdateEventResponse } from "../types/eventResponse"
+import type { EventDetailResponse } from "../types/publicEventResponse"
 
 export const SearchLocationApi = async (payload: locationReq) => {
     const res = await api.get<successResponse<locationResp[]>>("/location/", {
@@ -87,9 +88,21 @@ export const GetOrganizerEventsApi = async (params: FilterEventsRequest) => {
 };
 
 export const GetEventByID = async (id: string) => {
-    const res = await api.get<successResponse<EventsResponse>>(`event/view/${id}`);
+    const res = await api.get<successResponse<EventsResponse>>(`event/${id}`);
     return res.data;
 }
+
+export const GetEventBySlug = async (slug: string, params: UserLatLonRequest) => {
+    const res = await api.get<successResponse<EventDetailResponse>>(`event/view/${slug}`, {
+        params: {
+            lat: params.lat,
+            lon: params.lon,
+        }
+    });
+
+    return res.data;
+}
+
 
 export const GetUpdateByEventIDApi = async (eventID: string, status: string) => {
     const res = await api.get<successResponse<UpdateEventResponse>>(`updated-event/${eventID}`, {

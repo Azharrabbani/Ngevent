@@ -76,7 +76,7 @@ export const updateAttendeeProfile = async (payload: UpdateAttendeeProfileReq) =
     return res.data;
 }
 
-// Organizer profile api
+// Event Owner profile api
 export const CreateOrganizerProfileApi = async (payload: CreateOrganizerProfileReq) => {
     const formData = new FormData();
 
@@ -113,6 +113,19 @@ export const GetOrganizersProfileApi = async (params: FilterOrganizerReq) => {
     return res.data;
 }
 
+
+export const GetPublicOrganizersApi = async (params: FilterOrganizerReq) => {
+    const res = await api.get<PaginatedResponse<OrganizerResponse>>("/organizer", {
+        params: {
+            filter: params.filter,
+            page: params.pagination?.page,
+            limit: params.pagination?.limit,
+            sort: params.pagination?.sort,
+        },
+    });
+
+    return res.data;
+}
 export const GetOrganizerDetailProfileApi = async (id: string) => {
     const res = await api.get<successResponse<OrganizerResponse>>(`/organizer/public/${id}`);
     return res.data;

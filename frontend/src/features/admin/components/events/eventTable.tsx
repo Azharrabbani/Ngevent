@@ -45,7 +45,7 @@ export default function EventTable({ status, isReview, data }: Props) {
                     <thead className="bg-[#F8F9FC]">
                         <tr>
                             <th className="px-8 py-5 text-left text-sm font-semibold text-gray-600 border-b">Event Details</th>
-                            <th className="px-8 py-5 text-left text-sm font-semibold text-gray-600 border-b">Organizer</th>
+                            <th className="px-8 py-5 text-left text-sm font-semibold text-gray-600 border-b">Event Owner</th>
                             <th className="flex gap-2 items-center px-8 py-5 text-left text-sm font-semibold text-gray-600 border-b">Submitted</th>
                             <th className={`px-8 py-5 text-sm font-semibold text-gray-600 border-b ${isReview && status === "pending" ? "text-center" : "text-left"}`}>
                                 {isReview && status === "pending" ? "Actions" : "Status"}

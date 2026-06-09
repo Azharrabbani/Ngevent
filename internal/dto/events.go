@@ -71,8 +71,8 @@ type EventFilterReq struct {
 	Status    string `json:"status" query:"status"`
 	StartTime int64  `json:"start_time" query:"start_time"`
 	Location  string `json:"location" query:"location"`
-	Month     int    `json:"month" query:"month"` 
-	Year      int    `json:"year" query:"year"`   
+	Month     int    `json:"month" query:"month"`
+	Year      int    `json:"year" query:"year"`
 }
 
 type EventFilter struct {
@@ -81,13 +81,14 @@ type EventFilter struct {
 	Search    *string    `json:"search" query:"search"` // global search
 	Sort      *string    `json:"sort"`
 	Date      *string    `json:"date"`
+	Role      *string    `json:"role" query:"role"`
 	Category  []int      `json:"category" query:"category"`
 	Status    *string    `json:"status" query:"status"`
 	Start     *time.Time `json:"start" query:"start"`
 	End       *time.Time `json:"end" query:"end"`
 	Location  *string    `json:"location" query:"location"`
-	Month     *int       `json:"month"` 
-	Year      *int       `json:"year"`  
+	Month     *int       `json:"month"`
+	Year      *int       `json:"year"`
 }
 
 type EventAddressReq struct {

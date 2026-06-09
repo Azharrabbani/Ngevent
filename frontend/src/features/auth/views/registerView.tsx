@@ -14,6 +14,7 @@ export default function RegisterView() {
         mutateAsync: register,
         isPending,
         error,
+        errors,
         isSuccess,
     } = useRegister();
 
@@ -21,13 +22,11 @@ export default function RegisterView() {
         email: string,
         password: string,
         confirm_password: string,
-        role: string
     ) => {
         const user = await register({
             email,
             password,
             confirm_password,
-            role,
         });
 
         if (user) {
@@ -35,68 +34,57 @@ export default function RegisterView() {
         }
     };
 
-    const validationErrors =
-        (error as any)?.response?.data?.errors || {};
-
     return (
-        <AuthContainer>
-            {/* Image */}
-            <div className="md:block hidden w-1/2">
-                <img
-                    className="rounded-2xl h-132"
-                    src="https://plus.unsplash.com/premium_photo-1701760184917-38e25718ee3e?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8bG9naW4lMjBiYWNrZ3JvdW5kfGVufDB8fDB8fHww"
-                    alt="register-img"
-                />
-            </div>
+        <AuthContainer className="max-w-lg w-full">
+            <div className="w-full px-10 py-10">
+                <div className="flex items-center gap-2 cursor-pointer">
+                    <IoIosArrowRoundBack className="text-blue-500 text-xl" />
 
-            <div className="md:w-1/2 my-6 px-8 md:px-16">
-                <div
-                    className="flex items-center gap-2 cursor-pointer hover:text-gray-500 transition-colors"
-                    onClick={() => navigate(`/`)}
-                >
-                    <IoIosArrowRoundBack />
-                    <h2 className="text-gray-700">Back to dashboard</h2>
+                    <Link endpoint={`http://localhost:${baseUrlPort}/`}>
+                        Back to dashboard
+                    </Link>
                 </div>
 
-                <div className="mt-4">
-                    <h2 className="font-bold text-2xl text-center">
-                        Register
-                    </h2>
-                    <p className="text-sm text-center mt-2">
-                        Sign up to become event creator on Ngevent
-                    </p>
-                </div>
+                <h2 className="mt-6 font-bold text-3xl text-center">
+                    Create Account
+                </h2>
+
+                <p className="text-center text-gray-500 mt-2 mb-6">
+                    Sign up to become an Event Organizer on Ngevent
+                </p>
 
                 <RegisterForm
                     onSubmit={handleRegister}
                     loading={isPending}
-                    errors={validationErrors}
+                    errors={errors}
                 />
 
                 {isSuccess && (
-                    <p className="text-green-500 mt-3">
+                    <p className="text-green-500 mt-3 text-center">
                         Registration successful! Please check your email.
                     </p>
                 )}
 
                 {error && (
-                    <p className="text-red-500 mt-3">
+                    <p className="text-red-500 mt-3 text-center">
                         {(error as any)?.response?.data?.error}
                     </p>
                 )}
 
                 <div className="mt-6 grid grid-cols-3 items-center text-gray-400">
-                    <hr className="border-gray-400" />
+                    <hr className="border-gray-300" />
                     <p className="text-center text-sm">or</p>
-                    <hr className="border-gray-400" />
+                    <hr className="border-gray-300" />
                 </div>
 
                 <GoogleButton />
 
-                <hr className="border-gray-400" />
+                <hr className="border-gray-200 my-6" />
 
-                <div className="my-3 text-sm px-3 flex justify-center items-center gap-2">
-                    <p>Already have an account...</p>
+                <div className="text-sm flex justify-center gap-2">
+                    <p className="text-gray-500">
+                        Already have an account?
+                    </p>
 
                     <Link endpoint={`http://localhost:${baseUrlPort}/login`}>
                         Login

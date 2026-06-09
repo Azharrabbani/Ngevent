@@ -96,6 +96,8 @@ func (h *EventHandler) CreateEvent(c *fiber.Ctx) error {
 }
 
 func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
+	role := c.Locals("role").(string)
+
 	filterReq := new(dto.EventFilterReq)
 	if err := c.QueryParser(filterReq); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
@@ -118,6 +120,7 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 		Search:   helper.StrPointerIfNotEmpty(filterReq.Search),
 		Sort:     helper.StrPointerIfNotEmpty(filterReq.Sort),
 		Date:     helper.StrPointerIfNotEmpty(filterReq.Date),
+		Role:     helper.StrPointerIfNotEmpty(role),
 		Category: filterReq.Category,
 		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
 		Start:    startPtr,
@@ -225,6 +228,27 @@ func (h *EventHandler) GetActiveEvents(c *fiber.Ctx) error {
 func (h *EventHandler) GetEventByID(c *fiber.Ctx) error {
 	eventID := c.Params("id")
 
+	event, err := h.EventService.GetEventByID(eventID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		event,
+	))
+}
+
+func (h *EventHandler) GetEventBySlug(c *fiber.Ctx) error {
+	eventSlug := c.Params("slug")
+
 	userLat, err := strconv.ParseFloat(c.Query("lat", "0"), 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
@@ -245,7 +269,7 @@ func (h *EventHandler) GetEventByID(c *fiber.Ctx) error {
 		))
 	}
 
-	event, err := h.EventService.GetEventByID(eventID, userLat, userLon)
+	event, err := h.EventService.GetEventBySlug(eventSlug, userLat, userLon)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,

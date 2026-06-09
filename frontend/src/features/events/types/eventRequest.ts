@@ -15,6 +15,11 @@ export interface FilterEventsRequest {
     pagination?: PaginationParams;
 };
 
+export interface UserLatLonRequest {
+    lat?: number;
+    lon?: number;
+}
+
 export interface FilterUpdatedEventsRequest {
     title?: string;
     search?: string;
