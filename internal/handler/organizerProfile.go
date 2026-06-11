@@ -275,62 +275,6 @@ func (h *OrganizerProfileHandler) GetAllProfileForPublic(c *fiber.Ctx) error {
 	))
 }
 
-func (h *OrganizerProfileHandler) FilterProfile(c *fiber.Ctx) error {
-	filter := new(dto.FilterReq)
-	if err := c.QueryParser(filter); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
-		))
-	}
-
-	if err := h.Validate.Struct(filter); err != nil {
-		msg := utils.GetValidationError(err)
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"error",
-			"validation-error",
-			msg,
-		))
-	}
-
-	paginate := new(model.Pagination)
-
-	if err := c.QueryParser(paginate); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
-		))
-	}
-
-	page := &model.Pagination{
-		Limit: paginate.Limit,
-		Page:  paginate.Page,
-		Sort:  paginate.Sort,
-	}
-
-	profiles, err := h.OrganizerService.FindByCountry(filter.Country, *page)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
-			fiber.StatusBadRequest,
-			"failed",
-			"error",
-			err.Error(),
-		))
-	}
-
-	return c.Status(fiber.StatusOK).JSON(dto.Success(
-		fiber.StatusOK,
-		"success",
-		"success",
-		profiles,
-	))
-}
-
 func (h *OrganizerProfileHandler) UpdatePhotoProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 

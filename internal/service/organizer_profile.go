@@ -205,9 +205,17 @@ func (s *OrganizerProfileService) FindAll(pagination model.Pagination, filter *d
 
 	if organizers == nil {
 		// if cache miss, get from db
-		organizers, err = s.OrganizerRepo.FindAll(pagination, filter)
+		profiles, paginationMeta, err := s.OrganizerRepo.FindAll(pagination, filter)
 		if err != nil {
 			return nil, err
+		}
+
+		counts := s.attachEventCounts(profiles)
+		rows := toOrganizerListResponse(profiles, counts)
+
+		organizers = &model.PaginationRow[*dto.OrganizerProfilesResponse]{
+			Pagination: paginationMeta,
+			Rows:       rows,
 		}
 
 		// Set cache with 15 minute TTL
@@ -241,9 +249,17 @@ func (s *OrganizerProfileService) FindAllForPublic(pagination model.Pagination, 
 
 	if organizers == nil {
 		// if cache miss, get from db
-		organizers, err = s.OrganizerRepo.FindAllForPublic(pagination, filter)
+		profiles, paginationMeta, err := s.OrganizerRepo.FindAllForPublic(pagination, filter)
 		if err != nil {
 			return nil, err
+		}
+
+		counts := s.attachEventCounts(profiles)
+		rows := toOrganizerListResponse(profiles, counts)
+
+		organizers = &model.PaginationRow[*dto.OrganizerProfilesResponse]{
+			Pagination: paginationMeta,
+			Rows:       rows,
 		}
 
 		// Set cache with 15 minute TTL
@@ -253,6 +269,20 @@ func (s *OrganizerProfileService) FindAllForPublic(pagination model.Pagination, 
 	}
 
 	return organizers, nil
+}
+
+func (s *OrganizerProfileService) attachEventCounts(profiles []*model.OrganizerProfiles) map[string]int64 {
+	ids := make([]string, 0, len(profiles))
+	for _, p := range profiles {
+		ids = append(ids, p.ID)
+	}
+
+	counts, err := s.OrganizerRepo.CountEventsByProfileIDs(ids)
+	if err != nil {
+		return map[string]int64{}
+	}
+
+	return counts
 }
 
 func (s *OrganizerProfileService) CloseAccount(userID string) (int, error) {
@@ -326,37 +356,6 @@ func (s *OrganizerProfileService) CloseAccount(userID string) (int, error) {
 	utils.InvalidateCache(s.rdb, userCache)
 
 	return fiber.StatusOK, nil
-}
-
-func (s *OrganizerProfileService) FindByCountry(
-	country string,
-	pagination model.Pagination,
-) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
-	var organizers *model.PaginationRow[*dto.OrganizerProfilesResponse]
-
-	// Genereate cache key
-	cacheKey := fmt.Sprintf("organizer:all:%s:%d:%d:%s", country, pagination.Limit, pagination.Page, pagination.Sort)
-
-	// Tru get from cache
-	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
-	if err == nil {
-		json.Unmarshal([]byte(val), &organizers)
-	}
-
-	if organizers == nil {
-		// if cache miss, get from db
-		organizers, err = s.OrganizerRepo.FindByCountry(country, pagination)
-		if err != nil {
-			return nil, err
-		}
-
-		// Set cache with 15 minute TTL
-		if data, err := json.Marshal(organizers); err == nil {
-			s.rdb.Set(context.Background(), cacheKey, data, 15*time.Minute)
-		}
-	}
-
-	return organizers, nil
 }
 
 func (s *OrganizerProfileService) VerifiedProfile(id string, req *dto.ApprovedReq) error {
@@ -728,4 +727,53 @@ func toOrganizerProfileResponse(profile *model.OrganizerProfiles) *dto.Organizer
 		CreatedAt: profile.CreatedAt.Unix(),
 		UpdatedAt: profile.UpdatedAt.Unix(),
 	}
+}
+
+func toOrganizerListResponse(profiles []*model.OrganizerProfiles, counts map[string]int64) []*dto.OrganizerProfilesResponse {
+	out := make([]*dto.OrganizerProfilesResponse, 0, len(profiles))
+
+	for _, profile := range profiles {
+		var reviewedAt int64
+		if profile.Status.ReviewedAt != nil {
+			reviewedAt = helper.ConvertDatetoUnix(profile.Status.ReviewedAt.Format(time.RFC3339))
+		}
+
+		createdAt := helper.ConvertDatetoUnix(profile.CreatedAt.Format(time.RFC3339))
+		updatedAt := helper.ConvertDatetoUnix(profile.UpdatedAt.Format(time.RFC3339))
+
+		count := counts[profile.ID]
+
+		out = append(out, &dto.OrganizerProfilesResponse{
+			ID:     profile.ID,
+			UserID: profile.UserID,
+			Status: dto.OrganizerStatusResp{
+				Status:         profile.Status.Status,
+				RejectedReason: profile.Status.RejectedReason,
+				ReviewedBy:     profile.Status.ReviewedBy,
+				ReviewedAt:     &reviewedAt,
+			},
+			Name:         profile.Name,
+			Email:        profile.User.Email,
+			PhotoProfile: fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", helper.StringValue(profile.PhotoProfile)),
+			PhoneNumber:  profile.PhoneNumber,
+			Country:      profile.Country,
+			Address:      profile.Address,
+			SocialMedia: dto.OrganizerSocialMediaReq{
+				Email:     profile.SocialMedias.Email,
+				Instagram: profile.SocialMedias.Instagram,
+			},
+			CompanyDetail: dto.OrganizerCompDetailRes{
+				Description: profile.CompanyDetail.Description,
+				NPWP:        profile.CompanyDetail.NPWPNumber,
+				NPWPFile:    fmt.Sprintf("http://localhost:8080/api/v1/organizer/npwp/%s", profile.CompanyDetail.NPWPDocument),
+				NIB:         profile.CompanyDetail.NIBNumber,
+				NIBFile:     fmt.Sprintf("http://localhost:8080/api/v1/organizer/nib/%s", profile.CompanyDetail.NIBDocument),
+			},
+			EventCount: &count,
+			CreatedAt:  createdAt,
+			UpdatedAt:  updatedAt,
+		})
+	}
+
+	return out
 }

@@ -6,10 +6,12 @@ import { useEffect, useState } from "react";
 
 interface Props {
     onSearchChange?: (val: string) => void;
+    isEventOwnerDashboard?: boolean;
 }
 
 export default function DashboardHeader({
     onSearchChange,
+    isEventOwnerDashboard = false,
 }: Props) {
     const navigate = useNavigate();
     const { user, loading } = useAuth();
@@ -51,21 +53,40 @@ export default function DashboardHeader({
 
                 <div className="flex-1 max-w-lg relative">
                     <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <input
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        placeholder="Find your favorite events..."
-                        className="
-                            w-full pl-9 pr-4 py-2.5
-                            text-sm
-                            bg-slate-50 border border-slate-200
-                            rounded-xl
-                            focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400
-                            placeholder:text-slate-400
-                            transition
-                        "
-                    />
+                    {isEventOwnerDashboard ? (
+                        <input
+                            type="text"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            placeholder="Find your favorite events..."
+                            className="
+                                w-full pl-9 pr-4 py-2.5
+                                text-sm
+                                bg-slate-50 border border-slate-200
+                                rounded-xl
+                                focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400
+                                placeholder:text-slate-400
+                                transition
+                            "
+                        />
+
+                    ) : (
+                        <input
+                            type="text"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            placeholder="Find your favorite event owners..."
+                            className="
+                                w-full pl-9 pr-4 py-2.5
+                                text-sm
+                                bg-slate-50 border border-slate-200
+                                rounded-xl
+                                focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400
+                                placeholder:text-slate-400
+                                transition
+                            "
+                        />
+                    )}
                 </div>
 
                 {loading ? (

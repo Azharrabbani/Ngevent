@@ -136,6 +136,7 @@ type OrganizerProfilesResponse struct {
 	Address       *string                 `json:"address,omitempty"`
 	SocialMedia   OrganizerSocialMediaReq `json:"social_media"`
 	CompanyDetail OrganizerCompDetailRes  `json:"company_detail"`
+	EventCount    *int64                  `json:"event_count,omitempty"`
 	CreatedAt     int64                   `json:"created_at"`
 	UpdatedAt     int64                   `json:"updated_at"`
 }

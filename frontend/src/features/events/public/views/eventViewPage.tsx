@@ -7,22 +7,12 @@ import EventViewSkeleton from "../components/skeleton/eventViewSkeleton";
 import LocationPermissionBanner from "../../../../components/locationPermission";
 import EventBanner from "../components/event/eventBanner";
 import EventAbout from "../components/event/eventAbout";
-import LocationCard, { type MapComponentProps } from "../components/cards/locationCard";
+import LocationCard from "../components/cards/locationCard";
 import EventOwnerCard from "../components/event_owner/eventOwnerCard";
 import ShareCard from "../components/cards/shareCard";
 import EventInfo from "../components/event/eventInfo";
 import { ShockIcon } from "../../../../components/icon";
-
-function PlaceholderMap({ center, path }: MapComponentProps) {
-    return (
-        <div className="w-full h-full bg-slate-100 flex items-center justify-center text-xs text-slate-400">
-            Map ({center[0].toFixed(4)}, {center[1].toFixed(4)})
-            {path && path.length > 1 && (
-                <span className="ml-1">· {path.length} waypoints</span>
-            )}
-        </div>
-    );
-}
+import EventMap from "../components/map/eventMap";
 
 export default function EventViewPublicPage() {
     const { slug } = useParams<{ slug: string }>();
@@ -111,7 +101,7 @@ export default function EventViewPublicPage() {
                             detailAddress={event.event_address.detail_address}
                             coordinates={event.event_address.coordinates}
                             path={showDistancePath ? event.path : undefined}
-                            MapComponent={PlaceholderMap}
+                            MapComponent={EventMap}
                         />
                     </div>
 

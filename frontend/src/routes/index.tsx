@@ -31,6 +31,7 @@ import EventViewPage from "../features/events/organizer/views/eventViewPage"
 import PublicDashboard from "../features/events/public/views/dashboard"
 import AuthDashboard from "../layout/authDashboard"
 import EventViewPublicPage from "../features/events/public/views/eventViewPage"
+import EventOwnerDashboard from "../features/events/public/views/eventOwnerDashboard"
 
 export default function AppRoutes() {
     return (
@@ -63,6 +64,7 @@ export default function AppRoutes() {
 
                 <Route path="/verified-email" element={<VerifiedEmailView />} />
                 <Route path="/" element={<PublicDashboard />} />
+                <Route path="/event-owner" element={<EventOwnerDashboard />} />
                 <Route path="/events/:slug" element={<EventViewPublicPage />} />
 
                 {/* Protected routes */}

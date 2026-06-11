@@ -89,7 +89,7 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		Max:        100,
 		Expiration: 1 * time.Minute,
 		KeyGenerator: func(c *fiber.Ctx) string {
-			return c.Get("X-Forwaded-For", c.IP())
+			return c.Get("X-Forwarded-For", c.IP())
 		},
 		LimitReached: func(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
@@ -192,7 +192,6 @@ func (s *FiberServer) RegisterOrganizerProfileRoutes(h *handler.OrganizerProfile
 		profile.Post("/", middleware.AuthorizeRoles(string(model.Organizer)), h.CreateProfile)
 		profile.Get("/profiles", middleware.AuthorizeRoles(string(model.Admin)), h.GetAllProfile)
 		profile.Get("/me", h.GetProfileByUserID)
-		profile.Get("/filter", h.FilterProfile)
 		profile.Put("/photo", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.UpdatePhotoProfile)
 		profile.Put("/", middleware.AuthorizeRoles(string(model.Organizer), string(model.Admin)), h.UpdateProfile)
 		profile.Put("/approve/:id", middleware.AuthorizeRoles(string(model.Admin)), h.ApprovedProfile)

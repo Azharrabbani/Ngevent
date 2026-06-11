@@ -45,8 +45,8 @@ func (r *OrganizerRepository) Delete(id string) error {
 	return r.db.Where("id = ?", id).Delete(&model.OrganizerProfiles{}).Error
 }
 
-// FindAll implements OrganizerProfileRepo.
-func (r *OrganizerRepository) FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
+// FindAllRaw returns a slice of OrganizerProfiles (not yet mapped to DTOs)
+func (r *OrganizerRepository) FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) ([]*model.OrganizerProfiles, model.Pagination, error) {
 	var profiles []*model.OrganizerProfiles
 
 	query := r.db.Scopes(filterOrganizer(filter))
@@ -54,20 +54,15 @@ func (r *OrganizerRepository) FindAll(pagination model.Pagination, filter *dto.F
 	if err := query.Preload("User").
 		Scopes(Paginate(profiles, &pagination, query)).
 		Find(&profiles).Error; err != nil {
-		return nil, err
+		return nil, pagination, err
 	}
 
-	// Transform data to response struct
-	organizers := toOrganizerResponse(profiles)
-
-	return &model.PaginationRow[*dto.OrganizerProfilesResponse]{
-		Pagination: pagination,
-		Rows:       organizers,
-	}, nil
+	return profiles, pagination, nil
 }
 
-// FindAllForPublic implements [OrganizerProfileRepo].
-func (r *OrganizerRepository) FindAllForPublic(pagination model.Pagination, filter *dto.FilterPublicProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
+// FindAllForPublicRaw is the public-facing equivalent of FindAllRaw.
+func (r *OrganizerRepository) FindAllForPublic(pagination model.Pagination, filter *dto.FilterPublicProfileReq,
+) ([]*model.OrganizerProfiles, model.Pagination, error) {
 	var profiles []*model.OrganizerProfiles
 
 	query := r.db.Scopes(filterOrganizerForPublic(filter))
@@ -75,37 +70,42 @@ func (r *OrganizerRepository) FindAllForPublic(pagination model.Pagination, filt
 	if err := query.Preload("User").
 		Scopes(Paginate(profiles, &pagination, query)).
 		Find(&profiles).Error; err != nil {
-		return nil, err
+		return nil, pagination, err
 	}
 
-	// Transform data to response struct
-	organizers := toOrganizerResponse(profiles)
-
-	return &model.PaginationRow[*dto.OrganizerProfilesResponse]{
-		Pagination: pagination,
-		Rows:       organizers,
-	}, nil
+	return profiles, pagination, nil
 }
 
-// FindByCountry implements OrganizerProfileRepo.
-func (r *OrganizerRepository) FindByCountry(country string, pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error) {
-	var profiles []*model.OrganizerProfiles
+// CountEventsByProfileIDs returns a map of profileID
+func (r *OrganizerRepository) CountEventsByProfileIDs(profileIDs []string) (map[string]int64, error) {
+	if len(profileIDs) == 0 {
+		return map[string]int64{}, nil
+	}
 
-	query := r.db.Scopes(getProfileByCountry(country))
+	type row struct {
+		ProfileID string `gorm:"column:profile_id"`
+		Count     int64  `gorm:"column:count"`
+	}
 
-	if err := query.Preload("User").
-		Scopes(Paginate(profiles, &pagination, query)).
-		Find(&profiles).Error; err != nil {
+	var rows []row
+
+	err := r.db.
+		Model(&model.Events{}).
+		Select("profile_id, COUNT(*) AS count").
+		Where("profile_id IN ? AND status IN ('active', 'done')", profileIDs).
+		Group("profile_id").
+		Scan(&rows).Error
+
+	if err != nil {
 		return nil, err
 	}
 
-	// Transform data to response struct
-	organizers := toOrganizerResponse(profiles)
+	result := make(map[string]int64, len(rows))
+	for _, r := range rows {
+		result[r.ProfileID] = r.Count
+	}
 
-	return &model.PaginationRow[*dto.OrganizerProfilesResponse]{
-		Pagination: pagination,
-		Rows:       organizers,
-	}, nil
+	return result, nil
 }
 
 // FindByID implements OrganizerProfileRepo.

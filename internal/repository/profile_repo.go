@@ -22,17 +22,17 @@ type OrganizerProfileRepo interface {
 	GetDB() *gorm.DB
 	Create(profile *model.OrganizerProfiles) error
 	HasProfile(userID string) (bool, error)
-	FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error)
-	FindAllForPublic(pagination model.Pagination, filter *dto.FilterPublicProfileReq) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error)
+	FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) ([]*model.OrganizerProfiles, model.Pagination, error)
+	FindAllForPublic(pagination model.Pagination, filter *dto.FilterPublicProfileReq) ([]*model.OrganizerProfiles, model.Pagination, error)
 	FindByID(id string) (*model.OrganizerProfiles, error)
 	FindByUserID(userID string) (*model.OrganizerProfiles, error)
-	FindByCountry(country string, pagination model.Pagination) (*model.PaginationRow[*dto.OrganizerProfilesResponse], error)
 	VerifiedProfile(id string, req *dto.ApprovedReq) error
 	RejectProfile(id string, req *dto.RejectedReq) error
 	Update(profile *model.OrganizerProfiles) error
 	UpdatePhotoProfile(userID, photo string) error
 	Delete(id string) error
 	SoftDeleteProfile(tx *gorm.DB, profileID string) error
+	CountEventsByProfileIDs(profileIDs []string) (map[string]int64, error)
 }
 
 type OrganizerProfileUpdateRepo interface {

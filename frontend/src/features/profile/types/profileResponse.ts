@@ -16,13 +16,14 @@ export interface OrganizerResponse {
     status: OrganizerStatus;
     is_verified: boolean;
     email: string;
-    name : string;
+    name: string;
     photo_profile: string;
     phone_number: string;
     country: string;
     address: string;
     social_media: OrganizerSocialMedia;
     company_detail: OrganizerCompanyDetail;
+    event_count?: number;
 };
 
 export interface OrganizerUpdateResponse {
@@ -30,7 +31,7 @@ export interface OrganizerUpdateResponse {
     profile_id: string;
     status: string;
     email: string;
-    name : string;
+    name: string;
     description: string;
     photo_profile: string;
     phone_number: string;
@@ -61,7 +62,7 @@ type OrganizerCompanyDetail = {
     description: string;
     npwp: string;
     npwp_file: string;
-    nib: string;  
+    nib: string;
     nib_file: string;
 };
 

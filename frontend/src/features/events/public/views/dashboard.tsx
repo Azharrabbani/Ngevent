@@ -95,7 +95,7 @@ export default function PublicDashboard() {
                             Discover the most exciting events around you
                         </p>
                     </div>
-                    <EventCreatorTabs />
+                    <EventCreatorTabs activeTab="event" />
                 </div>
 
                 <CategorySlider
