@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 
 import EventCreatorTabs from "../components/tabs/eventCreatorTabs";
 import OrganizerSkeletonCard from "../components/skeleton/eventOwnerSkeleton";
@@ -10,7 +9,6 @@ import EventOwnerGrid from "../components/owner/eventOwnerGrid";
 
 export default function PublicEventOwnerDashboard() {
     const [search, setSearch] = useState<string>("");
-    const navigate = useNavigate();
 
     const {
         data,
@@ -54,10 +52,6 @@ export default function PublicEventOwnerDashboard() {
         };
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    const handleOrganizerSelect = (organizer: OrganizerResponse) => {
-        navigate(`/event-creators/${organizer.id}`);
-    };
-
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
             <DashboardHeader onSearchChange={setSearch} />
@@ -87,10 +81,7 @@ export default function PublicEventOwnerDashboard() {
                     </div>
                 ) : (
                     <>
-                        <EventOwnerGrid
-                            organizers={organizers}
-                            onSelect={handleOrganizerSelect}
-                        />
+                        <EventOwnerGrid organizers={organizers} />
 
                         <div
                             ref={observerTarget}

@@ -1,10 +1,8 @@
 package repository
 
 import (
-	"fmt"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
-	"ngevent/internal/utils/helper"
 	"strings"
 	"time"
 
@@ -115,6 +113,19 @@ func (r *OrganizerRepository) FindByID(id string) (*model.OrganizerProfiles, err
 	if err := r.db.Preload("User").
 		Where("id = ?", id).First(&profile).
 		Error; err != nil {
+		return nil, err
+	}
+
+	return profile, nil
+}
+
+// FindBySlug implements [OrganizerProfileRepo].
+func (r *OrganizerRepository) FindBySlug(slug string) (*model.OrganizerProfiles, error) {
+	var profile *model.OrganizerProfiles
+
+	if err := r.db.Preload("User").
+		Where("slug = ?", slug).
+		First(&profile).Error; err != nil {
 		return nil, err
 	}
 
@@ -237,53 +248,6 @@ func filterOrganizer(filter *dto.FilterProfileReq) func(*gorm.DB) *gorm.DB {
 
 		return db
 	}
-}
-
-func toOrganizerResponse(profiles []*model.OrganizerProfiles) []*dto.OrganizerProfilesResponse {
-	var organizers []*dto.OrganizerProfilesResponse
-
-	for _, profile := range profiles {
-		var reviewedAt int64
-
-		if profile.Status.ReviewedAt != nil {
-			reviewedAt = helper.ConvertDatetoUnix(profile.Status.ReviewedAt.Format(time.RFC3339))
-		}
-
-		createdAt := helper.ConvertDatetoUnix(profile.CreatedAt.Format(time.RFC3339))
-		updatedAt := helper.ConvertDatetoUnix(profile.UpdatedAt.Format(time.RFC3339))
-
-		organizers = append(organizers, &dto.OrganizerProfilesResponse{
-			ID:     profile.ID,
-			UserID: profile.UserID,
-			Status: dto.OrganizerStatusResp{
-				Status:         profile.Status.Status,
-				RejectedReason: profile.Status.RejectedReason,
-				ReviewedBy:     profile.Status.ReviewedBy,
-				ReviewedAt:     &reviewedAt,
-			},
-			Name:         profile.Name,
-			Email:        profile.User.Email,
-			PhotoProfile: fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", helper.StringValue(profile.PhotoProfile)),
-			PhoneNumber:  profile.PhoneNumber,
-			Country:      profile.Country,
-			Address:      profile.Address,
-			SocialMedia: dto.OrganizerSocialMediaReq{
-				Email:     profile.SocialMedias.Email,
-				Instagram: profile.SocialMedias.Instagram,
-			},
-			CompanyDetail: dto.OrganizerCompDetailRes{
-				Description: profile.CompanyDetail.Description,
-				NPWP:        profile.CompanyDetail.NPWPNumber,
-				NPWPFile:    fmt.Sprintf("http://localhost:8080/api/v1/organizer/npwp/%s", profile.CompanyDetail.NPWPDocument),
-				NIB:         profile.CompanyDetail.NIBNumber,
-				NIBFile:     fmt.Sprintf("http://localhost:8080/api/v1/organizer/nib/%s", profile.CompanyDetail.NIBDocument),
-			},
-			CreatedAt: createdAt,
-			UpdatedAt: updatedAt,
-		})
-	}
-
-	return organizers
 }
 
 func getProfileByCountry(country string) func(*gorm.DB) *gorm.DB {

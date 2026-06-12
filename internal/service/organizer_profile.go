@@ -82,6 +82,7 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 	newProfile := &model.OrganizerProfiles{
 		UserID:      profile.UserID,
 		Name:        profile.Name,
+		Slug:        utils.GenerateEventSlug(profile.Name),
 		Address:     profile.Address,
 		PhoneNumber: fmt.Sprintf("+%s", phonenumber),
 		Country:     country,
@@ -171,6 +172,17 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 
 func (s *OrganizerProfileService) FindByID(id string) (*dto.OrganizerProfilesResponse, error) {
 	profile, err := s.OrganizerRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	organizer := toOrganizerProfileResponse(profile)
+
+	return organizer, nil
+}
+
+func (s *OrganizerProfileService) FindBySlug(slug string) (*dto.OrganizerProfilesResponse, error) {
+	profile, err := s.OrganizerRepo.FindBySlug(slug)
 	if err != nil {
 		return nil, err
 	}
@@ -548,6 +560,7 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 		profileUpdate := &model.OrganizerProfilesUpdates{
 			ProfileID:    profile.ID,
 			Name:         req.Name,
+			Slug:         utils.GenerateEventSlug(req.Name),
 			PhoneNumber:  fmt.Sprintf("+%s", phonenumber),
 			Status:       "pending",
 			Country:      country,
@@ -709,6 +722,7 @@ func toOrganizerProfileResponse(profile *model.OrganizerProfiles) *dto.Organizer
 		},
 		Email:        profile.User.Email,
 		Name:         profile.Name,
+		Slug:         profile.Slug,
 		PhotoProfile: fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", helper.StringValue(profile.PhotoProfile)),
 		PhoneNumber:  profile.PhoneNumber,
 		Country:      profile.Country,
@@ -753,6 +767,7 @@ func toOrganizerListResponse(profiles []*model.OrganizerProfiles, counts map[str
 				ReviewedAt:     &reviewedAt,
 			},
 			Name:         profile.Name,
+			Slug:         profile.Slug,
 			Email:        profile.User.Email,
 			PhotoProfile: fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", helper.StringValue(profile.PhotoProfile)),
 			PhoneNumber:  profile.PhoneNumber,

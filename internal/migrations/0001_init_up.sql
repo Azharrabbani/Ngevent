@@ -71,6 +71,7 @@ CREATE TABLE "public"."organizer_profiles"(
 	"reviewed_by" uuid,
 	"reviewed_at" TIMESTAMPTZ,
 	"name" VARCHAR(255) NOT NULL,
+	"slug" VARCHAR(255) NOT NULL,
 	"photo_profile" TEXT,
 	"email" VARCHAR(255),
 	"instagram" VARCHAR(255),
@@ -94,6 +95,7 @@ CREATE TABLE "public"."organizer_profiles_updates"(
 	"profile_id" uuid NOT NULL,
 	"status" organizer_profile_status NOT NULL DEFAULT 'pending',
 	"name" VARCHAR(255) NOT NULL,
+	"slug" VARCHAR(255) NOT NULL,
 	"phone_number" VARCHAR(100) NOT NULL,
 	"country" VARCHAR(120) NOT NULL,
 	"email" VARCHAR(255),
@@ -265,9 +267,10 @@ CREATE INDEX "idx_otp_user_id" ON "public"."otp_verifications"("user_id");
 CREATE INDEX "idx_eo_profile_id" ON "public"."organizer_profiles_updates"("profile_id");
 CREATE INDEX "idx_categories_slug" ON "public"."categories"("slug");
 CREATE INDEX "idx_event_slug" ON "public"."events"("slug");
+CREATE INDEX "idx_organizer_profiles_slug" ON "public"."organizer_profiles"("slug");
+CREATE INDEX "idx_organizer_profiles_updates_slug" ON "public"."organizer_profiles_updates"("slug");
 CREATE INDEX "idx_event_status" ON "public"."events"("status");
 CREATE INDEX "idx_event_city" ON "public"."events"("city");
-CREATE INDEX "idx_ticket_type" ON "public"."tickets"("ticket_type");
 CREATE INDEX "idx_event_id" ON "public"."event_categories"("event_id");
 CREATE INDEX "idx_events_deleted_at" ON "public"."events"("deleted_at");
 CREATE INDEX "idx_event_categories_deleted_at" ON "public"."event_categories"("deleted_at");

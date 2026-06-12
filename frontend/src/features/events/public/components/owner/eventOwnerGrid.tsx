@@ -5,10 +5,9 @@ import EventOwnerCard from "./eventOwnerCards";
 
 interface Props {
     organizers: OrganizerResponse[];
-    onSelect?: (organizer: OrganizerResponse) => void;
 }
 
-export default function EventOwnerGrid({ organizers, onSelect }: Props) {
+export default function EventOwnerGrid({ organizers }: Props) {
     if (organizers.length === 0) {
         return (
             <div className="mt-16 flex flex-col items-center justify-center text-center">
@@ -29,7 +28,6 @@ export default function EventOwnerGrid({ organizers, onSelect }: Props) {
                 <EventOwnerCard
                     key={organizer.id}
                     organizer={organizer}
-                    onClick={() => onSelect?.(organizer)}
                 />
             ))}
         </div>

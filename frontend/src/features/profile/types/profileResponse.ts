@@ -16,6 +16,7 @@ export interface OrganizerResponse {
     status: OrganizerStatus;
     is_verified: boolean;
     email: string;
+    slug: string;
     name: string;
     photo_profile: string;
     phone_number: string;

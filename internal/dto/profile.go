@@ -130,6 +130,7 @@ type OrganizerProfilesResponse struct {
 	Status        OrganizerStatusResp     `json:"status,omitempty"`
 	Email         string                  `json:"email"`
 	Name          string                  `json:"name"`
+	Slug          string                  `json:"slug"`
 	PhotoProfile  string                  `json:"photo_profile,omitempty"`
 	PhoneNumber   string                  `json:"phone_number"`
 	Country       string                  `json:"country"`
@@ -146,6 +147,7 @@ type OrganizerUpdatesResponse struct {
 	ProfileID    string `json:"profile_id"`
 	Status       string `json:"status"`
 	Name         string `json:"name"`
+	Slug         string `json:"slug"`
 	Email        string `json:"email"`
 	Description  string `json:"description"`
 	Address      string `json:"address"`

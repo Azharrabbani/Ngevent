@@ -294,20 +294,13 @@ func (s *EventService) GetActiveEvents(filter *dto.EventFilter, pagination model
 }
 
 func (s *EventService) GetEventsByProfileID(userID string, filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
-	profile, err := s.ProfileRepo.FindByUserID(userID)
-	if err != nil {
-		return nil, errors.New("profile not found")
-	}
-
-	filter.ProfileID = &profile.ID
-
 	var events *model.PaginationRow[*dto.EventsResp]
 
 	filterBytes, _ := json.Marshal(filter)
 	hash := sha1.Sum(filterBytes)
 	filterHash := hex.EncodeToString(hash[:])
 
-	cacheKey := fmt.Sprintf("organizer_events:all:%d:%d:%s:%s:%s", pagination.Page, pagination.Limit, pagination.Sort, filterHash)
+	cacheKey := fmt.Sprintf("organizer_events:all:%d:%d:%s:%s:%s", pagination.Page, pagination.Limit, pagination.Sort, filterHash, userID)
 
 	// Try to get from cache
 	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
@@ -317,7 +310,51 @@ func (s *EventService) GetEventsByProfileID(userID string, filter *dto.EventFilt
 
 	if events == nil {
 		// If cache miss, get from db
+		profile, err := s.ProfileRepo.FindByUserID(userID)
+		if err != nil {
+			return nil, errors.New("profile not found")
+		}
+
+		filter.ProfileID = &profile.ID
 		events, err = s.EventRepo.FindByProfileID(filter, pagination)
+		if err != nil {
+			return nil, err
+		}
+
+		// Set cache with 15 minute TTL
+		if data, err := json.Marshal(events); err == nil {
+			s.rdb.Set(context.Background(), cacheKey, data, 15*time.Minute)
+		}
+	}
+
+	return events, nil
+}
+
+func (s *EventService) GetEventsByProfileIDPublic(id string, filter *dto.EventFilterPublic, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
+	var events *model.PaginationRow[*dto.EventsResp]
+
+	filterBytes, _ := json.Marshal(filter)
+	hash := sha1.Sum(filterBytes)
+	filterHash := hex.EncodeToString(hash[:])
+
+	cacheKey := fmt.Sprintf("organizer_events:all:%d:%d:%s:%s:%s", pagination.Page, pagination.Limit, pagination.Sort, filterHash, id)
+
+	// Try to get from cache
+	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
+	if err == nil {
+		json.Unmarshal([]byte(val), &events)
+	}
+
+	if events == nil {
+		// If cache miss, get from db
+		profile, err := s.ProfileRepo.FindByID(id)
+		if err != nil {
+			return nil, errors.New("profile not found")
+		}
+
+		filter.ProfileID = profile.ID
+
+		events, err = s.EventRepo.FindByProfileIDPublic(filter, pagination)
 		if err != nil {
 			return nil, err
 		}

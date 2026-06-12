@@ -452,6 +452,62 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 	))
 }
 
+func (h *EventHandler) GetEventsByProfileIDPublic(c *fiber.Ctx) error {
+	id := c.Params("id")
+	filterReq := new(dto.EventFilterPublic)
+	if err := c.QueryParser(filterReq); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	if err := h.Validate.Struct(filterReq); err != nil {
+		msg := utils.GetValidationError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"validation-error",
+			msg,
+		))
+	}
+
+	pagination := new(model.Pagination)
+	if err := c.QueryParser(pagination); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	page := &model.Pagination{
+		Sort:  pagination.Sort,
+		Limit: pagination.Limit,
+		Page:  pagination.Page,
+	}
+
+	events, err := h.EventService.GetEventsByProfileIDPublic(id, filterReq, *page)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		events,
+	))
+}
+
 func (h *EventHandler) ReviewEvent(c *fiber.Ctx) error {
 	id := c.Params("id")
 	adminID := c.Locals("user_id").(string)

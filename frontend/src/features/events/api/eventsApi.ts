@@ -3,7 +3,7 @@ import type { PaginatedResponse, successResponse } from "../../../types/apiRespo
 import type { CreateEventReq } from "../types/createEventRequst"
 import type { locationReq } from "../types/locationRequest"
 import type { locationResp } from "../types/locationResponse"
-import type { FilterEventsRequest, FilterUpdatedEventsRequest, UserLatLonRequest } from "../types/eventRequest"
+import type { FilterEventsRequest, FilterOrganizerEventsRequest, FilterUpdatedEventsRequest, UserLatLonRequest } from "../types/eventRequest"
 import type { EventsResponse, UpdateEventResponse } from "../types/eventResponse"
 import type { EventDetailResponse } from "../types/publicEventResponse"
 
@@ -78,6 +78,20 @@ export const GetOrganizerEventsApi = async (params: FilterEventsRequest) => {
             month: params.month,
             year: params.year,
             location: params.location,
+            page: params.pagination?.page,
+            limit: params.pagination?.limit,
+            sort: params.pagination?.sort,
+        },
+    });
+
+    return res.data;
+};
+
+export const GetPublicOrganizerEventsApi = async (id: string, params: FilterOrganizerEventsRequest) => {
+    const res = await api.get<PaginatedResponse<EventsResponse>>(`event/public/${id}`, {
+        params: {
+            title: params.title,
+            status: params.status,
             page: params.pagination?.page,
             limit: params.pagination?.limit,
             sort: params.pagination?.sort,

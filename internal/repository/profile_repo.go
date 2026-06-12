@@ -25,6 +25,7 @@ type OrganizerProfileRepo interface {
 	FindAll(pagination model.Pagination, filter *dto.FilterProfileReq) ([]*model.OrganizerProfiles, model.Pagination, error)
 	FindAllForPublic(pagination model.Pagination, filter *dto.FilterPublicProfileReq) ([]*model.OrganizerProfiles, model.Pagination, error)
 	FindByID(id string) (*model.OrganizerProfiles, error)
+	FindBySlug(slug string) (*model.OrganizerProfiles, error)
 	FindByUserID(userID string) (*model.OrganizerProfiles, error)
 	VerifiedProfile(id string, req *dto.ApprovedReq) error
 	RejectProfile(id string, req *dto.RejectedReq) error

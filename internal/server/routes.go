@@ -185,7 +185,7 @@ func (s *FiberServer) RegisterOrganizerProfileRoutes(h *handler.OrganizerProfile
 	profile.Static("/nib", "./storage/nib")
 
 	profile.Get("/", h.GetAllProfileForPublic)
-	profile.Get("/public/:id", h.GetProfileByID)
+	profile.Get("/public/:slug", h.GetProfileBySlug)
 
 	profile.Use(middleware.AuthMiddleware())
 	{
@@ -197,6 +197,7 @@ func (s *FiberServer) RegisterOrganizerProfileRoutes(h *handler.OrganizerProfile
 		profile.Put("/approve/:id", middleware.AuthorizeRoles(string(model.Admin)), h.ApprovedProfile)
 		profile.Put("/reject/:id", middleware.AuthorizeRoles(string(model.Admin)), h.RejectProfile)
 		profile.Delete("/close-account", middleware.AuthorizeRoles(string(model.Organizer)), h.CloseAccount)
+		profile.Get("/:id", h.GetProfileByID)
 	}
 
 }
@@ -254,6 +255,7 @@ func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 	event.Get("/nearest", h.FindNearestEvents)
 	event.Get("/route/:id", routeLimiter, h.GetEventRoute)
 	event.Get("/view/:slug", h.GetEventBySlug)
+	event.Get("/public/:id", h.GetEventsByProfileIDPublic)
 
 	event.Use(middleware.AuthMiddleware())
 	{

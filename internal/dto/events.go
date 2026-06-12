@@ -91,6 +91,12 @@ type EventFilter struct {
 	Year      *int       `json:"year"`
 }
 
+type EventFilterPublic struct {
+	ProfileID string  `json:"profile_id"`
+	Title     *string `json:"title" query:"title"`
+	Status    *string `json:"status" query:"status" validate:"oneof=active done"`
+}
+
 type EventAddressReq struct {
 	DetailAddress string `json:"detail_address" validate:"required"`
 	Lat           string `json:"lat" validate:"required"`

@@ -21,6 +21,7 @@ type OrganizerProfiles struct {
 	UserID        string               `json:"user_id"`
 	Status        OrganizerStatus      `json:"status" gorm:"embedded"`
 	Name          string               `json:"name"`
+	Slug          string               `json:"slug"`
 	PhotoProfile  *string              `json:"photo_profile"`
 	PhoneNumber   string               `json:"phone_number"`
 	Country       string               `json:"country"`
@@ -38,6 +39,7 @@ type OrganizerProfilesUpdates struct {
 	ProfileID    string     `json:"profile_id"`
 	Status       string     `json:"status"`
 	Name         string     `json:"name"`
+	Slug         string     `json:"slug"`
 	PhoneNumber  string     `json:"phone_number"`
 	Country      string     `json:"country"`
 	Email        *string    `json:"email"`

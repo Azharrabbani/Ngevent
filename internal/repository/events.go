@@ -346,6 +346,36 @@ func (r *EventsRepository) FindByProfileID(filter *dto.EventFilter, pagination m
 	}, nil
 }
 
+// FindByProfileIDPublic implements EventsRepo.
+func (r *EventsRepository) FindByProfileIDPublic(filter *dto.EventFilterPublic, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
+	var events []*model.Events
+
+	query := r.db.Select(
+		`events.*,
+		ST_Y(coordinates::geometry) AS lat,
+		ST_X(coordinates::geometry) AS lon`,
+	).Scopes(filterEventListPublic(filter))
+
+	if err := query.
+		Scopes(Paginate(events, &pagination, query)).
+		Preload("Profile.User").
+		Preload("Categories.Category").
+		Preload("Reviewer").
+		Find(&events).Error; err != nil {
+		return nil, err
+	}
+
+	eventsResp, err := toEventResponse(events)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.PaginationRow[*dto.EventsResp]{
+		Pagination: pagination,
+		Rows:       eventsResp,
+	}, nil
+}
+
 // FindByID implements EventsRepo.
 func (r *EventsRepository) FindByID(id string) (*model.Events, error) {
 	var event *model.Events
@@ -589,6 +619,23 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 		}
 
 		db = db.Group("events.id, events.created_at, events.name, events.start_time")
+
+		return db
+	}
+}
+
+func filterEventListPublic(filter *dto.EventFilterPublic) func(*gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+
+		db = db.Where("deleted_at IS NULL AND profile_id = ?", filter.ProfileID)
+
+		if filter.Status != nil {
+			db = db.Where("status = ?", *filter.Status)
+		}
+
+		if filter.Title != nil {
+			db = db.Where("LOWER(slug) LIKE LOWER(?)", "%"+*filter.Title+"%")
+		}
 
 		return db
 	}

@@ -15,6 +15,12 @@ export interface FilterEventsRequest {
     pagination?: PaginationParams;
 };
 
+export interface FilterOrganizerEventsRequest {
+    title?: string;
+    status: string;
+    pagination?: PaginationParams;
+};
+
 export interface UserLatLonRequest {
     lat?: number;
     lon?: number;

@@ -160,6 +160,35 @@ func (h *OrganizerProfileHandler) GetProfileByID(c *fiber.Ctx) error {
 	))
 }
 
+func (h *OrganizerProfileHandler) GetProfileBySlug(c *fiber.Ctx) error {
+	slug := c.Params("slug")
+	if slug == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			"slug is required",
+		))
+	}
+
+	profile, err := h.OrganizerService.FindBySlug(slug)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK,
+		"success",
+		"success",
+		profile,
+	))
+}
+
 func (h *OrganizerProfileHandler) GetProfileByUserID(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 

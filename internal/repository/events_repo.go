@@ -9,12 +9,11 @@ import (
 
 type EventsRepo interface {
 	GetDB() *gorm.DB
-
-	// Events
 	Create(event *model.Events, categories []*model.Categories) (*model.Events, error)
 	FindAll(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error)
 	FindActiveEvents(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error)
 	FindByProfileID(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error)
+	FindByProfileIDPublic(filter *dto.EventFilterPublic, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error)
 	FindByID(id string) (*model.Events, error)
 	FindBySlug(slug string) (*model.Events, error)
 	FindNearestEvents(lat, lon float64, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error)

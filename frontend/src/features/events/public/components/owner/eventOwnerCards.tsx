@@ -1,15 +1,20 @@
+import { useNavigate } from "react-router-dom";
 import type { OrganizerResponse } from "../../../../profile/types/profileResponse";
 
 
 interface Props {
     organizer: OrganizerResponse;
-    onClick?: () => void;
 }
 
-export default function EventOwnerCard({ organizer, onClick }: Props) {
+export default function EventOwnerCard({ organizer }: Props) {
+    const navigate = useNavigate();
     return (
         <div
-            onClick={onClick}
+            onClick={() =>
+                navigate(
+                    `/event-owner/${organizer.slug}`
+                )
+            }
             className="
                 bg-white rounded-2xl border border-slate-200
                 p-4 flex items-center gap-4

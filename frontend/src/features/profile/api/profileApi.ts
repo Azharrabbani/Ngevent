@@ -126,8 +126,14 @@ export const GetPublicOrganizersApi = async (params: FilterOrganizerReq) => {
 
     return res.data;
 }
+
 export const GetOrganizerDetailProfileApi = async (id: string) => {
-    const res = await api.get<successResponse<OrganizerResponse>>(`/organizer/public/${id}`);
+    const res = await api.get<successResponse<OrganizerResponse>>(`/organizer/${id}`);
+    return res.data;
+}
+
+export const GetOrganizerBySlugApi = async (slug: string) => {
+    const res = await api.get<successResponse<OrganizerResponse>>(`/organizer/public/${slug}`);
     return res.data;
 }
 

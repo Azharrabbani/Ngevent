@@ -87,6 +87,7 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 	case "approved":
 		// 1. When approves update the profile with the update data in staging
 		profile.Name = updateData.Name
+		profile.Slug = updateData.Slug
 		profile.Status.Status = status
 		profile.PhoneNumber = updateData.PhoneNumber
 		profile.Country = updateData.Country
@@ -259,6 +260,7 @@ func toOrganizerUpdateResponse(organizerUpdate *model.OrganizerProfilesUpdates) 
 		ProfileID:    organizerUpdate.ProfileID,
 		Status:       organizerUpdate.Status,
 		Name:         organizerUpdate.Name,
+		Slug:         organizerUpdate.Slug,
 		Email:        helper.StringValue(organizerUpdate.Email),
 		Instagram:    helper.StringValue(organizerUpdate.Instagram),
 		Description:  helper.StringValue(organizerUpdate.Description),
