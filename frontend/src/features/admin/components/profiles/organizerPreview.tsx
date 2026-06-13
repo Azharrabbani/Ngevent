@@ -1,4 +1,4 @@
-import { FaInstagram, FaRegFilePdf } from "react-icons/fa";
+import { FaRegFilePdf } from "react-icons/fa";
 import { HiOutlineMail, HiOutlinePhone, HiOutlineLocationMarker } from "react-icons/hi";
 import { useState } from "react";
 import type { OrganizerResponse } from "../../../profile/types/profileResponse";
@@ -6,6 +6,7 @@ import { useApproveOrganizer } from "../../../profile/hooks/organizer/useApprove
 import { useRejectOrganizer } from "../../../profile/hooks/organizer/useRejectOrganzier";
 import FilePreview from "../../../../components/filePreview";
 import { toDateString } from "../../../../utils/dateConverter";
+import { InstagramIcon } from "../../../../components/icon";
 
 interface Props {
     loading: boolean | undefined;
@@ -231,7 +232,7 @@ export default function OrganizerPreview({
                                     }
                                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:opacity-90 transition"
                                 >
-                                    <FaInstagram className="text-lg" />
+                                    <InstagramIcon className="text-lg" />
                                     Visit Instagram
                                 </button>
                             ) : (

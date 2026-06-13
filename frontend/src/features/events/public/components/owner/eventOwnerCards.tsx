@@ -8,41 +8,37 @@ interface Props {
 
 export default function EventOwnerCard({ organizer }: Props) {
     const navigate = useNavigate();
+
     return (
         <div
-            onClick={() =>
-                navigate(
-                    `/event-owner/${organizer.slug}`
-                )
-            }
+            onClick={() => navigate(`/event-owner/${organizer.slug}`)}
             className="
                 bg-white rounded-2xl border border-slate-200
-                p-4 flex items-center gap-4
+                overflow-hidden
                 hover:shadow-md hover:border-blue-200
                 transition-all duration-200
                 cursor-pointer
                 group
+                flex
             "
         >
-            <div className="shrink-0">
+            <div className="w-24 shrink-0">
                 {organizer.photo_profile ? (
                     <img
                         src={organizer.photo_profile}
                         alt={organizer.name}
                         className="
-                            w-16 h-16 rounded-xl object-cover
-                            border border-slate-100
-                            group-hover:border-blue-200 transition
+                            w-full h-full
+                            object-cover
                         "
                     />
                 ) : (
                     <div
                         className="
-                            w-16 h-16 rounded-xl
+                            w-full h-full min-h-[120px]
                             bg-gradient-to-br from-blue-50 to-indigo-100
-                            border border-slate-100
                             flex items-center justify-center
-                            text-blue-600 font-bold text-xl
+                            text-blue-600 font-bold text-4xl
                         "
                     >
                         {organizer.name?.charAt(0)?.toUpperCase() ?? "?"}
@@ -50,15 +46,17 @@ export default function EventOwnerCard({ organizer }: Props) {
                 )}
             </div>
 
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 p-4 flex flex-col justify-center min-w-0">
                 <h3 className="text-sm font-semibold text-slate-900 truncate group-hover:text-blue-600 transition">
                     {organizer.name}
                 </h3>
-                <p className="text-xs text-slate-500 truncate mt-0.5">
+
+                <p className="text-xs text-slate-500 truncate mt-1">
                     {organizer.email}
                 </p>
-                <p className="text-xs font-medium text-blue-500 mt-2">
-                    {organizer.event_count ?? 0} event
+
+                <p className="text-xs font-medium text-blue-500 mt-3">
+                    {organizer.event_count ?? 0} events
                 </p>
             </div>
         </div>

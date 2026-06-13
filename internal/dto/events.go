@@ -161,6 +161,7 @@ type EOProfiles struct {
 	Status       string  `json:"status"`
 	Email        string  `json:"email"`
 	Name         string  `json:"name"`
+	Slug         string  `json:"slug"`
 	PhotoProfile *string `json:"photo_profile,omitempty"`
 	PhoneNumber  string  `json:"phone_number"`
 }
@@ -230,6 +231,7 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 			Status:       req.Organizer.Status.Status,
 			Email:        req.Organizer.User.Email,
 			Name:         req.Organizer.Name,
+			Slug:         req.Organizer.Slug,
 			PhotoProfile: req.Organizer.PhotoProfile,
 			PhoneNumber:  req.Organizer.PhoneNumber,
 		},

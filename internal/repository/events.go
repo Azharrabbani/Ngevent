@@ -673,6 +673,7 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 				Status:     event.Profile.Status.Status,
 				Email:      event.Profile.User.Email,
 				Name:       event.Profile.Name,
+				Slug:       event.Profile.Slug,
 				PhotoProfile: helper.StrPointerIfNotEmpty(
 					func() string {
 						if event.Profile.PhotoProfile == nil {

@@ -15,6 +15,7 @@ import { LuUserRoundCheck } from "react-icons/lu";
 import { MdOutlineDashboard } from "react-icons/md";
 import { PiMaskSadFill } from "react-icons/pi";
 import { ImShocked2 } from "react-icons/im";
+import { FaInstagram } from "react-icons/fa";
 
 interface Props {
     className?: string
@@ -120,5 +121,11 @@ export function NoEventsIcon({ className, size }: Props) {
 export function ShockIcon({ className, size }: Props) {
     return (
         <ImShocked2 className={className} size={size} />
+    )
+}
+
+export function InstagramIcon({ className, size }: Props) {
+    return (
+        <FaInstagram className={className} size={size} />
     )
 }

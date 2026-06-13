@@ -40,6 +40,7 @@ type EoProfile = {
     status: string;
     email: string;
     name: string;
+    slug: string;
     photo_profile?: string;
     phone_number: string;
 };

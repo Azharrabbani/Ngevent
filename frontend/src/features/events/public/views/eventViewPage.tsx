@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FiArrowLeft } from "react-icons/fi";
 import { useUserLocation } from "../../hooks/useUserLocation";
 import { useGetEventBySlug } from "../../hooks/useGetEventBySlug";
 import EventViewSkeleton from "../components/skeleton/eventViewSkeleton";
@@ -13,6 +12,7 @@ import ShareCard from "../components/cards/shareCard";
 import EventInfo from "../components/event/eventInfo";
 import { ShockIcon } from "../../../../components/icon";
 import EventMap from "../components/map/eventMap";
+import BackHeader from "../components/navigation/backHeader";
 
 export default function EventViewPublicPage() {
     const { slug } = useParams<{ slug: string }>();
@@ -41,7 +41,7 @@ export default function EventViewPublicPage() {
     if (isLoading || locationLoading) {
         return (
             <div className="min-h-screen bg-slate-50">
-                <Header onBack={() => navigate(-1)} />
+                <BackHeader onBack={() => navigate(-1)} />
                 <main className="max-w-6xl mx-auto px-4 lg:px-6 py-8">
                     <EventViewSkeleton />
                 </main>
@@ -52,7 +52,7 @@ export default function EventViewPublicPage() {
     if (isError || !event) {
         return (
             <div className="min-h-screen bg-slate-50 flex flex-col">
-                <Header onBack={() => navigate(-1)} />
+                <BackHeader onBack={() => navigate(-1)} />
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-4">
                     <ShockIcon className="text-5xl text-indigo-500" />
                     <h2 className="text-lg font-semibold text-slate-800">Event not found</h2>
@@ -77,7 +77,7 @@ export default function EventViewPublicPage() {
 
     return (
         <div className="min-h-screen bg-slate-50">
-            <Header onBack={() => navigate(-1)} />
+            <BackHeader onBack={() => navigate(-1)} />
 
             <main className="max-w-6xl mx-auto px-4 lg:px-6 py-8 space-y-6">
                 {denied && !locationRequested && (
@@ -120,7 +120,7 @@ export default function EventViewPublicPage() {
                             photoProfile={event.eo_profile.photo_profile}
                             isVerified={event.eo_profile.is_verified}
                             onViewProfile={() =>
-                                navigate(`/organizer/${event.eo_profile.id}`)
+                                navigate(`/event-owner/${event.eo_profile.slug}`)
                             }
                         />
 
@@ -129,21 +129,5 @@ export default function EventViewPublicPage() {
                 </div>
             </main>
         </div>
-    );
-}
-
-function Header({ onBack }: { onBack: () => void }) {
-    return (
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-            <div className="max-w-6xl mx-auto px-4 lg:px-6 h-14 flex items-center gap-4">
-                <button
-                    onClick={onBack}
-                    className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 transition-colors"
-                >
-                    <FiArrowLeft className="w-4 h-4" />
-                    Back
-                </button>
-            </div>
-        </header>
     );
 }
