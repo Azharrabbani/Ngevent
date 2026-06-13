@@ -1,5 +1,18 @@
 # 🎟️ Ngevent
 
+![Go](https://img.shields.io/badge/Go-1.25-blue?style=flat&logo=go)
+![Fiber](https://img.shields.io/badge/Fiber-v2-00ACD7?style=flat)
+![GORM](https://img.shields.io/badge/GORM-v1.31-59666C?style=flat)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-blue?style=flat&logo=postgresql)
+![Redis](https://img.shields.io/badge/Redis-red?style=flat&logo=redis)
+
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat&logo=vite)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.2-06B6D4?style=flat&logo=tailwindcss)
+![TanStack Query](https://img.shields.io/badge/TanStack%20Query-v5-FF4154?style=flat)
+![Leaflet](https://img.shields.io/badge/Leaflet-Maps-199900?style=flat&logo=leaflet)
+
 > ⚠️ **This project is still ongoing / under active development.**
 
 A full-stack event management platform built with **Go (Fiber)** on the backend and **React (Vite + TypeScript)** on the frontend.
