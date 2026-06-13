@@ -21,6 +21,16 @@ func NewOTPHandler(otpService *service.OTPService, validate *validator.Validate)
 	}
 }
 
+// ResendOTP godoc
+// @Summary      Resend OTP code
+// @Description  Resends the email verification OTP to the specified email address
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body     dto.ResentOTPInput  true  "Email to resend OTP to"
+// @Success      202   {object} dto.Response{data=string}
+// @Failure      400   {object} dto.Response
+// @Router       /resend-otp [post]
 func (h *OTPHandler) ResendOTP(c *fiber.Ctx) error {
 	var req *dto.ResentOTPInput
 	if err := c.BodyParser(&req); err != nil {

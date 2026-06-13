@@ -23,6 +23,16 @@ func NewUserHandler(userService *service.UserService, validate *validator.Valida
 	}
 }
 
+// Register godoc
+// @Summary      Register new user
+// @Description  Creates a new attendee or organizer account and sends an email verification OTP
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        body  body     dto.RegisterInput  true  "Registration payload"
+// @Success      201   {object} dto.Response{data=dto.UsersResponse}
+// @Failure      400   {object} dto.Response
+// @Router       /user/register [post]
 func (h *UserHandler) Register(c *fiber.Ctx) error {
 	var input dto.RegisterInput
 
@@ -64,6 +74,18 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 	))
 }
 
+// RegisterAdmin godoc
+// @Summary      Register admin user
+// @Description  Creates a new admin account (Admin only)
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        body  body     dto.RegisterInput  true  "Admin registration payload"
+// @Success      201   {object} dto.Response{data=dto.UsersResponse}
+// @Failure      400   {object} dto.Response
+// @Failure      401   {object} dto.Response
+// @Router       /user/admin/register [post]
 func (h *UserHandler) RegisterAdmin(c *fiber.Ctx) error {
 	var input dto.RegisterInput
 
@@ -105,6 +127,18 @@ func (h *UserHandler) RegisterAdmin(c *fiber.Ctx) error {
 	))
 }
 
+// SelectRole godoc
+// @Summary      Select user role
+// @Description  Sets or switches the authenticated user's role (user / event organizer)
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        body  body     dto.RoleInput  true  "Desired role"
+// @Success      200   {object} dto.Response{data=string}
+// @Failure      400   {object} dto.Response
+// @Failure      401   {object} dto.Response
+// @Router       /user/role [put]
 func (h *UserHandler) SelectRole(c *fiber.Ctx) error {
 	userId := c.Locals("user_id").(string)
 	var req dto.RoleInput
@@ -175,6 +209,21 @@ func (h *UserHandler) SelectRole(c *fiber.Ctx) error {
 	))
 }
 
+// ListUsers godoc
+// @Summary      List all users
+// @Description  Returns a paginated list of users, filterable by role and verification status (Admin only)
+// @Tags         users
+// @Produce      json
+// @Security     CookieAuth
+// @Param        role        query    string  false  "Filter by role (user, event organizer, admin)"
+// @Param        is_verified query    bool    false  "Filter by verification status"
+// @Param        email       query    string  false  "Filter by email"
+// @Param        page        query    int     false  "Page number"
+// @Param        limit       query    int     false  "Items per page"
+// @Success      200  {object} dto.Response{data=model.PaginationRow}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /user/ [get]
 func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 	filterUser := new(dto.ListUsersReq)
 	if err := c.QueryParser(filterUser); err != nil {
@@ -220,6 +269,17 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 	))
 }
 
+// FindUserByID godoc
+// @Summary      Find user by ID
+// @Description  Returns a user record by their UUID (JWT required)
+// @Tags         users
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id  query  string  true  "User UUID"
+// @Success      302  {object} dto.Response{data=dto.UsersResponse}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /user/id [get]
 func (h *UserHandler) FindUserByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -241,6 +301,16 @@ func (h *UserHandler) FindUserByID(c *fiber.Ctx) error {
 	))
 }
 
+// FindCurrentUser godoc
+// @Summary      Get current user
+// @Description  Returns the authenticated user's profile from their JWT token
+// @Tags         users
+// @Produce      json
+// @Security     CookieAuth
+// @Success      200  {object} dto.Response{data=dto.UsersResponse}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /user/me [get]
 func (h *UserHandler) FindCurrentUser(c *fiber.Ctx) error {
 	id := c.Locals("user_id").(string)
 

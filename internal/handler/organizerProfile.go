@@ -30,6 +30,29 @@ func NewOrganizerProfileHandler(
 	}
 }
 
+// CreateProfile godoc
+// @Summary      Create organizer profile
+// @Description  Creates an event organizer profile, including company NPWP/NIB documents (Organizer only)
+// @Tags         organizer
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     CookieAuth
+// @Param        photo        formData  file    false  "Profile photo (max 5MB)"
+// @Param        name         formData  string  true   "Organizer/company name"
+// @Param        phonenumber  formData  string  true   "Phone number"
+// @Param        iso          formData  string  false  "Phone country ISO code"
+// @Param        address      formData  string  true   "Address"
+// @Param        email        formData  string  false  "Public contact email"
+// @Param        instagram    formData  string  false  "Instagram handle"
+// @Param        description  formData  string  false  "Company description"
+// @Param        npwp_number  formData  string  true   "NPWP number"
+// @Param        npwp_file    formData  file    true   "NPWP document (max 100MB)"
+// @Param        nib_number   formData  string  true   "NIB number"
+// @Param        nib_file     formData  file    true   "NIB document (max 100MB)"
+// @Success      201  {object} dto.Response{data=string}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /organizer/ [post]
 func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	role := c.Locals("role").(string)
@@ -139,6 +162,17 @@ func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 	))
 }
 
+// GetProfileByID godoc
+// @Summary      Get organizer profile by ID
+// @Description  Returns an organizer profile by its profile ID (authenticated users)
+// @Tags         organizer
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id  path     string  true  "Organizer profile ID"
+// @Success      200  {object} dto.Response{data=dto.OrganizerProfilesResponse}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /organizer/{id} [get]
 func (h *OrganizerProfileHandler) GetProfileByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -160,6 +194,15 @@ func (h *OrganizerProfileHandler) GetProfileByID(c *fiber.Ctx) error {
 	))
 }
 
+// GetProfileBySlug godoc
+// @Summary      Get organizer profile by slug
+// @Description  Returns the public organizer profile matching the given slug
+// @Tags         organizer
+// @Produce      json
+// @Param        slug  path     string  true  "Organizer profile slug"
+// @Success      200  {object} dto.Response{data=dto.OrganizerProfilesResponse}
+// @Failure      400  {object} dto.Response
+// @Router       /organizer/public/{slug} [get]
 func (h *OrganizerProfileHandler) GetProfileBySlug(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	if slug == "" {
@@ -189,6 +232,16 @@ func (h *OrganizerProfileHandler) GetProfileBySlug(c *fiber.Ctx) error {
 	))
 }
 
+// GetProfileByUserID godoc
+// @Summary      Get my organizer profile
+// @Description  Returns the authenticated user's organizer profile
+// @Tags         organizer
+// @Produce      json
+// @Security     CookieAuth
+// @Success      200  {object} dto.Response{data=dto.OrganizerProfilesResponse}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /organizer/me [get]
 func (h *OrganizerProfileHandler) GetProfileByUserID(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
@@ -210,6 +263,21 @@ func (h *OrganizerProfileHandler) GetProfileByUserID(c *fiber.Ctx) error {
 	))
 }
 
+// GetAllProfile godoc
+// @Summary      List all organizer profiles
+// @Description  Returns a paginated list of organizer profiles, including pending/rejected ones (Admin only)
+// @Tags         organizer
+// @Produce      json
+// @Security     CookieAuth
+// @Param        filter  query    string  false  "Filter by name/email"
+// @Param        status  query    string  false  "Filter by status"
+// @Param        page    query    int     false  "Page number"
+// @Param        limit   query    int     false  "Items per page"
+// @Param        sort    query    string  false  "Sort order"
+// @Success      200  {object} dto.Response{data=model.PaginationRow}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /organizer/profiles [get]
 func (h *OrganizerProfileHandler) GetAllProfile(c *fiber.Ctx) error {
 	filter := new(dto.FilterProfileReq)
 
@@ -257,6 +325,18 @@ func (h *OrganizerProfileHandler) GetAllProfile(c *fiber.Ctx) error {
 	))
 }
 
+// GetAllProfileForPublic godoc
+// @Summary      List organizer profiles (public)
+// @Description  Returns a paginated list of verified organizer profiles for public listing
+// @Tags         organizer
+// @Produce      json
+// @Param        filter  query    string  false  "Filter by name"
+// @Param        page    query    int     false  "Page number"
+// @Param        limit   query    int     false  "Items per page"
+// @Param        sort    query    string  false  "Sort order"
+// @Success      200  {object} dto.Response{data=model.PaginationRow}
+// @Failure      400  {object} dto.Response
+// @Router       /organizer/ [get]
 func (h *OrganizerProfileHandler) GetAllProfileForPublic(c *fiber.Ctx) error {
 	filter := new(dto.FilterPublicProfileReq)
 
@@ -304,6 +384,18 @@ func (h *OrganizerProfileHandler) GetAllProfileForPublic(c *fiber.Ctx) error {
 	))
 }
 
+// UpdatePhotoProfile godoc
+// @Summary      Update organizer profile photo
+// @Description  Updates the authenticated organizer's profile photo (Organizer/Admin only)
+// @Tags         organizer
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     CookieAuth
+// @Param        photo  formData  file  true  "New profile photo"
+// @Success      200  {object} dto.Response{data=string}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /organizer/photo [put]
 func (h *OrganizerProfileHandler) UpdatePhotoProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
@@ -335,6 +427,28 @@ func (h *OrganizerProfileHandler) UpdatePhotoProfile(c *fiber.Ctx) error {
 	))
 }
 
+// UpdateProfile godoc
+// @Summary      Update organizer profile
+// @Description  Updates the authenticated organizer's profile (Organizer/Admin only). Changes to critical fields (NPWP/NIB) are submitted for admin review instead of being applied immediately
+// @Tags         organizer
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     CookieAuth
+// @Param        name         formData  string  true   "Organizer/company name"
+// @Param        phonenumber  formData  string  true   "Phone number"
+// @Param        iso          formData  string  false  "Phone country ISO code"
+// @Param        address      formData  string  false  "Address"
+// @Param        email        formData  string  false  "Public contact email"
+// @Param        instagram    formData  string  false  "Instagram handle"
+// @Param        description  formData  string  false  "Company description"
+// @Param        npwp_number  formData  string  false  "New NPWP number (triggers review)"
+// @Param        npwp_file    formData  file    false  "New NPWP document (triggers review)"
+// @Param        nib_number   formData  string  false  "New NIB number (triggers review)"
+// @Param        nib_file     formData  file    false  "New NIB document (triggers review)"
+// @Success      200  {object} dto.Response{data=string}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /organizer/ [put]
 func (h *OrganizerProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
@@ -397,6 +511,17 @@ func (h *OrganizerProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 	))
 }
 
+// ApprovedProfile godoc
+// @Summary      Approve organizer profile
+// @Description  Marks an organizer profile as verified/approved (Admin only)
+// @Tags         organizer
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id  path     string  true  "Organizer profile ID"
+// @Success      200  {object} dto.Response{data=string}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /organizer/approve/{id} [put]
 func (h *OrganizerProfileHandler) ApprovedProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	profileID := c.Params("id")
@@ -423,6 +548,19 @@ func (h *OrganizerProfileHandler) ApprovedProfile(c *fiber.Ctx) error {
 	))
 }
 
+// RejectProfile godoc
+// @Summary      Reject organizer profile
+// @Description  Rejects an organizer profile registration with a reason (Admin only)
+// @Tags         organizer
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id    path     string            true  "Organizer profile ID"
+// @Param        body  body     dto.RejectedReq   true  "Rejection reason"
+// @Success      200  {object} dto.Response{data=string}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /organizer/reject/{id} [put]
 func (h *OrganizerProfileHandler) RejectProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	profileID := c.Params("id")
@@ -471,6 +609,16 @@ func (h *OrganizerProfileHandler) RejectProfile(c *fiber.Ctx) error {
 	))
 }
 
+// CloseAccount godoc
+// @Summary      Close organizer account
+// @Description  Closes the authenticated organizer's account, logs out the session and clears auth cookies (Organizer only)
+// @Tags         organizer
+// @Produce      json
+// @Security     CookieAuth
+// @Success      200  {object} dto.Response{data=string}
+// @Failure      400  {object} dto.Response
+// @Failure      401  {object} dto.Response
+// @Router       /organizer/close-account [delete]
 func (h *OrganizerProfileHandler) CloseAccount(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 

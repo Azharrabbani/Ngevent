@@ -26,6 +26,18 @@ func NewCategoriesHandler(
 	}
 }
 
+// CreateCategory godoc
+// @Summary      Create a category
+// @Description  Creates a new event category (Admin only)
+// @Tags         categories
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        body  body     dto.CreateCatReq  true  "Category name"
+// @Success      201   {object} dto.Response{data=string}
+// @Failure      400   {object} dto.Response
+// @Failure      401   {object} dto.Response
+// @Router       /category/ [post]
 func (h *CategoriesHandler) CreateCategory(c *fiber.Ctx) error {
 	var req *dto.CreateCatReq
 	if err := c.BodyParser(&req); err != nil {
@@ -64,6 +76,14 @@ func (h *CategoriesHandler) CreateCategory(c *fiber.Ctx) error {
 	))
 }
 
+// ListCategories godoc
+// @Summary      List all categories
+// @Description  Returns all event categories (public)
+// @Tags         categories
+// @Produce      json
+// @Success      200  {object} dto.Response{data=[]dto.ListCatResp}
+// @Failure      400  {object} dto.Response
+// @Router       /category/ [get]
 func (h *CategoriesHandler) ListCategories(c *fiber.Ctx) error {
 	categories, err := h.CategoriesService.FindAll()
 	if err != nil {
@@ -83,6 +103,20 @@ func (h *CategoriesHandler) ListCategories(c *fiber.Ctx) error {
 	))
 }
 
+// ListWithPagination godoc
+// @Summary      List categories with pagination
+// @Description  Returns a paginated list of categories (Admin only)
+// @Tags         categories
+// @Produce      json
+// @Security     CookieAuth
+// @Param        name   query    string  false  "Filter by category name"
+// @Param        page   query    int     false  "Page number"
+// @Param        limit  query    int     false  "Items per page"
+// @Param        sort   query    string  false  "Sort order"
+// @Success      200    {object} dto.Response{data=model.PaginationRow}
+// @Failure      400    {object} dto.Response
+// @Failure      401    {object} dto.Response
+// @Router       /category/list [get]
 func (h *CategoriesHandler) ListWithPagination(c *fiber.Ctx) error {
 	filter := new(dto.FilterCatReq)
 
@@ -135,6 +169,17 @@ func (h *CategoriesHandler) ListWithPagination(c *fiber.Ctx) error {
 	))
 }
 
+// ListByCatName godoc
+// @Summary      Filter categories by name
+// @Description  Returns categories matching the given name (public)
+// @Tags         categories
+// @Produce      json
+// @Param        name   query    string  false  "Category name to search"
+// @Param        page   query    int     false  "Page number"
+// @Param        limit  query    int     false  "Items per page"
+// @Success      200    {object} dto.Response{data=[]dto.ListCatResp}
+// @Failure      400    {object} dto.Response
+// @Router       /category/filter [get]
 func (h *CategoriesHandler) ListByCatName(c *fiber.Ctx) error {
 	catName := new(dto.FindCatReq)
 
@@ -182,6 +227,19 @@ func (h *CategoriesHandler) ListByCatName(c *fiber.Ctx) error {
 	))
 }
 
+// UpdateCategory godoc
+// @Summary      Update a category
+// @Description  Updates an existing event category by ID (Admin only)
+// @Tags         categories
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id    path     string            true  "Category ID"
+// @Param        body  body     dto.UpdateCatReq  true  "Updated category name"
+// @Success      200   {object} dto.Response{data=string}
+// @Failure      400   {object} dto.Response
+// @Failure      401   {object} dto.Response
+// @Router       /category/{id} [put]
 func (h *CategoriesHandler) UpdateCategory(c *fiber.Ctx) error {
 	catID := c.Params("id")
 
@@ -233,6 +291,17 @@ func (h *CategoriesHandler) UpdateCategory(c *fiber.Ctx) error {
 	))
 }
 
+// DeleteCategory godoc
+// @Summary      Delete a category
+// @Description  Deletes an event category by ID (Admin only)
+// @Tags         categories
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id  path     string  true  "Category ID"
+// @Success      200 {object} dto.Response{data=string}
+// @Failure      400 {object} dto.Response
+// @Failure      401 {object} dto.Response
+// @Router       /category/{id} [delete]
 func (h *CategoriesHandler) DeleteCategory(c *fiber.Ctx) error {
 	catID := c.Params("id")
 

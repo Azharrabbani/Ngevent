@@ -24,6 +24,15 @@ func NewAuthHandler(authService *service.AuthService, validate *validator.Valida
 	}
 }
 
+// ListPhoneCodes godoc
+// @Summary      List international phone codes
+// @Description  Returns a paginated list of international phone dial codes
+// @Tags         auth
+// @Produce      json
+// @Param        page   query    int  false  "Page number (default 1)"
+// @Param        limit  query    int  false  "Items per page (default 20)"
+// @Success      200    {object} dto.Response{data=[]dto.PhoneCodeResp}
+// @Router       /phone-codes [get]
 func (h *AuthHandler) ListPhoneCodes(c *fiber.Ctx) error {
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
@@ -38,6 +47,16 @@ func (h *AuthHandler) ListPhoneCodes(c *fiber.Ctx) error {
 	))
 }
 
+// VerififyEmail godoc
+// @Summary      Verify email address
+// @Description  Verifies a user's email using the OTP sent during registration
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body     dto.VerifyEmailInput  true  "Email and OTP"
+// @Success      200   {object} dto.Response{data=string}
+// @Failure      400   {object} dto.Response
+// @Router       /verify-email [put]
 func (h *AuthHandler) VerififyEmail(c *fiber.Ctx) error {
 	var req dto.VerifyEmailInput
 	if err := c.BodyParser(&req); err != nil {
@@ -79,6 +98,16 @@ func (h *AuthHandler) VerififyEmail(c *fiber.Ctx) error {
 
 }
 
+// Login godoc
+// @Summary      Login user
+// @Description  Authenticates a user and returns JWT tokens via cookies and response body
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body     dto.LoginInput  true  "Login credentials"
+// @Success      200   {object} dto.Response{data=dto.LoginResponse}
+// @Failure      400   {object} dto.Response
+// @Router       /login [post]
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	// Validate the req
 	var req dto.LoginInput
@@ -158,6 +187,14 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	))
 }
 
+// Refresh godoc
+// @Summary      Refresh access token
+// @Description  Issues a new access token using the refresh_token cookie
+// @Tags         auth
+// @Produce      json
+// @Success      200  {object} dto.Response{data=dto.RefreshTokenResp}
+// @Failure      401  {object} dto.Response
+// @Router       /refresh [post]
 func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
 	if refreshToken == "" {
@@ -201,6 +238,16 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 	))
 }
 
+// ForgotPassword godoc
+// @Summary      Request password reset
+// @Description  Sends a password reset link to the provided email address
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body     dto.ForgetPasswordInput  true  "Email address"
+// @Success      202   {object} dto.Response{data=string}
+// @Failure      400   {object} dto.Response
+// @Router       /forgot-password [post]
 func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 	var req dto.ForgetPasswordInput
 
@@ -242,6 +289,17 @@ func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 	))
 }
 
+// ResetPassword godoc
+// @Summary      Reset password
+// @Description  Resets a user's password using the OTP token from the reset link
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        id    path     string                 true  "OTP token ID"
+// @Param        body  body     dto.ResetPasswordInput true  "New password"
+// @Success      200   {object} dto.Response{data=string}
+// @Failure      400   {object} dto.Response
+// @Router       /reset-password/{id} [put]
 func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 	otpID := c.Params("id")
 
@@ -284,6 +342,15 @@ func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 	))
 }
 
+// Logout godoc
+// @Summary      Logout user
+// @Description  Invalidates the user's session and clears auth cookies
+// @Tags         auth
+// @Produce      json
+// @Security     CookieAuth
+// @Success      200  {object} dto.Response
+// @Failure      400  {object} dto.Response
+// @Router       /logout/ [post]
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
 	if refreshToken == "" {

@@ -19,6 +19,15 @@ func NewLocationHandler(
 	}
 }
 
+// SearchLocation godoc
+// @Summary      Search for a location
+// @Description  Searches locations using Nominatim/OpenStreetMap (used during event creation)
+// @Tags         location
+// @Produce      json
+// @Param        query  query    string  true  "Search query string"
+// @Success      200    {object} dto.Response{data=[]dto.SearchResponse}
+// @Failure      400    {object} dto.Response
+// @Router       /location/ [get]
 func (h *LocationHandler) SearchLocation(c *fiber.Ctx) error {
 	req := new(dto.SearchReq)
 	if err := c.QueryParser(req); err != nil {
