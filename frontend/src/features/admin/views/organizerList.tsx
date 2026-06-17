@@ -42,11 +42,17 @@ export default function OrganizerList() {
         }
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+    }, [search, status]);
 
     const handleFilter = (e: React.FormEvent) => {
         e.preventDefault();
-        setSearch(filterOrganizer);
+
+        setSearch(
+            filterOrganizer?.trim()
+                ? filterOrganizer.trim()
+                : undefined
+        );
+
         setCurrentPage(1);
     };
 
@@ -104,7 +110,7 @@ export default function OrganizerList() {
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        setStatus(null);
+                                        setStatus("approved");
                                         setOpenStatus(false);
                                     }}
                                     className="w-full text-left px-4 py-2 text-red-500 hover:bg-gray-100"

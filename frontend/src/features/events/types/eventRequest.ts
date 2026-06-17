@@ -10,6 +10,8 @@ export interface FilterEventsRequest {
     start_time?: number;
     month?: number;
     year?: number;
+    lat?: number;
+    lon?: number;
     location?: string;
     with_deleted?: boolean;
     pagination?: PaginationParams;

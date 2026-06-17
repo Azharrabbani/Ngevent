@@ -132,6 +132,11 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 		EndTime:       endTime.UTC(),
 	}
 
+	if req.Status == string(model.Pending) {
+		now := time.Now().UTC()
+		event.SubmittedAt = &now
+	}
+
 	event, err = s.EventRepo.Create(event, categories)
 	if err != nil {
 		log.Printf("error creating event")
@@ -191,7 +196,7 @@ func (s *EventService) ReviewEvent(req *dto.ReviewEventReq) error {
 	event.ReviewedBy = req.ReviewedBy
 	event.ReviewedAt = &now
 
-	if req.Status == "reject" {
+	if req.Status == "rejected" {
 		event.RejectedReason = req.Reason
 	} else {
 		event.RejectedReason = nil
@@ -514,7 +519,6 @@ func (s *EventService) GetEventRoute(id string, userLat, userLon float64) (*dto.
 	distance, path := utils.ComputePathToEvent(userLat, userLon, event.Name, event.Lat, event.Lon)
 
 	// Compute analytic in background
-	// It will display the comparison between Dijkstra and Haversine on calculate the distance
 	go func() {
 		user := model.Location{Name: "user", Lat: userLat, Lon: userLon}
 		eventLoc := model.Location{Name: event.Name, Lat: event.Lat, Lon: event.Lon}
@@ -647,8 +651,8 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	}
 
 	// if the event owner decide to publish draft event
-	// Check the banner is uploaded or not
-	if event.Status == string(model.Pending) && banner == nil {
+	// Check the banner is uploaded or not and is the current event already have a banner
+	if event.Status == string(model.Pending) && banner == nil && event.Banner == nil {
 		return "", errors.New("banner is required")
 	}
 
@@ -679,6 +683,11 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	event.Coordinates = *location.Coordinates
 	event.StartTime = startTime
 	event.EndTime = endTime
+
+	if req.Status == string(model.Pending) {
+		submittedAt := time.Now().UTC()
+		event.SubmittedAt = &submittedAt
+	}
 
 	if err := s.EventRepo.Update(event, categories); err != nil {
 		return "", err

@@ -1,12 +1,12 @@
 import { IoFilter, IoClose } from "react-icons/io5";
-import Input from "../../../../components/input";
-import { SearchIcon } from "../../../../components/icon";
-import type { DateFilterType } from "../../../../utils/dateFilter";
+import Input from "../../../../../components/input";
+import { SearchIcon } from "../../../../../components/icon";
+import type { DateFilterType } from "../../../../../utils/dateFilter";
 import type { Dispatch, SetStateAction } from "react";
-import EventCreateDateFilterDropdown from "./dateFilterDropdown";
-import DateFilterDropdown from "../../../../components/dateFilter/dateFilterDropdown";
+import EventCreateDateFilterDropdown from "../dateFilterDropdown";
+import DateFilterDropdown from "../../../../../components/dateFilter/dateFilterDropdown";
 import { createPortal } from "react-dom";
-import { useBottomSheetOrDropdown } from "../../../../utils/useBottomSheetorDropdown";
+import { useBottomSheetOrDropdown } from "../../../../../utils/useBottomSheetorDropdown";
 
 interface Props {
     reviewEvent: boolean;
@@ -107,13 +107,15 @@ export default function EventsHeader({
                     </button>
                 )}
 
-                <button
-                    onClick={() => setSort?.(sort === "desc" ? "asc" : "desc")}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-500 hover:bg-gray-50"
-                >
-                    <IoFilter size={16} />
-                    {sort === "desc" ? "Newest first" : "Oldest first"}
-                </button>
+                {sort && (
+                    <button
+                        onClick={() => setSort?.(sort === "desc" ? "asc" : "desc")}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-500 hover:bg-gray-50"
+                    >
+                        <IoFilter size={16} />
+                        {sort === "desc" ? "Oldest first" : "Newest first"}
+                    </button>
+                )}
 
                 <EventCreateDateFilterDropdown
                     dateFilter={dateFilter}

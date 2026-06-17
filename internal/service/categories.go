@@ -10,6 +10,7 @@ import (
 	"ngevent/internal/repository"
 	"ngevent/internal/utils"
 	"ngevent/internal/utils/helper"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -36,12 +37,23 @@ var categoryCache []string = []string{
 }
 
 func (s *CategoryService) Create(req *dto.CreateCatReq) error {
+	// Validate the input
+	if !helper.IsValidCategory(req.Name) {
+		return errors.New("invalid category name")
+	}
+
+	req.Name = helper.NormalizeCategory(req.Name)
+
 	category := &model.Categories{
 		Name: req.Name,
-		Slug: utils.GenerateEventSlug(req.Name),
+		Slug: utils.CreateSlug(req.Name),
 	}
 
 	if err := s.CategoryRepo.Create(category); err != nil {
+		if strings.Contains(err.Error(), "duplicated key not allowed") {
+			return errors.New("category already exists")
+		}
+
 		return err
 	}
 
@@ -119,7 +131,7 @@ func (s *CategoryService) FindByID(id string) (*model.Categories, error) {
 
 func (s *CategoryService) FindBySlug(title string, pagination model.Pagination) (*model.PaginationRow[*model.Categories], error) {
 	var categories *model.PaginationRow[*model.Categories]
-	title = utils.GenerateEventSlug(title)
+	title = utils.CreateSlug(title)
 
 	// Generate cache key
 	cacheKey := fmt.Sprintf("category:all:%s:%d:%d:%s", title, pagination.Page, pagination.Limit, pagination.Sort)
@@ -148,18 +160,28 @@ func (s *CategoryService) FindBySlug(title string, pagination model.Pagination) 
 }
 
 func (s *CategoryService) Update(updateReq *dto.UpdateCatReq) error {
+	// Validate the input
+	if !helper.IsValidCategory(updateReq.Name) {
+		return errors.New("invalid category name")
+	}
+
 	// Search the category
 	category, err := s.CategoryRepo.FindByID(updateReq.CategoryID)
 	if err != nil {
 		return errors.New("category not found")
 	}
 
+	updateReq.Name = helper.NormalizeCategory(updateReq.Name)
+
 	// Update the category
 	category.Name = updateReq.Name
-	category.Slug = utils.GenerateEventSlug(updateReq.Name)
+	category.Slug = utils.CreateSlug(updateReq.Name)
 
 	// Save the update
 	if err := s.CategoryRepo.Update(category); err != nil {
+		if strings.Contains(err.Error(), "duplicated key not allowed") {
+			return errors.New("category already exists")
+		}
 		return err
 	}
 

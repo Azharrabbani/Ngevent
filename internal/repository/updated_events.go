@@ -203,19 +203,19 @@ func filterUpdatedEventList(filter *dto.UpdatedEventFilter) func(*gorm.DB) *gorm
 		}
 
 		if filter.Sort != nil {
-			db = db.Order(fmt.Sprintf("event_updates.created_at %s", *filter.Sort))
+			db = db.Order(fmt.Sprintf("event_updates.submitted_at %s", *filter.Sort))
 		} else {
-			db = db.Order("event_updates.created_at DESC")
+			db = db.Order("event_updates.submitted_at DESC")
 		}
 
 		if filter.Date != nil {
 			switch helper.StringValue(filter.Date) {
 			case "week":
-				db = db.Where("event_updates.created_at >= ?", time.Now().AddDate(0, 0, -7))
+				db = db.Where("event_updates.submitted_at >= ?", time.Now().AddDate(0, 0, -7))
 			case "month":
-				db = db.Where("event_updates.created_at >= ?", time.Now().AddDate(0, -1, 0))
+				db = db.Where("event_updates.submitted_at >= ?", time.Now().AddDate(0, -1, 0))
 			case "year":
-				db = db.Where("event_updates.created_at >= ?", time.Now().AddDate(-1, 0, 0))
+				db = db.Where("event_updates.submitted_at >= ?", time.Now().AddDate(-1, 0, 0))
 			}
 		}
 
@@ -227,7 +227,7 @@ func filterUpdatedEventList(filter *dto.UpdatedEventFilter) func(*gorm.DB) *gorm
 			db = db.Where("event_updates.start_time < ?", filter.End)
 		}
 
-		db = db.Group("event_updates.id, event_updates.created_at, event_updates.name, event_updates.start_time")
+		db = db.Group("event_updates.id, event_updates.submitted_at, event_updates.name, event_updates.start_time")
 
 		return db
 	}
@@ -302,6 +302,7 @@ func toUpdatedEventsResp(updatedEvents []*model.UpdatedEvents) ([]*dto.EventsUpd
 			UpdatedCategories: categories,
 			CreatedAt:         helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
 			UpdatedAt:         helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
+			SubmittedAt:       helper.ConvertDatetoUnix(event.SubmittedAt.Format(time.RFC3339)),
 			DeletedAt:         helper.TimePtrToUnix(event.DeletedAt),
 		})
 	}

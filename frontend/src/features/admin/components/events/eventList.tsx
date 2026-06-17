@@ -3,11 +3,10 @@ import EventTable from "./eventTable";
 import EventCard from "./eventCard";
 import type { EventsResponse } from "../../../events/types/eventResponse";
 import type { PaginatedData } from "../../../../types/apiResponse";
-import EventsHeader from "./header";
+import EventsHeader from "./header/header";
 import { SpinnerIcon } from "../../../../components/icon";
 import type { DateFilterType } from "../../../../utils/dateFilter";
 import type { Dispatch, SetStateAction } from "react";
-
 
 interface Props {
     status: string;
@@ -34,6 +33,7 @@ interface Props {
     getUpdate?: boolean;
     setGetupdate?: (val: boolean | undefined) => void;
 }
+
 export default function EventList({
     status,
     data,
@@ -57,11 +57,12 @@ export default function EventList({
     selectedYear,
     setSelectedYear,
     getUpdate,
-    setGetupdate }: Props) {
+    setGetupdate,
+}: Props) {
     const isEmpty = !data || data.total_rows === 0;
 
     return (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100">
+        <div className="w-full bg-white rounded-3xl shadow-sm border border-gray-100">
             <EventsHeader
                 reviewEvent={reviewEvent}
                 status={status}
@@ -89,9 +90,7 @@ export default function EventList({
                 </div>
             ) : isEmpty ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <h1 className="text-xl font-semibold text-gray-700">
-                        No events found
-                    </h1>
+                    <h1 className="text-xl font-semibold text-gray-700">No events found</h1>
                 </div>
             ) : (
                 <>
@@ -113,30 +112,20 @@ export default function EventList({
                         setSort={setSort}
                     />
 
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 md:px-8 border-t border-gray-100">
-
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 md:px-8 py-4 border-t border-gray-100">
                         <p className="text-sm text-gray-500">
                             Showing {data.rows.length} of {data.total_rows} events
                         </p>
-
                         <Pagination
                             currentPage={currentPage}
                             totalPage={totalPage}
-                            onPrev={() =>
-                                setCurrentPage((prev) =>
-                                    Math.max(prev - 1, 1)
-                                )
-                            }
-                            onNext={() =>
-                                setCurrentPage((prev) =>
-                                    Math.min(prev + 1, totalPage)
-                                )
-                            }
+                            onPrev={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                            onNext={() => setCurrentPage((prev) => Math.min(prev + 1, totalPage))}
                             onCurrent={(page) => setCurrentPage(page)}
                         />
                     </div>
                 </>
             )}
         </div>
-    )
+    );
 }

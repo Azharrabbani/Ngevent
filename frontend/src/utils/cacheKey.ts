@@ -33,6 +33,8 @@ export const eventsKeys = {
     list: (params: any) => [...eventsKeys.lists(), params] as const,
     details: () => [...eventsKeys.all, "detail"] as const,
     detail: (id: string) => [...eventsKeys.details(), id] as const,
+    routes: () => [...eventsKeys.all, "route"] as const,
+    route: (id: string) => [...eventsKeys.routes(), id] as const,
     me: () => [...eventsKeys.all, "me"] as const,
 };
 

@@ -97,10 +97,13 @@ export default function EventViewPublicPage() {
                         />
 
                         <LocationCard
+                            eventId={event.id}
                             address={event.event_address.address}
                             detailAddress={event.event_address.detail_address}
                             coordinates={event.event_address.coordinates}
                             path={showDistancePath ? event.path : undefined}
+                            distance={showDistancePath ? event.distance : undefined}
+                            userLocation={{ lat, lon }}
                             MapComponent={EventMap}
                         />
                     </div>

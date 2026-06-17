@@ -1,4 +1,4 @@
-import StatusBadge from "./statusBadge";
+import StatusBadge from "./badge/statusBadge";
 import ApprovalButtons from "./approvalButtons";
 import BackButton from "./backButton";
 import InfoField from "./infoField";

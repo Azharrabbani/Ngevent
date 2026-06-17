@@ -1,7 +1,7 @@
 import type { DateFilterType } from "../../../../../utils/dateFilter";
 import EventDateFilter from "./eventDateFilter";
 import LocationFilter from "./locationFilter";
-
+import NearestFilter from "./nearestFilter";
 
 interface Props {
     location?: string;
@@ -14,6 +14,11 @@ interface Props {
     setSelectedMonth: React.Dispatch<React.SetStateAction<number | undefined>>;
     selectedYear?: number;
     setSelectedYear: React.Dispatch<React.SetStateAction<number | undefined>>;
+    // Nearest filter
+    nearestEnabled: boolean;
+    setNearestEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+    locationLoading: boolean;
+    locationDenied: boolean;
 }
 
 export default function FilterSection({
@@ -27,6 +32,10 @@ export default function FilterSection({
     setSelectedMonth,
     selectedYear,
     setSelectedYear,
+    nearestEnabled,
+    setNearestEnabled,
+    locationLoading,
+    locationDenied,
 }: Props) {
     return (
         <div className="flex flex-wrap items-center gap-3">
@@ -45,6 +54,13 @@ export default function FilterSection({
                 selectedYear={selectedYear}
                 setSelectedYear={setSelectedYear}
             />
+
+            <NearestFilter
+                enabled={nearestEnabled}
+                onToggle={setNearestEnabled}
+                locationLoading={locationLoading}
+                denied={locationDenied}
+            />
         </div>
     );
-}
+}

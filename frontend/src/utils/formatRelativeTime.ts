@@ -16,8 +16,8 @@ export function FormatRelativeTime(unixTime: number): string {
 
     const years = now.getFullYear() - date.getFullYear();
 
-    if (seconds < 10) {
-        return "now";
+    if (seconds < 60) {
+        return "recently";
     }
 
     if (minutes < 60) {

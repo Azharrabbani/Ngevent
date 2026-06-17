@@ -143,6 +143,7 @@ CREATE TABLE "public"."events"(
 	"reviewed_at" TIMESTAMPTZ,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"submitted_at" TIMESTAMPTZ DEFAULT NULL,
 	"deleted_at" TIMESTAMPTZ DEFAULT NULL,
 	CONSTRAINT "events_pk" PRIMARY KEY("id"),
 	CONSTRAINT "fk_eo_profiles_id" FOREIGN KEY ("profile_id") REFERENCES "public"."organizer_profiles" ("id") ON DELETE CASCADE
@@ -194,6 +195,7 @@ CREATE TABLE "public"."event_updates"(
 	"reviewed_at" TIMESTAMPTZ,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"submitted_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"deleted_at" TIMESTAMPTZ NULL,
 	CONSTRAINT "event_updates_pk" PRIMARY KEY("id"),
 	CONSTRAINT "fk_event_id" FOREIGN KEY ("event_id") REFERENCES "public"."events" ("id") ON DELETE CASCADE
@@ -244,6 +246,9 @@ AND "deleted_at" IS NULL;
 CREATE UNIQUE INDEX "unique_category_event"
 ON "public"."event_categories"("event_id", "category_id")
 WHERE "deleted_at" IS NULL;
+
+CREATE UNIQUE INDEX "unique_category"
+ON "public"."categories"("slug");
 
 CREATE UNIQUE INDEX "unique_event_updates"
 ON "public"."event_updates" ("event_id")

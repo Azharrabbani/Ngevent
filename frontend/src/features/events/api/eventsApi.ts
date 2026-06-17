@@ -4,7 +4,7 @@ import type { CreateEventReq } from "../types/createEventRequst"
 import type { locationReq } from "../types/locationRequest"
 import type { locationResp } from "../types/locationResponse"
 import type { FilterEventsRequest, FilterOrganizerEventsRequest, FilterUpdatedEventsRequest, UserLatLonRequest } from "../types/eventRequest"
-import type { EventsResponse, UpdateEventResponse } from "../types/eventResponse"
+import type { EventsResponse, RouteRespone, UpdateEventResponse } from "../types/eventResponse"
 import type { EventDetailResponse } from "../types/publicEventResponse"
 
 export const SearchLocationApi = async (payload: locationReq) => {
@@ -48,6 +48,8 @@ export const getEventsActiveApi = async (params: FilterEventsRequest) => {
             year: params.year,
             page: params.pagination?.page,
             limit: params.pagination?.limit,
+            lat: params.lat,
+            lon: params.lon,
         },
     })
     return res.data
@@ -117,6 +119,16 @@ export const GetEventBySlug = async (slug: string, params: UserLatLonRequest) =>
     return res.data;
 }
 
+export const GetEventRouteApi = async (id: string, params: UserLatLonRequest) => {
+    const res = await api.get<successResponse<RouteRespone>>(`event/route/${id}`, {
+        params: {
+            lat: params.lat,
+            lon: params.lon,
+        }
+    });
+
+    return res.data;
+}
 
 export const GetUpdateByEventIDApi = async (eventID: string, status: string) => {
     const res = await api.get<successResponse<UpdateEventResponse>>(`updated-event/${eventID}`, {

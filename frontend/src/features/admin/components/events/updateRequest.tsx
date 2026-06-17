@@ -1,6 +1,6 @@
 import { useState } from "react";
 import BackButton from "./backButton";
-import StatusBadge from "./statusBadge";
+import StatusBadge from "./badge/statusBadge";
 import ApprovalButtons from "./approvalButtons";
 import DiffRow from "./diffRow";
 import { FiEdit } from "react-icons/fi";

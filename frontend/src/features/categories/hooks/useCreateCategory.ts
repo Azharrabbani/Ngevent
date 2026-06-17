@@ -9,16 +9,18 @@ export const useCreateCategory = (onSuccess?: () => void) => {
     return useMutation({
         mutationFn: (name: string) => createCategoryApi(name),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: categoriesKeys.lists() });
+            queryClient.invalidateQueries({
+                queryKey: categoriesKeys.lists(),
+                refetchType: "active"
+            });
             toast.success("Category created successfully!");
             onSuccess?.();
         },
         onError: (error: any) => {
-            const message =
-                error?.response?.data?.message ||
-                error?.response?.data?.data ||
-                "Failed to create category";
-            toast.error(message);
+            const msg = error.response?.data?.error
+            if (!Array.isArray(msg)) {
+                toast.error(msg || "Failed to create category")
+            }
         },
     });
 };

@@ -38,11 +38,11 @@ export default function ReviewPage() {
                     isSubmitting={reviewUpdatedPending}
                     onApprove={async () => {
                         await reviewUpdated({ id: updateData.id, status: "approved" });
-                        navigate(-1);
+                        navigate("/admin/events/pending");
                     }}
                     onReject={async (reason: string) => {
                         await reviewUpdated({ id: updateData.id, status: "rejected", reason });
-                        navigate(-1);
+                        navigate("/admin/events/rejected");
                     }}
                 />
             </AdminSidebar>
@@ -57,11 +57,11 @@ export default function ReviewPage() {
                 isSubmitting={reviewPending}
                 onApprove={async () => {
                     await reviewEvent({ id: id!, status: "active" });
-                    navigate(-1);
+                    navigate("/admin/events/pending");
                 }}
                 onReject={async (reason: string) => {
                     await reviewEvent({ id: id!, status: "rejected", reason });
-                    navigate(-1);
+                    navigate("/admin/events/rejected");
                 }}
             />
         </AdminSidebar>

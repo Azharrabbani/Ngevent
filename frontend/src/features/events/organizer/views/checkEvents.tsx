@@ -1,25 +1,46 @@
 import Sidebar from "../components/sidebar";
 import Header from "../components/header";
 import Pagination from "../../../../components/pagination";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useGetOrganizerEvents } from "../../hooks/useGetOrganizerEvents";
 import { defaultPagination } from "../../../../utils/pagination";
 import { useGetCurrentOrganizerProfile } from "../../../profile/hooks/organizer/useGetCurrentOrganizerProfile";
 import { useListCategories } from "../../../categories/hooks/useListCategories";
 import EventsContent from "../components/eventsContent";
-import { buildEventDateFilters, type DateFilterType } from "../../../../utils/dateFilter";
+import { buildEventDateFilters } from "../../../../utils/dateFilter";
+import { useOrganizerEventFilters } from "../../hooks/useOrganizerEventFilters";
 
 export default function CheckEvents() {
-    const [currentPage, setCurrentPage] = useState(1);
-    const [location, setLocation] = useState<string | undefined>(undefined);
-    const [event, setEvent] = useState<string | undefined>(undefined);
-    const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
-    const [status, setStatus] = useState<string | undefined>(undefined);
+    const {
+        currentPage,
+        setCurrentPage,
 
-    const [dateFilterType, setDateFilterType] = useState<DateFilterType>("all");
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
-    const [selectedYear, setSelectedYear] = useState<number | undefined>();
+        location,
+        setLocation,
+
+        event,
+        setEvent,
+
+        selectedCategories,
+        setSelectedCategories,
+
+        status,
+        setStatus,
+
+        dateFilterType,
+        setDateFilterType,
+
+        selectedDate,
+        setSelectedDate,
+
+        selectedMonth,
+        setSelectedMonth,
+
+        selectedYear,
+        setSelectedYear,
+
+        resetFilters,
+    } = useOrganizerEventFilters();
 
     const organizer = useGetCurrentOrganizerProfile();
 
@@ -45,15 +66,7 @@ export default function CheckEvents() {
 
 
     const handleSearch = () => {
-        setLocation(undefined);
-        setEvent(undefined);
-        setSelectedCategories([]);
-        setStatus(undefined);
-        setDateFilterType("all");
-        setSelectedDate(null);
-        setSelectedMonth(undefined);
-        setSelectedYear(undefined);
-        setCurrentPage(1);
+        resetFilters
     };
 
     useEffect(() => {

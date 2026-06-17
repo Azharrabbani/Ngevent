@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { FiClock } from "react-icons/fi";
 import { CalenderIcon } from "../../../../components/icon";
 import { timeRange } from "../../../../utils/timeRange";
+import { toDateString } from "../../../../utils/dateConverter";
 
 interface EventCardProps {
     id: string;
@@ -38,15 +39,9 @@ export default function EventCard({
 
     const start = new Date(Number(startTime) * 1000);
     const end = new Date(Number(endTime) * 1000);
-    const options = { timeZone: "Asia/Jakarta" };
 
-    const date = start.toLocaleDateString("id-ID", {
-        ...options,
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-    });
+    const date = toDateString(start, "short");
+
 
     const timeRangeVal = timeRange(start, end);
 

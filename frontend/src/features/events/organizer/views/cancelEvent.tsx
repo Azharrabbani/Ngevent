@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useGetCurrentOrganizerProfile } from "../../../profile/hooks/organizer/useGetCurrentOrganizerProfile";
 import { useGetOrganizerEvents } from "../../hooks/useGetOrganizerEvents";
 import { defaultPagination } from "../../../../utils/pagination";
@@ -7,17 +7,37 @@ import Sidebar from "../components/sidebar";
 import Header from "../components/header";
 import EventsContent from "../components/eventsContent";
 import Pagination from "../../../../components/pagination";
-import { buildEventDateFilters, type DateFilterType } from "../../../../utils/dateFilter";
+import { buildEventDateFilters } from "../../../../utils/dateFilter";
+import { useOrganizerEventFilters } from "../../hooks/useOrganizerEventFilters";
 
 export default function CancelEvent() {
-    const [currentPage, setCurrentPage] = useState(1);
-    const [location, setLocation] = useState<string | undefined>(undefined);
-    const [event, setEvent] = useState<string | undefined>(undefined);
-    const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
-    const [dateFilterType, setDateFilterType] = useState<DateFilterType>("all");
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
-    const [selectedYear, setSelectedYear] = useState<number | undefined>();
+    const {
+        currentPage,
+        setCurrentPage,
+
+        location,
+        setLocation,
+
+        event,
+        setEvent,
+
+        selectedCategories,
+        setSelectedCategories,
+
+        dateFilterType,
+        setDateFilterType,
+
+        selectedDate,
+        setSelectedDate,
+
+        selectedMonth,
+        setSelectedMonth,
+
+        selectedYear,
+        setSelectedYear,
+
+        resetFilters,
+    } = useOrganizerEventFilters();
 
     const organizer = useGetCurrentOrganizerProfile();
 
@@ -43,15 +63,7 @@ export default function CancelEvent() {
 
 
     const handleSearch = () => {
-        setLocation(undefined);
-        setEvent(undefined);
-        setSelectedCategories([]);
-        setDateFilterType("all");
-        setSelectedDate(null);
-        setSelectedMonth(undefined);
-        setSelectedYear(undefined);
-
-        setCurrentPage(1);
+        resetFilters
     };
 
     useEffect(() => {

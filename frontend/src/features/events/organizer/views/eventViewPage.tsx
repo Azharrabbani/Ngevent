@@ -10,6 +10,7 @@ import { useCancelEvent } from "../../hooks/useCancelEvent";
 import { useDeleteEvent } from "../../hooks/useDeleteEvent";
 import { timeRange } from "../../../../utils/timeRange";
 import Button from "../../../../components/Button";
+import { toDateString } from "../../../../utils/dateConverter";
 
 const statusColorMap: Record<string, { text: string; bg: string; dot: string }> = {
     active: { text: "text-[#0040A1]", bg: "bg-blue-50", dot: "text-[#0040A1]" },
@@ -75,15 +76,8 @@ export default function EventViewPage() {
 
     const start = new Date(Number(eventData.start_time) * 1000);
     const end = new Date(Number(eventData.end_time) * 1000);
-    const options = { timeZone: "Asia/Jakarta" };
 
-    const dateStr = start.toLocaleDateString("id-ID", {
-        ...options,
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-    });
+    const dateStr = toDateString(start, "short");
 
     const timeRangeVal = timeRange(start, end);
     const statusStyle = statusColorMap[status] ?? statusColorMap["draft"];

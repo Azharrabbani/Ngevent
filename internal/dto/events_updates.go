@@ -36,8 +36,8 @@ type UpdatedEventFilter struct {
 	Status  *string    `json:"status"`
 	Start   *time.Time `json:"start"`
 	End     *time.Time `json:"end"`
-	Month   *int        `json:"month" query:"month"`
-	Year    *int        `json:"year" query:"year"`
+	Month   *int       `json:"month" query:"month"`
+	Year    *int       `json:"year" query:"year"`
 }
 
 type UpdatedEventRespReq struct {
@@ -49,6 +49,7 @@ type UpdatedEventRespReq struct {
 	EndTime         int64
 	CreatedAt       int64
 	UpdatedAt       int64
+	SubmittedAt     int64
 	DeletedAt       *int64
 }
 
@@ -82,6 +83,7 @@ type EventsUpdatesResp struct {
 	UpdatedCategories []EventCategories `json:"updated_categories"`
 	CreatedAt         int64             `json:"created_at" gorm:"default:now()"`
 	UpdatedAt         int64             `json:"updated_at" gorm:"default:now()"`
+	SubmittedAt       int64             `json:"submitted_at"`
 	DeletedAt         *int64            `json:"deleted_at,omitempty"`
 }
 
@@ -95,6 +97,7 @@ type EventUpdatesResp struct {
 	UpdatedCategories []EventCategories `json:"updated_categories"`
 	CreatedAt         int64             `json:"created_at"`
 	UpdatedAt         int64             `json:"updated_at"`
+	SubmittedAt       int64             `json:"submitted_at"`
 	DeletedAt         *int64            `json:"deleted_at,omitempty"`
 }
 
@@ -171,6 +174,7 @@ func ToEventUpdateResp(req *UpdatedEventRespReq) (*EventUpdatesResp, error) {
 		UpdatedCategories: req.EventCategories,
 		CreatedAt:         req.CreatedAt,
 		UpdatedAt:         req.UpdatedAt,
+		SubmittedAt:       req.SubmittedAt,
 		DeletedAt:         req.DeletedAt,
 	}
 

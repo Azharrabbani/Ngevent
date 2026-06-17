@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import EventList from "../components/events/eventList";
 import AdminSidebar from "../components/sideBar";
 import { useGetEvents } from "../../events/hooks/useGetEvents";
@@ -6,18 +6,36 @@ import { useGetAllUpdatedEvents } from "../../events/hooks/useGetAllUpdatedEvent
 import { mapUpdateToEventResponse } from "../../events/utils/mapUpdateToEvent";
 import type { EventsResponse } from "../../events/types/eventResponse";
 import type { PaginatedData } from "../../../types/apiResponse";
-import { buildEventDateFilters, type DateFilterType } from "../../../utils/dateFilter";
+import { buildEventDateFilters } from "../../../utils/dateFilter";
+import { UseAdminEventFilters } from "../hooks/useAdminEventFilters";
 
 export default function PendingEventList() {
-    const [currentPage, setCurrentPage] = useState(1);
-    const [search, setSearch] = useState<string | undefined>(undefined);
-    const [sort, setSort] = useState<string | undefined>("desc");
-    const [dateFilter, setDateFilter] = useState<string | undefined>(undefined);
-    const [getUpdate, setGetUpdate] = useState<boolean | undefined>(undefined);
-    const [dateFilterType, setDateFilterType] = useState<DateFilterType>("all");
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
-    const [selectedYear, setSelectedYear] = useState<number | undefined>();
+    const {
+        currentPage,
+        setCurrentPage,
+
+        search,
+        setSearch,
+
+
+        dateFilter,
+        setDateFilter,
+
+        getUpdate,
+        setGetUpdate,
+
+        dateFilterType,
+        setDateFilterType,
+
+        selectedDate,
+        setSelectedDate,
+
+        selectedMonth,
+        setSelectedMonth,
+
+        selectedYear,
+        setSelectedYear,
+    } = UseAdminEventFilters();
 
     const dateFilters = buildEventDateFilters(dateFilterType, selectedDate, selectedMonth, selectedYear);
 
@@ -27,10 +45,9 @@ export default function PendingEventList() {
         {
             status: "pending",
             search,
-            sort,
             date: dateFilter,
             ...dateFilters,
-            pagination: { limit: 4, page: currentPage },
+            pagination: { limit: 6, page: currentPage },
         },
         !isShowingUpdates
     );
@@ -39,9 +56,8 @@ export default function PendingEventList() {
         {
             status: "pending",
             search,
-            sort,
             date: dateFilter,
-            pagination: { limit: 4, page: currentPage },
+            pagination: { limit: 6, page: currentPage },
         },
         isShowingUpdates
     );
@@ -75,8 +91,6 @@ export default function PendingEventList() {
                     totalPage={totalPage}
                     search={search}
                     setSearch={setSearch}
-                    sort={sort}
-                    setSort={setSort}
                     dateFilter={dateFilter}
                     setDateFilter={setDateFilter}
                     dateFilterType={dateFilterType}

@@ -1,4 +1,3 @@
-// src/features/events/utils/mapUpdateToEvent.ts
 import type { EventsResponse, UpdateEventResponse } from "../types/eventResponse";
 
 export function mapUpdateToEventResponse(
@@ -26,6 +25,7 @@ export function mapUpdateToEventResponse(
 
         created_at: update.created_at,
         updated_at: update.updated_at,
+        submitted_at: update.submitted_at,
         deleted_at: update.deleted_at,
     };
 }

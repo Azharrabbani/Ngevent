@@ -10,15 +10,17 @@ export const useUpdateCategory = () => {
         mutationFn: ({ id, name }: { id: string | number; name: string }) =>
             updateCategoryApi({ id, name }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: categoriesKeys.lists() });
+            queryClient.invalidateQueries({
+                queryKey: categoriesKeys.lists(),
+                refetchType: "active"
+            });
             toast.success("Category updated successfully!");
         },
         onError: (error: any) => {
-            const message =
-                error?.response?.data?.message ||
-                error?.response?.data?.data ||
-                "Failed to update category";
-            toast.error(message);
+            const msg = error.response?.data?.error
+            if (!Array.isArray(msg)) {
+                toast.error(msg || "Failed to update category")
+            }
         },
     });
 };

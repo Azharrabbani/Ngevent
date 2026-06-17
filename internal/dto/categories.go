@@ -1,13 +1,15 @@
 package dto
 
-import "time"
+import (
+	"time"
+)
 
 type CreateCatReq struct {
-	Name string `json:"name" validate:"required"`
+	Name string `json:"name" validate:"required,min=2,max=50"`
 }
 
 type UpdateCatReq struct {
-	Name       string `json:"name" validate:"required"`
+	Name       string `json:"name" validate:"required,min=2,max=50"`
 	CategoryID string
 }
 

@@ -248,15 +248,25 @@ func (r *EventsRepository) FindAll(filter *dto.EventFilter, pagination model.Pag
 func (r *EventsRepository) FindActiveEvents(filter *dto.EventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsResp], error) {
 	var events []*model.Events
 
-	query := r.db.Select(
-		`events.*,
-		ST_Y(events.coordinates::geometry) AS lat,
-		ST_X(events.coordinates::geometry) AS lon`,
-	).Scopes(filterEventList(filter))
+	selectClause := `events.*, ST_Y(events.coordinates::geometry) AS lat, ST_X(events.coordinates::geometry) AS lon`
+
+	query := r.db.Scopes(filterEventList(filter))
+
+	if filter.Lat != nil && filter.Lon != nil {
+		// Add distance column and sort by it
+		selectClause += fmt.Sprintf(`,
+			ST_Distance(
+				coordinates,
+				ST_SetSRID(ST_MakePoint(%f, %f), 4326)::geography
+			) AS distance`, *filter.Lon, *filter.Lat)
+
+		query = query.Select(selectClause).Order("distance ASC")
+	} else {
+		query = query.Select(selectClause)
+	}
 
 	if err := query.
 		Scopes(Paginate(events, &pagination, query)).
-		Order("created_at DESC").
 		Preload("Profile.User").
 		Preload("Categories.Category").
 		Find(&events).Error; err != nil {
@@ -272,7 +282,6 @@ func (r *EventsRepository) FindActiveEvents(filter *dto.EventFilter, pagination 
 		Pagination: pagination,
 		Rows:       eventsResp,
 	}, nil
-
 }
 
 // FindByCity implements EventsRepo.
@@ -443,6 +452,7 @@ func (r *EventsRepository) Update(event *model.Events, categories []*model.Categ
 		"coordinates":    event.Coordinates,
 		"start_time":     event.StartTime,
 		"end_time":       event.EndTime,
+		"submitted_at":   event.SubmittedAt,
 		"status":         event.Status,
 	}
 
@@ -563,26 +573,26 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 		}
 
 		if filter.Sort != nil {
-			db = db.Order(fmt.Sprintf("events.created_at %s", *filter.Sort))
-		} else {
-			db = db.Order("events.created_at DESC")
+			db = db.Order(fmt.Sprintf("events.submitted_at %s", *filter.Sort))
+		} else if filter.Lat == nil || filter.Lon == nil {
+			db = db.Order("events.submitted_at DESC")
 		}
 
 		if filter.Date != nil {
 			switch helper.StringValue(filter.Date) {
 			case "week":
 				db = db.Where(
-					"events.created_at >= ?",
+					"events.submitted_at >= ?",
 					time.Now().AddDate(0, 0, -7),
 				)
 			case "month":
 				db = db.Where(
-					"events.created_at >= ?",
+					"events.submitted_at >= ?",
 					time.Now().AddDate(0, -1, 0),
 				)
 			case "year":
 				db = db.Where(
-					"events.created_at >= ?",
+					"events.submitted_at >= ?",
 					time.Now().AddDate(-1, 0, 0),
 				)
 			}
@@ -618,7 +628,7 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 			db = db.Where("events.start_time < ?", filter.End)
 		}
 
-		db = db.Group("events.id, events.created_at, events.name, events.start_time")
+		db = db.Group("events.id, events.submitted_at, events.name, events.start_time")
 
 		return db
 	}
@@ -713,11 +723,12 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 					Lon: event.Lon,
 				},
 			},
-			StartTime: helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339)),
-			EndTime:   helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339)),
-			CreatedAt: helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
-			UpdatedAt: helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
-			DeletedAt: helper.TimePtrToUnix(event.DeletedAt),
+			StartTime:   helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339)),
+			EndTime:     helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339)),
+			CreatedAt:   helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
+			UpdatedAt:   helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
+			SubmittedAt: helper.TimePtrToUnix(event.SubmittedAt),
+			DeletedAt:   helper.TimePtrToUnix(event.DeletedAt),
 		})
 	}
 

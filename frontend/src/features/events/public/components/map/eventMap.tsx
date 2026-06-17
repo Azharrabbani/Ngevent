@@ -1,136 +1,126 @@
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import "leaflet/dist/leaflet.css";
 import type { MapComponentProps } from "../cards/locationCard";
-import type { PathPoint } from "../../../types/publicEventResponse";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-    iconUrl: markerIcon,
-    iconRetinaUrl: markerIcon2x,
-    shadowUrl: markerShadow,
+    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-const eventIcon = new L.Icon({
-    iconUrl: markerIcon,
-    iconRetinaUrl: markerIcon2x,
-    shadowUrl: markerShadow,
+const EVENT_ICON = L.icon({
+    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],
     shadowSize: [41, 41],
 });
 
-const userIcon = new L.DivIcon({
+const USER_ICON = L.divIcon({
     className: "",
-    html: `
-        <div style="
-            width: 16px;
-            height: 16px;
-            background: #3b82f6;
-            border: 3px solid white;
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(59,130,246,0.5);
-        "></div>
-    `,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-    popupAnchor: [0, -10],
+    html: `<div style="
+        width: 14px; height: 14px;
+        background: #3b82f6;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px #3b82f6;
+    "></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
 });
 
-function FitBounds({ points }: { points: [number, number][] }) {
-    const map = useMap();
-    const fittedRef = useRef(false);
-
-    useEffect(() => {
-        if (fittedRef.current || points.length < 2) return;
-        const bounds = L.latLngBounds(points.map(([lat, lon]) => [lat, lon]));
-        map.fitBounds(bounds, { padding: [40, 40] });
-        fittedRef.current = true;
-    }, [map, points]);
-
-    return null;
-}
-
-function ChangeCenter({ center }: { center: [number, number] }) {
-    const map = useMap();
-    useEffect(() => {
-        map.setView(center, map.getZoom());
-    }, [map, center]);
-    return null;
-}
-
 export default function EventMap({ center, path }: MapComponentProps) {
-    const hasPath = Array.isArray(path) && path.length >= 2;
-    const pathCoords: [number, number][] = hasPath
-        ? (path as PathPoint[]).map((p) => [p.lat, p.lon])
-        : [];
+    const containerRef = useRef<HTMLDivElement>(null);
+    const mapRef = useRef<L.Map | null>(null);
+    const polylineRef = useRef<L.Polyline | null>(null);
+    const userMarkerRef = useRef<L.Marker | null>(null);
+    const eventMarkerRef = useRef<L.Marker | null>(null);
 
-    const userPoint = hasPath ? (path as PathPoint[])[0] : null;
-    const eventPoint = hasPath ? (path as PathPoint[])[(path as PathPoint[]).length - 1] : null;
+    // Initialize map
+    useEffect(() => {
+        if (!containerRef.current || mapRef.current) return;
+
+        const map = L.map(containerRef.current, {
+            center,
+            zoom: 15,
+            zoomControl: true,
+            scrollWheelZoom: false,
+        });
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19,
+        }).addTo(map);
+
+        // Event location marker (always present)
+        eventMarkerRef.current = L.marker(center, { icon: EVENT_ICON })
+            .addTo(map);
+
+        mapRef.current = map;
+
+        return () => {
+            map.remove();
+            mapRef.current = null;
+        };
+    }, []);
+
+    // Draw/clear polyline and user marker
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        // Clear previous route layers
+        polylineRef.current?.remove();
+        userMarkerRef.current?.remove();
+        polylineRef.current = null;
+        userMarkerRef.current = null;
+
+        if (!path || path.length === 0) {
+            // show the event marker at current center when there is no path
+            map.setView(center, 15, { animate: true });
+            return;
+        }
+
+        const latLngs: L.LatLngExpression[] = path.map((p) => [p.lat, p.lon]);
+
+        // Draw the route polyline
+        polylineRef.current = L.polyline(latLngs, {
+            color: "#3b82f6",
+            weight: 4,
+            opacity: 0.85,
+            lineJoin: "round",
+            lineCap: "round",
+        }).addTo(map);
+
+        // User position marker at the first point
+        const userPoint = path[0];
+        userMarkerRef.current = L.marker([userPoint.lat, userPoint.lon], {
+            icon: USER_ICON,
+        })
+            .bindTooltip("You", { permanent: false, direction: "top" })
+            .addTo(map);
+
+        // Fit the map to show the full route with padding
+        map.fitBounds(polylineRef.current.getBounds(), {
+            padding: [40, 40],
+            animate: true,
+            duration: 0.6,
+        });
+    }, [path, center]);
+
+    // Keep event marker in sync if center ever changes
+    useEffect(() => {
+        eventMarkerRef.current?.setLatLng(center);
+    }, [center]);
 
     return (
-        <MapContainer
-            center={center}
-            zoom={14}
-            scrollWheelZoom={false}
-            className="h-full w-full"
-            style={{ minHeight: "100%" }}
-        >
-            <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-
-            {hasPath ? (
-                <>
-                    <FitBounds points={pathCoords} />
-
-                    <Polyline
-                        positions={pathCoords}
-                        pathOptions={{
-                            color: "#3b82f6",
-                            weight: 3,
-                            opacity: 0.75,
-                            dashArray: "8 6",
-                        }}
-                    />
-
-                    {userPoint && (
-                        <Marker
-                            position={[userPoint.lat, userPoint.lon]}
-                            icon={userIcon}
-                        >
-                            <Popup>
-                                <span className="text-xs font-medium">Your location</span>
-                            </Popup>
-                        </Marker>
-                    )}
-
-                    {eventPoint && (
-                        <Marker
-                            position={[eventPoint.lat, eventPoint.lon]}
-                            icon={eventIcon}
-                        >
-                            <Popup>
-                                <span className="text-xs font-medium">{eventPoint.name}</span>
-                            </Popup>
-                        </Marker>
-                    )}
-                </>
-            ) : (
-                <>
-                    <ChangeCenter center={center} />
-                    <Marker position={center} icon={eventIcon}>
-                        <Popup>
-                            <span className="text-xs font-medium">Event location</span>
-                        </Popup>
-                    </Marker>
-                </>
-            )}
-        </MapContainer>
+        <div
+            ref={containerRef}
+            style={{ width: "100%", height: "100%" }}
+        />
     );
 }

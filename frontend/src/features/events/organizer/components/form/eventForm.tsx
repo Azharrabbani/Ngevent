@@ -244,7 +244,6 @@ export default function EventForm({
         }
     };
 
-    // Update Mode Handler
     const handleUpdate = async (targetStatus: string, data: formValues) => {
         if (!id) return;
         if (!validateForm(targetStatus)) return;
@@ -252,7 +251,11 @@ export default function EventForm({
 
         try {
             await updateEventMutation.mutateAsync({ id, payload, banner });
-            navigate(-1);
+            if (targetStatus === "draft") {
+                navigate("/organizer/draft-event");
+            } else {
+                navigate(`/organizer/dashboard`);
+            }
         } catch (err) {
             console.error(err);
         }
@@ -261,7 +264,7 @@ export default function EventForm({
     const handleCancel = async () => {
         if (!id) return
         await cancelEventMutation.mutateAsync(id)
-        navigate(-1)
+        navigate("/organizer/cancel-event")
     }
 
     const handleDelete = async () => {

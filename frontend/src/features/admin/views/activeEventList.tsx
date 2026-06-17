@@ -1,33 +1,57 @@
 import AdminSidebar from "../components/sideBar";
 import EventList from "../components/events/eventList";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useGetEvents } from "../../events/hooks/useGetEvents";
-import { buildEventDateFilters, type DateFilterType } from "../../../utils/dateFilter";
+import { buildEventDateFilters } from "../../../utils/dateFilter";
+import { UseAdminEventFilters } from "../hooks/useAdminEventFilters";
 
 export default function ActiveEventList() {
-    const [currentPage, setCurrentPage] = useState(1);
-    const [search, setSearch] = useState<string | undefined>(undefined);
-    const [sort, setSort] = useState<string | undefined>("desc");
-    const [filter, setFilter] = useState<string | undefined>(undefined);
-    const [dateFilterType, setDateFilterType] = useState<DateFilterType>("all");
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
-    const [selectedYear, setSelectedYear] = useState<number | undefined>();
+    const {
+        currentPage,
+        setCurrentPage,
+
+        search,
+        setSearch,
+
+        sort,
+        setSort,
+
+        dateFilter,
+        setDateFilter,
+
+        dateFilterType,
+        setDateFilterType,
+
+        selectedDate,
+        setSelectedDate,
+
+        selectedMonth,
+        setSelectedMonth,
+
+        selectedYear,
+        setSelectedYear,
+    } = UseAdminEventFilters();
 
     const dateFilters = buildEventDateFilters(dateFilterType, selectedDate, selectedMonth, selectedYear);
 
 
-    const { data, isLoading } = useGetEvents({
-        status: "active",
-        search: search,
-        sort: sort,
-        date: filter,
-        ...dateFilters,
-        pagination: {
-            limit: 4,
-            page: currentPage,
-        }
-    })
+    const { data, isLoading } =
+        useGetEvents({
+            status: "active",
+
+            search,
+
+            sort,
+
+            date: dateFilter,
+
+            ...dateFilters,
+
+            pagination: {
+                limit: 6,
+                page: currentPage,
+            },
+        });
 
     const totalPage = data?.total_pages ?? 1;
 
@@ -53,8 +77,8 @@ export default function ActiveEventList() {
                     setSearch={setSearch}
                     sort={sort}
                     setSort={setSort}
-                    dateFilter={filter}
-                    setDateFilter={setFilter}
+                    dateFilter={dateFilter}
+                    setDateFilter={setDateFilter}
                     dateFilterType={dateFilterType}
                     setDateFilterType={setDateFilterType}
                     selectedDate={selectedDate}

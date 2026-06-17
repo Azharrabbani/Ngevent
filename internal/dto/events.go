@@ -63,16 +63,18 @@ type RouteResp struct {
 }
 
 type EventFilterReq struct {
-	Title     string `json:"title" query:"title"`
-	Search    string `json:"search" query:"search"` // global search
-	Sort      string `json:"sort" query:"sort"`
-	Date      string `json:"date" query:"date"`
-	Category  []int  `json:"category" query:"category"`
-	Status    string `json:"status" query:"status"`
-	StartTime int64  `json:"start_time" query:"start_time"`
-	Location  string `json:"location" query:"location"`
-	Month     int    `json:"month" query:"month"`
-	Year      int    `json:"year" query:"year"`
+	Title     string   `json:"title" query:"title"`
+	Search    string   `json:"search" query:"search"` // global search
+	Sort      string   `json:"sort" query:"sort"`
+	Date      string   `json:"date" query:"date"`
+	Category  []int    `json:"category" query:"category"`
+	Status    string   `json:"status" query:"status"`
+	StartTime int64    `json:"start_time" query:"start_time"`
+	Location  string   `json:"location" query:"location"`
+	Month     int      `json:"month" query:"month"`
+	Year      int      `json:"year" query:"year"`
+	Lat       *float64 `json:"lat" query:"lat"`
+	Lon       *float64 `json:"lon" query:"lon"`
 }
 
 type EventFilter struct {
@@ -89,6 +91,8 @@ type EventFilter struct {
 	Location  *string    `json:"location" query:"location"`
 	Month     *int       `json:"month"`
 	Year      *int       `json:"year"`
+	Lat       *float64   `json:"lat"`
+	Lon       *float64   `json:"lon"`
 }
 
 type EventFilterPublic struct {
@@ -137,6 +141,7 @@ type EventsResp struct {
 	Path         []PathPoint  `json:"path,omitempty"`
 	CreatedAt    int64        `json:"created_at" gorm:"default:now()"`
 	UpdatedAt    int64        `json:"updated_at" gorm:"default:now()"`
+	SubmittedAt  *int64       `json:"submitted_at,omitempty"`
 	DeletedAt    *int64       `json:"deleted_at,omitempty"`
 }
 
@@ -152,6 +157,7 @@ type EventRespReq struct {
 	Distance        string
 	CreatedAt       int64
 	UpdatedAt       int64
+	SubmittedAt     *int64
 	DeletedAt       *int64
 }
 
@@ -257,13 +263,14 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 				Lon: req.Event.Lon,
 			},
 		},
-		StartTime: req.StartTime,
-		EndTime:   req.EndTime,
-		Distance:  req.Distance,
-		Path:      req.Path,
-		CreatedAt: req.CreatedAt,
-		UpdatedAt: req.UpdatedAt,
-		DeletedAt: req.DeletedAt,
+		StartTime:   req.StartTime,
+		EndTime:     req.EndTime,
+		Distance:    req.Distance,
+		Path:        req.Path,
+		CreatedAt:   req.CreatedAt,
+		UpdatedAt:   req.UpdatedAt,
+		SubmittedAt: req.SubmittedAt,
+		DeletedAt:   req.DeletedAt,
 	}
 
 	return eventResp, nil

@@ -24,7 +24,7 @@ type Events struct {
 	Categories     []*EventCategories `json:"categories" gorm:"foreignKey:EventID"`
 	Slug           string             `json:"slug"`
 	Status         string             `json:"status"`
-	RequestUpdates  bool               `json:"request_updates" gorm:"default:false"`
+	RequestUpdates bool               `json:"request_updates" gorm:"default:false"`
 	Description    string             `json:"description"`
 	Address        string             `json:"address"`
 	City           string             `json:"city"`
@@ -40,6 +40,7 @@ type Events struct {
 	ReviewedAt     *time.Time         `json:"reviewed_at"`
 	CreatedAt      time.Time          `json:"created_at" gorm:"default:now()"`
 	UpdatedAt      time.Time          `json:"updated_at" gorm:"default:now()"`
+	SubmittedAt    *time.Time         `json:"submitted_at"`
 	DeletedAt      *time.Time         `json:"deleted_at"`
 	Profile        OrganizerProfiles  `gorm:"foreignKey:ProfileID;references:ID"`
 	Reviewer       *Users             `gorm:"foreignKey:ReviewedBy;references:ID"`
@@ -91,6 +92,7 @@ type UpdatedEvents struct {
 	ReviewedAt     *time.Time               `json:"reviewed_at"`
 	CreatedAt      time.Time                `json:"created_at" gorm:"default:now()"`
 	UpdatedAt      time.Time                `json:"updated_at" gorm:"default:now()"`
+	SubmittedAt    time.Time                `json:"submitted_at" gorm:"default:now()"`
 	DeletedAt      *time.Time               `json:"deleted_at"`
 	Event          Events                   `gorm:"foreignKey:EventID"`
 	Reviewer       *Users                   `gorm:"foreignKey:ReviewedBy;references:ID"`

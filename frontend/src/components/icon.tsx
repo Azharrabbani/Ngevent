@@ -16,6 +16,9 @@ import { MdOutlineDashboard } from "react-icons/md";
 import { PiMaskSadFill } from "react-icons/pi";
 import { ImShocked2 } from "react-icons/im";
 import { FaInstagram } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
+import { FiMaximize2 } from "react-icons/fi";
+import { FaCircle } from "react-icons/fa";
 
 interface Props {
     className?: string
@@ -76,6 +79,12 @@ export function HomeIcon({ className, size }: Props) {
     )
 }
 
+export function CloseIcon({ className, size }: Props) {
+    return (
+        <IoMdClose className={className} size={size} />
+    )
+}
+
 export function SpinnerIcon({ className, size }: Props) {
     return (
         <ImSpinner2 className={className} size={size} />
@@ -127,5 +136,17 @@ export function ShockIcon({ className, size }: Props) {
 export function InstagramIcon({ className, size }: Props) {
     return (
         <FaInstagram className={className} size={size} />
+    )
+}
+
+export function MaximizeIcon({ className, size }: Props) {
+    return (
+        <FiMaximize2 className={className} size={size} />
+    )
+}
+
+export function CircleIcon({ className, size }: Props) {
+    return (
+        <FaCircle className={className} size={size} />
     )
 }

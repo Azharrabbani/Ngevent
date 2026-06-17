@@ -6,6 +6,8 @@ import CategorySlider from "../components/category/categorySlider";
 import { buildEventDateFilters, type DateFilterType } from "../../../../utils/dateFilter";
 import FilterSection from "../components/dashboard/filterSection";
 import EventGrid from "../components/event/eventGrid";
+import { useUserLocation } from "../../hooks/useUserLocation";
+import { useSearchParams } from "react-router-dom";
 
 function SkeletonCard() {
     return (
@@ -24,13 +26,61 @@ function SkeletonCard() {
 }
 
 export default function PublicDashboard() {
-    const [selectedCategory, setSelectedCategory] = useState<number[]>();
-    const [location, setLocation] = useState<string>();
-    const [dateFilterType, setDateFilterType] = useState<DateFilterType>("all");
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<number>();
-    const [selectedYear, setSelectedYear] = useState<number>();
-    const [search, setSearch] = useState<string>("");
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const [selectedCategory, setSelectedCategory] = useState<number[] | undefined>(
+        searchParams.get("category")
+            ? [Number(searchParams.get("category"))]
+            : undefined
+    );
+
+    const [location, setLocation] = useState(
+        searchParams.get("location") || undefined
+    );
+
+    const [dateFilterType, setDateFilterType] =
+        useState<DateFilterType>(
+            (searchParams.get("date") as DateFilterType) || "all"
+        );
+
+    const [selectedDate, setSelectedDate] =
+        useState<Date | null>(
+            searchParams.get("selectedDate")
+                ? new Date(
+                    searchParams.get(
+                        "selectedDate"
+                    )!
+                )
+                : null
+        );
+
+    const [selectedMonth, setSelectedMonth] =
+        useState<number | undefined>(
+            searchParams.get("month")
+                ? Number(
+                    searchParams.get("month")
+                )
+                : undefined
+        );
+
+    const [selectedYear, setSelectedYear] =
+        useState<number | undefined>(
+            searchParams.get("year")
+                ? Number(
+                    searchParams.get("year")
+                )
+                : undefined
+        );
+
+    const [search, setSearch] = useState(
+        searchParams.get("search") || ""
+    );
+
+    const [nearestEnabled, setNearestEnabled] = useState(
+        searchParams.get("nearest") === "true"
+    );
+
+    const { lat, lon, loading: locationLoading, denied } = useUserLocation();
 
     const dateFilters = buildEventDateFilters(
         dateFilterType,
@@ -50,7 +100,8 @@ export default function PublicDashboard() {
         location: location,
         search: search || undefined,
         ...dateFilters,
-        limit: 8
+        limit: 8,
+        ...(nearestEnabled && lat && lon ? { lat, lon } : {}),
     });
 
     const events = data?.pages.flatMap((page) => page.rows) || [];
@@ -77,6 +128,57 @@ export default function PublicDashboard() {
             }
         };
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    useEffect(() => {
+        const params = new URLSearchParams();
+
+        if (search)
+            params.set("search", search);
+
+        if (location)
+            params.set("location", location);
+
+        if (selectedCategory?.length)
+            params.set(
+                "category",
+                String(selectedCategory[0])
+            );
+
+        if (selectedDate)
+            params.set(
+                "selectedDate",
+                selectedDate.toISOString()
+            );
+
+        if (selectedMonth)
+            params.set(
+                "month",
+                String(selectedMonth)
+            );
+
+        if (selectedYear)
+            params.set(
+                "year",
+                String(selectedYear)
+            );
+
+        if (nearestEnabled)
+            params.set("nearest", "true");
+
+        if (dateFilterType !== "all")
+            params.set("date", dateFilterType);
+
+        setSearchParams(params, {
+            replace: true,
+        });
+    }, [
+        search,
+        location,
+        selectedCategory,
+        nearestEnabled,
+        dateFilterType,
+        setSearchParams,
+    ]);
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -115,6 +217,10 @@ export default function PublicDashboard() {
                         setSelectedMonth={setSelectedMonth}
                         selectedYear={selectedYear}
                         setSelectedYear={setSelectedYear}
+                        nearestEnabled={nearestEnabled}
+                        setNearestEnabled={setNearestEnabled}
+                        locationLoading={locationLoading}
+                        locationDenied={denied}
                     />
                 </div>
 

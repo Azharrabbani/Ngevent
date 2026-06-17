@@ -169,6 +169,7 @@ func (s *UpdatedEventService) GetUpdateEventByEventID(req *dto.GetUpdateReq) (*d
 		EndTime:         endTime,
 		CreatedAt:       helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
 		UpdatedAt:       helper.ConvertDatetoUnix(event.UpdatedAt.Format(time.RFC3339)),
+		SubmittedAt:     helper.ConvertDatetoUnix(event.SubmittedAt.Format(time.RFC3339)),
 		DeletedAt:       helper.TimePtrToUnix(event.DeletedAt),
 	}
 

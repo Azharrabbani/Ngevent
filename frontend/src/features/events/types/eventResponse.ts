@@ -7,6 +7,7 @@ export interface EventsResponse {
     end_time: number;
     created_at: number;
     updated_at: number;
+    submitted_at?: number;
     deleted_at?: number;
     update_request_id?: string;
 }
@@ -21,6 +22,7 @@ export interface UpdateEventResponse {
     updated_categories: EventCategories[];
     created_at: number;
     updated_at: number;
+    submitted_at: number;
     deleted_at?: number;
 }
 type UpdatedDetails = {
@@ -57,6 +59,18 @@ type EventDetail = {
     reviewed_by?: Reviewer;
     reviewed_at?: number;
 };
+
+export interface RouteRespone {
+    event: string;
+    distance: string;
+    path: PathResponse[];
+}
+
+type PathResponse = {
+    name: string;
+    lat: number;
+    lon: number;
+}
 
 type Reviewer = {
     id?: string;

@@ -23,8 +23,9 @@ export const converDate = (date: Date | null): number => {
 }
 
 export const toDateString = (date: Date, month: "long" | "short" | "2-digit" | "numeric"): string => {
-    const dateStr = date.toLocaleDateString("id-ID", {
+    const dateStr = date.toLocaleDateString("en-US", {
         timeZone: "Asia/Jakarta",
+        weekday: "short",
         year: "numeric",
         month: month,
         day: "numeric",

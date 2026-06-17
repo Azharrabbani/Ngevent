@@ -190,6 +190,8 @@ func (h *EventHandler) GetActiveEvents(c *fiber.Ctx) error {
 		Start:    startPtr,
 		End:      endPtr,
 		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
+		Lat:      filterReq.Lat,
+		Lon:      filterReq.Lon,
 	}
 
 	pagination := new(model.Pagination)

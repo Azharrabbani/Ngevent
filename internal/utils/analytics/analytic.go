@@ -1,50 +1,54 @@
 package analytics
 
 import (
-	"fmt"
 	"log"
 	"math"
-	"ngevent/internal/dto"
 	"ngevent/internal/model"
+	"ngevent/internal/utils"
 )
 
 func ComputeAnalytic(user model.Location, events []model.Location) {
-	// Haversine
-	havPerf := HaversinePerformance(user, events)
-	havTime, _, havNearest := HaversineAccuracy(havPerf, events)
+    // Haversine
+    havPerf := HaversinePerformance(user, events)
+    havTime, _, havNearest := HaversineAccuracy(havPerf, events)
 
-	//Dijkstra
-	dijPerf := DijkstraPerformance(user, events)
-	dijTime, dijAccuracy, dijNearest, _ := DijkstraAccuracy(dijPerf, havPerf.Results, events)
+    // Dijkstra
+    dijPerf := DijkstraPerformance(user, events)
+    dijTime, _, dijNearest, _ := DijkstraAccuracy(dijPerf, havPerf.Results, events)
 
-	// Haversine accuracy vs Dijkstra as reference
-	totalErrorHav := 0.0
-	for _, e := range events {
-		hav := havPerf.Results[e.Name]
-		dij := dijPerf.DistMap[e.Name]
-		if hav != 0 {
-			totalErrorHav += math.Abs(hav-dij) / hav * 100
-		}
-	}
-	havAccuracy := 100 - (totalErrorHav / float64(len(events)))
+    for _, e := range events {
+        havDist := havPerf.Results[e.Name]
+        dijDist := dijPerf.DistMap[e.Name]
 
-	dijkstra := dto.Dijkstra{
-		Name:     dijNearest.Name,
-		Distance: dijNearest.Distance,
-		Time:     dijTime,
-		Accuracy: fmt.Sprintf("%.2f%%", dijAccuracy),
-	}
+        osrmDist, err := utils.GetDistanceOSRM(user.Lat, user.Lon, e.Lat, e.Lon)
+        if err != nil {
+            log.Printf("[ROUTE] OSRM failed for %s: %v\n", e.Name, err)
+            continue
+        }
 
-	haversine := dto.Haversine{
-		Name:     havNearest.Name,
-		Distance: havNearest.Distance,
-		Time:     havTime,
-		Accuracy: fmt.Sprintf("%.2f%%", havAccuracy),
-	}
+        havAccuracy := 0.0
+        if osrmDist > 0 {
+            havAccuracy = (1 - math.Abs(osrmDist-havDist)/osrmDist) * 100
+        }
 
-	log.Printf("[ROUTE] Event     : %s\n", events[0].Name)
-	log.Printf("[ROUTE] Haversine : name=%s dist=%s time=%s accuracy=%s\n",
-		haversine.Name, haversine.Distance, haversine.Time, haversine.Accuracy)
-	log.Printf("[ROUTE] Dijkstra  : name=%s dist=%s time=%s accuracy=%s\n",
-		dijkstra.Name, dijkstra.Distance, dijkstra.Time, dijkstra.Accuracy)
+        dijAccuracy := 0.0
+        if osrmDist > 0 {
+            dijAccuracy = (1 - math.Abs(osrmDist-dijDist)/osrmDist) * 100
+        }
+
+        log.Printf("[ANALYTIC] ============================================\n")
+        log.Printf("[ANALYTIC] Event         : %s\n", e.Name)
+        log.Printf("[ANALYTIC] Ground Truth  : %.2f km (OSRM)\n", osrmDist)
+        log.Printf("[ANALYTIC] --------------------------------------------\n")
+        log.Printf("[ANALYTIC] Haversine     : %.2f km | time: %s | akurasi: %.2f%%\n",
+            havDist, havTime, havAccuracy)
+        log.Printf("[ANALYTIC] Dijkstra      : %.2f km | time: %s | akurasi: %.2f%%\n",
+            dijDist, dijTime, dijAccuracy)
+        log.Printf("[ANALYTIC] Detour factor : %.2fx (jalan %.1f%% lebih panjang dari garis lurus)\n",
+            osrmDist/havDist, (osrmDist/havDist-1)*100)
+        log.Printf("[ANALYTIC] ============================================\n")
+    }
+
+    _ = havNearest
+    _ = dijNearest
 }

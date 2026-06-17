@@ -5,6 +5,7 @@ import { useCreateCategory } from "../../../categories/hooks/useCreateCategory";
 import { CrossIcon } from "../../../../components/icon";
 import { CreateSlug } from "../../utils/slug";
 import Slider from "../slider";
+import { mapValidationErrors } from "../../../../utils/validation";
 
 interface Props {
     isOpen: boolean;
@@ -17,10 +18,12 @@ export default function CreateCategorySlideOver({ isOpen, onClose }: Props) {
 
     const slug = CreateSlug(name);
 
-    const { mutate: createCategory, isPending } = useCreateCategory(() => {
+    const { mutate: createCategory, isPending, error } = useCreateCategory(() => {
         setName("");
         onClose();
     });
+
+    const validationError = mapValidationErrors(error);
 
     useEffect(() => {
         if (isOpen) {
@@ -75,6 +78,9 @@ export default function CreateCategorySlideOver({ isOpen, onClose }: Props) {
                             onChange={(e) => setName(e.target.value)}
                             className="w-full bg-white px-4 py-3 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         />
+                        {validationError?.name && (
+                            <p className="text-xs text-red-500 mt-1.5">{validationError.name}</p>
+                        )}
                     </div>
 
                     <div className="flex flex-col gap-1.5">

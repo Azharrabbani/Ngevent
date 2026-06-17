@@ -4,6 +4,7 @@ import type { PaginatedData } from "../../../../types/apiResponse";
 import type { categoriesPaginatedResp } from "../../../categories/types/categoryResponse";
 import { useUpdateCategory } from "../../../categories/hooks/useUpdateCategory";
 import Input from "../../../../components/input";
+import { mapValidationErrors } from "../../../../utils/validation";
 
 interface Props {
     data: PaginatedData<categoriesPaginatedResp>;
@@ -19,7 +20,9 @@ export default function CategoriesTable({ data }: Props) {
     const inputRef = useRef<HTMLInputElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
-    const { mutate: updateCategory, isPending } = useUpdateCategory();
+    const { mutate: updateCategory, isPending, error } = useUpdateCategory();
+
+    const validationErrors = mapValidationErrors(error);
 
     useEffect(() => {
         if (editing?.id) {
@@ -135,6 +138,11 @@ export default function CategoriesTable({ data }: Props) {
                                                         disabled={isSaving}
                                                         className="flex-1 px-3 py-1.5 rounded-lg border-2 bg-white border-blue-500 text-base font-semibold text-gray-800 outline-none focus:ring-2 focus:ring-blue-200 bg-white disabled:opacity-60"
                                                     />
+                                                    {validationErrors?.message?.name && (
+                                                        <p className="text-red-500 text-xs">
+                                                            {validationErrors.message.name}
+                                                        </p>
+                                                    )}
                                                     <span className="text-xs text-gray-400 whitespace-nowrap">
                                                         Enter ↵ or Esc
                                                     </span>
