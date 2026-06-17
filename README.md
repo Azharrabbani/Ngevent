@@ -1,5 +1,18 @@
 # 🎟️ Ngevent
 
+![Go](https://img.shields.io/badge/Go-1.25-blue?style=flat&logo=go)
+![Fiber](https://img.shields.io/badge/Fiber-v2-00ACD7?style=flat)
+![GORM](https://img.shields.io/badge/GORM-v1.31-59666C?style=flat)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-blue?style=flat&logo=postgresql)
+![Redis](https://img.shields.io/badge/Redis-red?style=flat&logo=redis)
+
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat&logo=vite)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.2-06B6D4?style=flat&logo=tailwindcss)
+![TanStack Query](https://img.shields.io/badge/TanStack%20Query-v5-FF4154?style=flat)
+![Leaflet](https://img.shields.io/badge/Leaflet-Maps-199900?style=flat&logo=leaflet)
+
 > ⚠️ **This project is still ongoing / under active development.**
 
 A full-stack event management platform built with **Go (Fiber)** on the backend and **React (Vite + TypeScript)** on the frontend.
@@ -23,7 +36,7 @@ A full-stack event management platform built with **Go (Fiber)** on the backend 
 
 ### 🧩 Prerequisites
 
-Pastikan kamu sudah menginstal:
+Make sure you have installed:
 
 - **Go** ≥ 1.21
 - **Node.js** + **npm**
@@ -42,9 +55,9 @@ cd ngevent
 
 ---
 
-### 📄 2. Siapkan File Konfigurasi
+### 📄 2. Prepare the Configuration File
 
-Buat file `.env` di root project berdasarkan `.env.example`:
+Create a `.env` file in the project root directory based on `.env.example`:
 
 ```env
 PORT=8080
@@ -73,22 +86,22 @@ REDIS_PORT=6379
 
 ---
 
-### 🐘 3. Jalankan dengan Docker Compose
+### 🐘 3. Run with Docker Compose
 
 ```bash
 docker compose up --build -d
 ```
 
-Ini akan menjalankan:
-- **PostgreSQL** di port `5432`
-- **Redis** di port `6379`
-- **Backend API** di port `8080`
+This will run:
+- **PostgreSQL** on port `5432`
+- **Redis** on port `6379`
+- **Backend API** on port `8080`
 - **Worker** (background job processor)
-- **Frontend** di port `5173`
+- **Frontend** on port `5173`
 
 ---
 
-### 🧰 4. Menjalankan Secara Lokal (Tanpa Docker)
+### 🧰 4. Run Locally (Without Docker)
 
 #### Build binary
 
@@ -96,13 +109,13 @@ Ini akan menjalankan:
 make build
 ```
 
-#### Jalankan backend + frontend sekaligus
+#### Run the backend and frontend at the same time
 
 ```bash
 make run
 ```
 
-> Perintah ini menjalankan Go backend di background dan frontend dev server (`npm run dev`).
+> This command runs the Go backend in the background and the frontend dev server (`npm run dev`).
 
 ---
 
@@ -112,11 +125,11 @@ make run
 make watch
 ```
 
-> Menggunakan [`air`](https://github.com/air-verse/air). Jika belum terinstal, perintah ini akan otomatis memasangnya.
+> Using [`air`](https://github.com/air-verse/air). If it isn't already installed, this command will install it automatically.
 
 ---
 
-### 🧪 6. Menjalankan Test
+### 🧪 6. Running the test
 
 ```bash
 # Unit tests
@@ -128,7 +141,7 @@ make itest
 
 ---
 
-### 🧼 7. Membersihkan Build
+### 🧼 7. Clean the Build
 
 ```bash
 make clean
@@ -136,13 +149,13 @@ make clean
 
 ---
 
-### 🐳 8. Mengelola Docker Container
+### 🐳 8. Manage Docker Container
 
 ```bash
-# Jalankan container
+# run the container
 make docker-run
 
-# Hentikan container
+# stop the container
 make docker-down
 ```
 
@@ -306,9 +319,12 @@ Base URL: `http://localhost:8080/api/v1`
 ngevent/
 ├── cmd/
 │   └── app/              # Application entrypoint (main.go)
+│   └── worker/           # worker entrypoint (main.go)
 ├── internal/
 │   ├── config/           # App configuration (env loading)
-│   ├── database/         # DB connection & migrations
+        ├── database.go   # DB connection
+        ├── redis.go      # redis connection
+        ├── asynq.go      # Background job queue (Asynq) configuration
 │   ├── dto/              # Data Transfer Objects
 │   ├── handler/          # HTTP request handlers
 │   ├── migrations/       # Database migration files
