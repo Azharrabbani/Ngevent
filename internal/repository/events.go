@@ -450,6 +450,8 @@ func (r *EventsRepository) Update(event *model.Events, categories []*model.Categ
 		"country":        event.Country,
 		"detail_address": event.DetailAddress,
 		"coordinates":    event.Coordinates,
+		"start_date":     event.StartDate,
+		"end_date":       event.EndDate,
 		"start_time":     event.StartTime,
 		"end_time":       event.EndTime,
 		"submitted_at":   event.SubmittedAt,
@@ -620,12 +622,18 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 				Group("events.id")
 		}
 
-		if filter.Start != nil {
-			db = db.Where("events.start_time >= ?", filter.Start)
-		}
+		if filter.RangeStart != nil &&
+			filter.RangeEnd != nil {
 
-		if filter.End != nil {
-			db = db.Where("events.start_time < ?", filter.End)
+			db = db.Where(
+				`
+        			events.start_date < ?
+        			AND
+        			events.end_date >= ?
+        		`,
+				filter.RangeEnd,
+				filter.RangeStart,
+			)
 		}
 
 		db = db.Group("events.id, events.submitted_at, events.name, events.start_time")
@@ -723,6 +731,8 @@ func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
 					Lon: event.Lon,
 				},
 			},
+			StartDate:   helper.ConvertDatetoUnix(event.StartDate.Format(time.RFC3339)),
+			EndDate:     helper.ConvertDatetoUnix(event.EndDate.Format(time.RFC3339)),
 			StartTime:   helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339)),
 			EndTime:     helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339)),
 			CreatedAt:   helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),

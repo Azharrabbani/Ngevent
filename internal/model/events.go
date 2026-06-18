@@ -33,6 +33,8 @@ type Events struct {
 	Coordinates    string             `json:"coordinates" gorm:"type:geography(Point,4326)"`
 	Lat            float64            `json:"lat" gorm:"->;column:lat"`
 	Lon            float64            `json:"lon" gorm:"->;column:lon"`
+	StartDate      time.Time          `json:"start_date"`
+	EndDate        time.Time          `json:"end_date"`
 	StartTime      time.Time          `json:"start_time"`
 	EndTime        time.Time          `json:"end_time"`
 	RejectedReason *string            `json:"rejected_reason"`
@@ -76,7 +78,7 @@ type UpdatedEvents struct {
 	Banner         *string                  `json:"banner"`
 	Categories     []*EventCategoriesUpdate `json:"categories" gorm:"foreignKey:EventUpdateID"`
 	Slug           string                   `json:"slug"`
-	Status         string                   `json:"string"`
+	Status         string                   `json:"status"`
 	Description    string                   `json:"description"`
 	Address        string                   `json:"address"`
 	City           string                   `json:"city"`
@@ -85,6 +87,8 @@ type UpdatedEvents struct {
 	Coordinates    string                   `json:"coordinates" gorm:"type:geography(Point,4326)"`
 	Lat            float64                  `json:"lat" gorm:"->;column:lat"`
 	Lon            float64                  `json:"lon" gorm:"->;column:lon"`
+	StartDate      time.Time                `json:"start_date"`
+	EndDate        time.Time                `json:"end_date"`
 	StartTime      time.Time                `json:"start_time"`
 	EndTime        time.Time                `json:"end_time"`
 	RejectedReason *string                  `json:"rejected_reason"`

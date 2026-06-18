@@ -3,6 +3,8 @@ export interface EventsResponse {
     eo_profile: EoProfile;
     event: EventDetail;
     event_address: EventAddress;
+    start_date: number;
+    end_date: number;
     start_time: number;
     end_time: number;
     created_at: number;
@@ -29,6 +31,8 @@ type UpdatedDetails = {
     banner: string;
     status: string;
     description: string;
+    start_date: number;
+    end_date: number;
     start_time: number;
     end_time: number;
     rejected_reason?: string;

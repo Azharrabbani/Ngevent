@@ -108,7 +108,7 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 		))
 	}
 
-	startPtr, endPtr := helper.BuildEventDateRange(filterReq.StartTime, filterReq.Month, filterReq.Year)
+	startPtr, endPtr := helper.BuildEventDateRange(filterReq.EventDate, filterReq.Month, filterReq.Year)
 
 	var title string
 	if filterReq.Title != "" {
@@ -116,16 +116,16 @@ func (h *EventHandler) GetEvents(c *fiber.Ctx) error {
 	}
 
 	filter := &dto.EventFilter{
-		Title:    helper.StrPointerIfNotEmpty(title),
-		Search:   helper.StrPointerIfNotEmpty(filterReq.Search),
-		Sort:     helper.StrPointerIfNotEmpty(filterReq.Sort),
-		Date:     helper.StrPointerIfNotEmpty(filterReq.Date),
-		Role:     helper.StrPointerIfNotEmpty(role),
-		Category: filterReq.Category,
-		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:    startPtr,
-		End:      endPtr,
-		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
+		Title:      helper.StrPointerIfNotEmpty(title),
+		Search:     helper.StrPointerIfNotEmpty(filterReq.Search),
+		Sort:       helper.StrPointerIfNotEmpty(filterReq.Sort),
+		Date:       helper.StrPointerIfNotEmpty(filterReq.Date),
+		Role:       helper.StrPointerIfNotEmpty(role),
+		Category:   filterReq.Category,
+		Status:     helper.StrPointerIfNotEmpty(filterReq.Status),
+		RangeStart: startPtr,
+		RangeEnd:   endPtr,
+		Location:   helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 
 	pagination := new(model.Pagination)
@@ -173,7 +173,7 @@ func (h *EventHandler) GetActiveEvents(c *fiber.Ctx) error {
 		))
 	}
 
-	startPtr, endPtr := helper.BuildEventDateRange(filterReq.StartTime, filterReq.Month, filterReq.Year)
+	startPtr, endPtr := helper.BuildEventDateRange(filterReq.EventDate, filterReq.Month, filterReq.Year)
 
 	var title string
 	if filterReq.Title != "" {
@@ -181,17 +181,17 @@ func (h *EventHandler) GetActiveEvents(c *fiber.Ctx) error {
 	}
 
 	filter := &dto.EventFilter{
-		Title:    helper.StrPointerIfNotEmpty(title),
-		Search:   helper.StrPointerIfNotEmpty(filterReq.Search),
-		Sort:     helper.StrPointerIfNotEmpty(filterReq.Sort),
-		Date:     helper.StrPointerIfNotEmpty(filterReq.Date),
-		Category: filterReq.Category,
-		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:    startPtr,
-		End:      endPtr,
-		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
-		Lat:      filterReq.Lat,
-		Lon:      filterReq.Lon,
+		Title:      helper.StrPointerIfNotEmpty(title),
+		Search:     helper.StrPointerIfNotEmpty(filterReq.Search),
+		Sort:       helper.StrPointerIfNotEmpty(filterReq.Sort),
+		Date:       helper.StrPointerIfNotEmpty(filterReq.Date),
+		Category:   filterReq.Category,
+		Status:     helper.StrPointerIfNotEmpty(filterReq.Status),
+		RangeStart: startPtr,
+		RangeEnd:   endPtr,
+		Location:   helper.StrPointerIfNotEmpty(filterReq.Location),
+		Lat:        filterReq.Lat,
+		Lon:        filterReq.Lon,
 	}
 
 	pagination := new(model.Pagination)
@@ -404,7 +404,7 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 		))
 	}
 
-	starPtr, endPtr := helper.BuildEventDateRange(filterReq.StartTime, filterReq.Month, filterReq.Year)
+	starPtr, endPtr := helper.BuildEventDateRange(filterReq.EventDate, filterReq.Month, filterReq.Year)
 
 	var title string
 	if filterReq.Title != "" {
@@ -412,12 +412,12 @@ func (h *EventHandler) GetEventsByProfileID(c *fiber.Ctx) error {
 	}
 
 	filter := &dto.EventFilter{
-		Title:    helper.StrPointerIfNotEmpty(title),
-		Category: filterReq.Category,
-		Status:   helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:    starPtr,
-		End:      endPtr,
-		Location: helper.StrPointerIfNotEmpty(filterReq.Location),
+		Title:      helper.StrPointerIfNotEmpty(title),
+		Category:   filterReq.Category,
+		Status:     helper.StrPointerIfNotEmpty(filterReq.Status),
+		RangeStart: starPtr,
+		RangeEnd:   endPtr,
+		Location:   helper.StrPointerIfNotEmpty(filterReq.Location),
 	}
 
 	pagination := new(model.Pagination)
@@ -555,7 +555,7 @@ func (h *EventHandler) UpdateEvent(c *fiber.Ctx) error {
 
 	data := c.FormValue("data")
 
-	var req *dto.EventReq
+	var req dto.EventReq
 	if err := json.Unmarshal([]byte(data), &req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
@@ -595,7 +595,7 @@ func (h *EventHandler) UpdateEvent(c *fiber.Ctx) error {
 		banner = nil
 	}
 
-	status, err := h.EventService.UpdateEvent(banner, req)
+	status, err := h.EventService.UpdateEvent(banner, &req)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,

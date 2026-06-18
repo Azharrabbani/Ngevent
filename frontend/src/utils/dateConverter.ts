@@ -33,3 +33,47 @@ export const toDateString = (date: Date, month: "long" | "short" | "2-digit" | "
 
     return dateStr
 }
+
+export function eventDateRange(
+    startDateUnix: number,
+    endDateUnix: number
+) {
+    const start = new Date(startDateUnix * 1000);
+    const end = new Date(endDateUnix * 1000);
+
+    const formatter = new Intl.DateTimeFormat(
+        "en-GB",
+        {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+        }
+    );
+
+    const shortFormatter = new Intl.DateTimeFormat(
+        "en-GB",
+        {
+            day: "numeric",
+            month: "short",
+        }
+    );
+
+
+    const sameDay =
+        start.getFullYear() === end.getFullYear() &&
+        start.getMonth() === end.getMonth() &&
+        start.getDate() === end.getDate();
+
+    if (sameDay) {
+        return toDateString(start, "short");
+    }
+
+    const sameYear =
+        start.getFullYear() === end.getFullYear();
+
+    if (sameYear) {
+        return `${shortFormatter.format(start)} - ${formatter.format(end)}`;
+    }
+
+    return `${formatter.format(start)} - ${formatter.format(end)}`;
+}

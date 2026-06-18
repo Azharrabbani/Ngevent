@@ -1,22 +1,15 @@
 import { EventIcon, PinIcon } from "../../../../../components/icon";
+import { eventDateRange } from "../../../../../utils/dateConverter";
 
 interface Props {
     name: string;
+    startDate: number;
+    endDate: number;
     startTime: number;
     endTime: number;
     detailAddress: string;
     city: string;
     distance?: string;
-}
-
-function formatEventDate(unix: number): string {
-    const date = new Date(unix * 1000);
-    return date.toLocaleDateString("en-US", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-    });
 }
 
 function formatEventTime(unix: number): string {
@@ -37,16 +30,21 @@ function getTimezone(): string {
 
 export default function EventInfo({
     name,
+    startDate,
+    endDate,
     startTime,
     endTime,
     detailAddress,
     city,
     distance,
 }: Props) {
-    const dateStr = formatEventDate(startTime);
     const startStr = formatEventTime(startTime);
     const endStr = formatEventTime(endTime);
     const tz = getTimezone();
+    const eventDate = eventDateRange(
+        startDate,
+        endDate
+    );
 
     return (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
@@ -60,7 +58,7 @@ export default function EventInfo({
                         <EventIcon className="w-4 h-4 text-blue-600" />
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-slate-800">{dateStr}</p>
+                        <p className="text-sm font-semibold text-slate-800">{eventDate}</p>
                         <p className="text-xs text-slate-500 mt-0.5">
                             {startStr} – {endStr}{" WIB "}
                             <span className="font-medium text-slate-600">{tz}</span>

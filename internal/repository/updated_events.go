@@ -219,12 +219,18 @@ func filterUpdatedEventList(filter *dto.UpdatedEventFilter) func(*gorm.DB) *gorm
 			}
 		}
 
-		if filter.Start != nil {
-			db = db.Where("event_updates.start_time >= ?", filter.Start)
-		}
+		if filter.RangeStart != nil &&
+			filter.RangeEnd != nil {
 
-		if filter.End != nil {
-			db = db.Where("event_updates.start_time < ?", filter.End)
+			db = db.Where(
+				`
+        			events.start_date < ?
+        			AND
+        			events.end_date >= ?
+        		`,
+				filter.RangeEnd,
+				filter.RangeStart,
+			)
 		}
 
 		db = db.Group("event_updates.id, event_updates.submitted_at, event_updates.name, event_updates.start_time")
@@ -283,6 +289,8 @@ func toUpdatedEventsResp(updatedEvents []*model.UpdatedEvents) ([]*dto.EventsUpd
 				),
 				Status:         event.Status,
 				Description:    event.Description,
+				StartDate:      helper.ConvertDatetoUnix(event.StartDate.Format(time.RFC3339)),
+				EndDate:        helper.ConvertDatetoUnix(event.EndDate.Format(time.RFC3339)),
 				StartTime:      helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339)),
 				EndTime:        helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339)),
 				RejectedReason: event.RejectedReason,

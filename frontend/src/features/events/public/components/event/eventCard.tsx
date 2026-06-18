@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { EventsResponse } from "../../../types/eventResponse";
-import { toDateString } from "../../../../../utils/dateConverter";
+import { eventDateRange } from "../../../../../utils/dateConverter";
 import { FiMapPin, FiCalendar } from "react-icons/fi";
 
 interface Props {
@@ -12,8 +12,10 @@ export default function EventCard({
 }: Props) {
     const navigate = useNavigate();
 
-    const start = new Date(Number(event.start_time) * 1000);
-    const date = toDateString(start, "long");
+    const eventDate = eventDateRange(
+        event.start_date,
+        event.end_date
+    );
 
     return (
         <div
@@ -49,7 +51,7 @@ export default function EventCard({
                 <div className="mt-3 space-y-1.5">
                     <div className="flex items-center gap-1.5 text-xs text-slate-500">
                         <FiCalendar className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                        <span>{date}</span>
+                        <span>{eventDate}</span>
                     </div>
 
                     <div className="flex items-center gap-1.5 text-xs text-slate-500">

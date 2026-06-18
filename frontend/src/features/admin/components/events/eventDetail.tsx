@@ -5,7 +5,7 @@ import InfoField from "./infoField";
 import { useState } from "react";
 import { useGetEventByID } from "../../../events/hooks/useGetEventByID";
 import { formatTimeAgo, timeRange } from "../../../../utils/timeRange";
-import { toDateString } from "../../../../utils/dateConverter";
+import { eventDateRange, toDateString } from "../../../../utils/dateConverter";
 import MapPicker from "../../../../components/map";
 import { PinIcon } from "../../../../components/icon";
 import DetailCard from "./detailCard";
@@ -49,7 +49,14 @@ export default function EventDetailView({
     const reviewedAt = new Date(Number(data?.event?.reviewed_at) * 1000)
     const end = new Date(Number(data?.end_time) * 1000)
 
-    const date = toDateString(start, "long")
+    const eventDate =
+        data?.start_date &&
+            data?.end_date
+            ? eventDateRange(
+                data.start_date,
+                data.end_date
+            )
+            : "-";
     const reviewDate = toDateString(reviewedAt, "long")
     const eventTimeRange = timeRange(start, end);
     const submittedAt = new Date(Number(data?.created_at) * 1000)
@@ -147,7 +154,7 @@ export default function EventDetailView({
 
                     <div className="px-5 sm:px-6 py-4 border-b border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <InfoField label="Date">
-                            {date}
+                            {eventDate}
                         </InfoField>
                         <InfoField label="Time">
                             {eventTimeRange}

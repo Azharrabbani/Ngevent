@@ -41,7 +41,7 @@ func (h *UpdatedEventHandler) ListAllUpdated(c *fiber.Ctx) error {
 		))
 	}
 
-	startPtr, endPtr := helper.BuildEventDateRange(filterReq.StartTime, filterReq.Month, filterReq.Year)
+	startPtr, endPtr := helper.BuildEventDateRange(filterReq.EventDate, filterReq.Month, filterReq.Year)
 
 	var title string
 	if filterReq.Title != "" {
@@ -49,13 +49,13 @@ func (h *UpdatedEventHandler) ListAllUpdated(c *fiber.Ctx) error {
 	}
 
 	filter := &dto.UpdatedEventFilter{
-		Title:  helper.StrPointerIfNotEmpty(title),
-		Search: helper.StrPointerIfNotEmpty(filterReq.Search),
-		Sort:   helper.StrPointerIfNotEmpty(filterReq.Sort),
-		Date:   helper.StrPointerIfNotEmpty(filterReq.Date),
-		Status: helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:  startPtr,
-		End:    endPtr,
+		Title:      helper.StrPointerIfNotEmpty(title),
+		Search:     helper.StrPointerIfNotEmpty(filterReq.Search),
+		Sort:       helper.StrPointerIfNotEmpty(filterReq.Sort),
+		Date:       helper.StrPointerIfNotEmpty(filterReq.Date),
+		Status:     helper.StrPointerIfNotEmpty(filterReq.Status),
+		RangeStart: startPtr,
+		RangeEnd:   endPtr,
 	}
 
 	// Fix: parse pagination separately
@@ -104,7 +104,7 @@ func (h *UpdatedEventHandler) ListAllUpdatedByEventID(c *fiber.Ctx) error {
 		))
 	}
 
-	startPtr, endPtr := helper.BuildEventDateRange(filterReq.StartTime, filterReq.Month, filterReq.Year)
+	startPtr, endPtr := helper.BuildEventDateRange(filterReq.EventDate, filterReq.Month, filterReq.Year)
 
 	var title string
 	if filterReq.Title != "" {
@@ -112,13 +112,13 @@ func (h *UpdatedEventHandler) ListAllUpdatedByEventID(c *fiber.Ctx) error {
 	}
 
 	filter := &dto.UpdatedEventFilter{
-		Title:  helper.StrPointerIfNotEmpty(title),
-		Search: helper.StrPointerIfNotEmpty(filterReq.Search),
-		Sort:   helper.StrPointerIfNotEmpty(filterReq.Sort),
-		Date:   helper.StrPointerIfNotEmpty(filterReq.Date),
-		Status: helper.StrPointerIfNotEmpty(filterReq.Status),
-		Start:  startPtr,
-		End:    endPtr,
+		Title:      helper.StrPointerIfNotEmpty(title),
+		Search:     helper.StrPointerIfNotEmpty(filterReq.Search),
+		Sort:       helper.StrPointerIfNotEmpty(filterReq.Sort),
+		Date:       helper.StrPointerIfNotEmpty(filterReq.Date),
+		Status:     helper.StrPointerIfNotEmpty(filterReq.Status),
+		RangeStart: startPtr,
+		RangeEnd:   endPtr,
 	}
 
 	pagination := new(model.Pagination)

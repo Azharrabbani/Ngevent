@@ -6,7 +6,7 @@ import type { PaginatedData } from "../../../../types/apiResponse";
 import type { EventsResponse } from "../../../events/types/eventResponse";
 import { FormatRelativeTime } from "../../../../utils/formatRelativeTime";
 import { getStatusColor } from "../../../../utils/status";
-import { toDateString } from "../../../../utils/dateConverter";
+import { eventDateRange } from "../../../../utils/dateConverter";
 import { useReviewEvent } from "../../../events/hooks/useReviewEvent";
 import ApproveConfirmModal from "./modal/approveConfirmModal";
 import RejectReasonModal from "./modal/rejectReasonModal";
@@ -69,8 +69,10 @@ export default function EventTable({ status, isReview, data }: Props) {
                                     <UrgencyGroupHeader key={`hdr-${group.level}`} group={group} />
 
                                     {group.events.map((item) => {
-                                        const start = new Date(Number(item.start_time) * 1000);
-                                        const date = toDateString(start, "short");
+                                        const eventDate = eventDateRange(
+                                            item.start_date,
+                                            item.end_date
+                                        );
                                         const submitted = item.submitted_at ? FormatRelativeTime(item.submitted_at) : "-";
 
                                         return (
@@ -86,7 +88,7 @@ export default function EventTable({ status, isReview, data }: Props) {
                                                         </div>
                                                         <div>
                                                             <h1 className="font-semibold text-base text-gray-800">{item.event.name}</h1>
-                                                            <p className="text-gray-500 text-sm">{date}</p>
+                                                            <p className="text-gray-500 text-sm">{eventDate}</p>
                                                             <div className="mt-1.5">
                                                                 <UrgencyBadge
                                                                     urgency={item.urgency}
@@ -140,8 +142,10 @@ export default function EventTable({ status, isReview, data }: Props) {
 
                             : /* Non-pending */
                             data.rows.map((item) => {
-                                const start = new Date(Number(item.start_time) * 1000);
-                                const date = toDateString(start, "short");
+                                const eventDate = eventDateRange(
+                                    item.start_date,
+                                    item.end_date
+                                );
                                 const submitted = item.submitted_at ? FormatRelativeTime(item.submitted_at) : "-";
 
                                 return (
@@ -157,7 +161,7 @@ export default function EventTable({ status, isReview, data }: Props) {
                                                 </div>
                                                 <div>
                                                     <h1 className="font-semibold text-lg text-gray-800">{item.event.name}</h1>
-                                                    <p className="text-gray-500 text-sm">{date}</p>
+                                                    <p className="text-gray-500 text-sm">{eventDate}</p>
                                                 </div>
                                             </div>
                                         </td>

@@ -1,6 +1,6 @@
 import { FiCalendar, FiMapPin } from "react-icons/fi";
 import type { EventsResponse } from "../../../types/eventResponse";
-import { toDateString } from "../../../../../utils/dateConverter";
+import { eventDateRange } from "../../../../../utils/dateConverter";
 
 interface Props {
     event: EventsResponse;
@@ -8,8 +8,7 @@ interface Props {
 }
 
 export default function EventCard({ event, onClick }: Props) {
-    const start = new Date(Number(event.start_time) * 1000);
-    const date = toDateString(start, "long");
+    const date = eventDateRange(event.start_date, event.end_date);
     return (
         <div
             onClick={onClick}

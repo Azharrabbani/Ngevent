@@ -5,11 +5,13 @@ import { useNavigate } from "react-router-dom";
 import { FiClock } from "react-icons/fi";
 import { CalenderIcon } from "../../../../components/icon";
 import { timeRange } from "../../../../utils/timeRange";
-import { toDateString } from "../../../../utils/dateConverter";
+import { eventDateRange } from "../../../../utils/dateConverter";
 
 interface EventCardProps {
     id: string;
     title: string;
+    startDate: number;
+    endDate: number;
     startTime: number;
     endTime: number;
     location: string;
@@ -29,6 +31,8 @@ const statusColorMap = {
 export default function EventCard({
     id,
     title,
+    startDate,
+    endDate,
     startTime,
     endTime,
     location,
@@ -40,8 +44,10 @@ export default function EventCard({
     const start = new Date(Number(startTime) * 1000);
     const end = new Date(Number(endTime) * 1000);
 
-    const date = toDateString(start, "short");
-
+    const eventDate = eventDateRange(
+        startDate,
+        endDate
+    );
 
     const timeRangeVal = timeRange(start, end);
 
@@ -80,7 +86,7 @@ export default function EventCard({
                         <div className="flex flex-col">
                             <div className="flex items-center gap-2">
                                 <CalenderIcon className="text-[#424654] font-semibold mt-0.5 shrink-0" />
-                                <p>{date}</p>
+                                <p>{eventDate}</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <FiClock className="text-[#424654] font-semibold mt-0.5 shrink-0" />

@@ -17,7 +17,6 @@ export default function PendingEventList() {
         search,
         setSearch,
 
-
         dateFilter,
         setDateFilter,
 
@@ -44,10 +43,17 @@ export default function PendingEventList() {
     const { data: eventsData, isLoading: eventsLoading } = useGetEvents(
         {
             status: "pending",
+
             search,
+
             date: dateFilter,
+
             ...dateFilters,
-            pagination: { limit: 6, page: currentPage },
+
+            pagination: {
+                limit: 6,
+                page: currentPage,
+            },
         },
         !isShowingUpdates
     );
@@ -57,6 +63,7 @@ export default function PendingEventList() {
             status: "pending",
             search,
             date: dateFilter,
+            ...dateFilters,
             pagination: { limit: 6, page: currentPage },
         },
         isShowingUpdates

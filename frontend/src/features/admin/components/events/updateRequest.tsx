@@ -6,7 +6,7 @@ import DiffRow from "./diffRow";
 import { FiEdit } from "react-icons/fi";
 import { CalenderIcon, ClockIcon } from "../../../../components/icon";
 import { useGetEventByID } from "../../../events/hooks/useGetEventByID";
-import { toDateString } from "../../../../utils/dateConverter";
+import { eventDateRange, toDateString } from "../../../../utils/dateConverter";
 import { formatTimeAgo, timeRange } from "../../../../utils/timeRange";
 import { useGetUpdateByEventID } from "../../../events/hooks/useGetUpdateByEventID";
 import MapPicker from "../../../../components/map";
@@ -58,7 +58,14 @@ export default function UpdateRequestView({
     const start = new Date(Number(currentData?.start_time) * 1000)
     const end = new Date(Number(currentData?.end_time) * 1000)
 
-    const currentDate = toDateString(start, "long")
+    const currentDate =
+        currentData?.start_date &&
+            currentData?.end_date
+            ? eventDateRange(
+                currentData?.start_date,
+                currentData?.end_date
+            )
+            : "-";
     const currentEventTimeRange = timeRange(start, end);
 
     const { data: updateData, isLoading: updateIsLoading } = useGetUpdateByEventID(id!, status!);
@@ -67,7 +74,14 @@ export default function UpdateRequestView({
     const reviewDate = new Date(Number(updateData?.updated_details?.reviewed_at) * 1000)
     const endDate = new Date(Number(updateData?.updated_details?.end_time) * 1000)
 
-    const updateDate = toDateString(startDate, "long")
+    const updateDate =
+        updateData?.updated_details?.start_date &&
+            updateData?.updated_details?.end_date
+            ? eventDateRange(
+                updateData?.updated_details?.start_date,
+                updateData?.updated_details?.end_date
+            )
+            : "-";
     const reviewDateString = toDateString(reviewDate, "long")
     const updateEventTimeRange = timeRange(startDate, endDate);
 
@@ -236,7 +250,7 @@ export default function UpdateRequestView({
                             <DescriptionBlock
                                 description={updateData?.updated_details?.description}
                             />
-                        }
+                        }   
                         hasChange={
                             isDifferent(currentData?.event?.description, updateData?.updated_details?.description)
                         }

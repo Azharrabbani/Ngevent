@@ -7,7 +7,7 @@ export interface FilterEventsRequest {
     title?: string;
     category?: number[];
     status?: string;
-    start_time?: number;
+    event_date?: number;
     month?: number;
     year?: number;
     lat?: number;
@@ -33,6 +33,7 @@ export interface FilterUpdatedEventsRequest {
     search?: string;
     sort?: string;
     date?: string;
+    event_date?: number;
     month?: number;
     year?: number;
     status?: string;

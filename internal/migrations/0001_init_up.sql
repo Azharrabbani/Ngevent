@@ -136,6 +136,8 @@ CREATE TABLE "public"."events"(
 	"country" VARCHAR(100) NOT NULL,
 	"detail_address" TEXT NOT NULL,
 	"coordinates" GEOGRAPHY(Point, 4326) NOT NULL,
+	"start_date" DATE NOT NULL DEFAULT CURRENT_DATE(),
+	"end_date" DATE NOT NULL DEFAULT CURRENT_DATE(),
 	"start_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"end_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"rejected_reason" TEXT,
@@ -147,6 +149,10 @@ CREATE TABLE "public"."events"(
 	"deleted_at" TIMESTAMPTZ DEFAULT NULL,
 	CONSTRAINT "events_pk" PRIMARY KEY("id"),
 	CONSTRAINT "fk_eo_profiles_id" FOREIGN KEY ("profile_id") REFERENCES "public"."organizer_profiles" ("id") ON DELETE CASCADE
+	CONSTRAINT "chk_start_sync" CHECK (start_time::date = start_date),
+    CONSTRAINT "chk_end_sync" CHECK (end_time::date = end_date),
+    CONSTRAINT "chk_date_order" CHECK (end_date >= start_date),
+    CONSTRAINT "chk_time_order" CHECK (end_time > start_time)
 );
 
 CREATE TABLE "public"."tickets"(
@@ -188,6 +194,8 @@ CREATE TABLE "public"."event_updates"(
 	"country" VARCHAR(100) NOT NULL,
 	"detail_address" TEXT NOT NULL,
 	"coordinates" GEOGRAPHY(Point, 4326) NOT NULL,
+	"start_date" DATE NOT NULL DEFAULT CURRENT_DATE(),
+	"end_date" DATE NOT NULL DEFAULT CURRENT_DATE(),
 	"start_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"end_time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"rejected_reason" TEXT,
@@ -199,6 +207,10 @@ CREATE TABLE "public"."event_updates"(
 	"deleted_at" TIMESTAMPTZ NULL,
 	CONSTRAINT "event_updates_pk" PRIMARY KEY("id"),
 	CONSTRAINT "fk_event_id" FOREIGN KEY ("event_id") REFERENCES "public"."events" ("id") ON DELETE CASCADE
+	CONSTRAINT "chk_start_sync" CHECK (start_time::date = start_date),
+    CONSTRAINT "chk_end_sync" CHECK (end_time::date = end_date),
+    CONSTRAINT "chk_date_order" CHECK (end_date >= start_date),
+    CONSTRAINT "chk_time_order" CHECK (end_time > start_time)
 );
 
 CREATE TABLE "public"."event_update_tickets"(
@@ -278,10 +290,12 @@ CREATE INDEX "idx_event_status" ON "public"."events"("status");
 CREATE INDEX "idx_event_city" ON "public"."events"("city");
 CREATE INDEX "idx_event_id" ON "public"."event_categories"("event_id");
 CREATE INDEX "idx_events_deleted_at" ON "public"."events"("deleted_at");
+CREATE INDEX "idx_events_start_date" ON "public"."events"("start_date");
 CREATE INDEX "idx_event_categories_deleted_at" ON "public"."event_categories"("deleted_at");
 CREATE INDEX "idx_category_id" ON "public"."event_categories"("category_id");
 CREATE INDEX "idx_events_coordinates" ON "public"."events" USING GIST ("coordinates");
 CREATE INDEX "event_update_event_id" ON "public"."event_updates" ("event_id");
+CREATE INDEX "event_updates_start_date" ON "public"."event_updates"("start_date");
 CREATE INDEX "event_update_status" ON "public"."event_updates" ("status");
 CREATE INDEX "event_update_tickets_event_update_id" ON "public"."event_update_tickets" ("event_update_id");
 CREATE INDEX "event_update_categories_event_update_id" ON "public"."event_update_categories" ("event_update_id");

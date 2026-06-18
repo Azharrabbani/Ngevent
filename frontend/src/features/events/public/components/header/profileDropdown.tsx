@@ -9,7 +9,7 @@ export default function ProfileDropdown() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const logoutMutation = useLogout();
-
+    
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 

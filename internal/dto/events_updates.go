@@ -21,6 +21,7 @@ type UpdatedEventFilterReq struct {
 	Search    string `json:"search" query:"search"`
 	Sort      string `json:"sort"   query:"sort"`
 	Date      string `json:"date"   query:"date"`
+	EventDate int64  `json:"event_date" query:"event_date"`
 	StartTime int64  `json:"start_time" query:"start_time"`
 	Month     int    `json:"month" query:"month"`
 	Year      int    `json:"year" query:"year"`
@@ -28,16 +29,18 @@ type UpdatedEventFilterReq struct {
 }
 
 type UpdatedEventFilter struct {
-	EventID *string    `json:"event_id"`
-	Title   *string    `json:"title"`
-	Search  *string    `json:"search"`
-	Sort    *string    `json:"sort"`
-	Date    *string    `json:"date"`
-	Status  *string    `json:"status"`
-	Start   *time.Time `json:"start"`
-	End     *time.Time `json:"end"`
-	Month   *int       `json:"month" query:"month"`
-	Year    *int       `json:"year" query:"year"`
+	EventID    *string    `json:"event_id"`
+	Title      *string    `json:"title"`
+	Search     *string    `json:"search"`
+	Sort       *string    `json:"sort"`
+	Date       *string    `json:"date"`
+	Status     *string    `json:"status"`
+	RangeStart *time.Time `json:"range_start" query:"range_start"`
+	RangeEnd   *time.Time `json:"range_end" query:"range_end"`
+	Start      *time.Time `json:"start"`
+	End        *time.Time `json:"end"`
+	Month      *int       `json:"month" query:"month"`
+	Year       *int       `json:"year" query:"year"`
 }
 
 type UpdatedEventRespReq struct {
@@ -45,6 +48,8 @@ type UpdatedEventRespReq struct {
 	EventID         string
 	EventCategories []EventCategories
 	Tickets         []Tickets
+	StartDate       int64
+	EndDate         int64
 	StartTime       int64
 	EndTime         int64
 	CreatedAt       int64
@@ -105,6 +110,8 @@ type UpdatedDetails struct {
 	Banner         *string   `json:"banner,omitempty"`
 	Status         string    `json:"status"`
 	Description    string    `json:"description"`
+	StartDate      int64     `json:"start_date"`
+	EndDate        int64     `json:"end_date"`
 	StartTime      int64     `json:"start_time"`
 	EndTime        int64     `json:"end_time"`
 	RejectedReason *string   `json:"rejected_reason,omitempty"`
@@ -153,6 +160,8 @@ func ToEventUpdateResp(req *UpdatedEventRespReq) (*EventUpdatesResp, error) {
 			Banner:         req.UpdatedEvent.Banner,
 			Status:         req.UpdatedEvent.Status,
 			Description:    req.UpdatedEvent.Description,
+			StartDate:      req.StartDate,
+			EndDate:        req.EndDate,
 			StartTime:      req.StartTime,
 			EndTime:        req.EndTime,
 			RejectedReason: req.UpdatedEvent.RejectedReason,

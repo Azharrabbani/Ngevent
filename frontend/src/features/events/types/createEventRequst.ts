@@ -4,6 +4,8 @@ export interface CreateEventReq {
     user_id: string;
     description: string;
     categories: number[];
+    start_date: number;
+    end_date: number;
     start_time: number;
     end_time: number;
     address: eventAddress;

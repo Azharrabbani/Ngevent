@@ -48,6 +48,8 @@ export interface EventDetailResponse {
     eo_profile: EoProfile;
     event: EventInfo;
     event_address: EventAddress;
+    start_date: number;
+    end_date: number;
     start_time: number;
     end_time: number;
     distance?: string;

@@ -111,6 +111,8 @@ export default function EventViewPublicPage() {
                     <div className="space-y-4 lg:sticky lg:top-6">
                         <EventInfo
                             name={event.event.name}
+                            startDate={event.start_date}
+                            endDate={event.end_date}
                             startTime={event.start_time}
                             endTime={event.end_time}
                             detailAddress={event.event_address.detail_address}

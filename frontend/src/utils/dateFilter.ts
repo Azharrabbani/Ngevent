@@ -21,7 +21,7 @@ export function buildEventDateFilters(
     switch (dateFilterType) {
         case "today":
             return {
-                start_time: converDate(now),
+                event_date: converDate(now),
             };
 
         case "this_month":
@@ -37,7 +37,7 @@ export function buildEventDateFilters(
 
         case "date":
             return {
-                start_time: selectedDate
+                event_date: selectedDate
                     ? converDate(selectedDate)
                     : undefined,
             };

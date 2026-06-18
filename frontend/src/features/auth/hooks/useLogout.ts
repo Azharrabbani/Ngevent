@@ -8,6 +8,7 @@ export const useLogout = () => {
         mutationFn: () => logoutApi(),
         onSuccess: () => {
             queryClient.clear();
+            window.location.href = "/";
         },
     })
 }

@@ -20,6 +20,9 @@ export function mapUpdateToEventResponse(
 
         event_address: update.updated_address,
 
+        start_date: update.updated_details.start_date,
+        end_date: update.updated_details.end_date,
+
         start_time: update.updated_details.start_time,
         end_time: update.updated_details.end_time,
 

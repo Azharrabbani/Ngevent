@@ -81,7 +81,11 @@ export default function EventForm({
 
     const [banner, setBanner] = useState<File | null>(null);
     const [bannerPreview, setBannerPreview] = useState<string>("");
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [dateRange, setDateRange] = useState<
+        [Date | null, Date | null]
+    >([null, null]);
+
+    const [startDate, endDate] = dateRange;
     const [startTime, setStartTime] = useState<Date | null>(null)
     const [endTime, setEndTime] = useState<Date | null>(null)
     const [position, setPosition] = useState<[number, number]>([0, 0]);
@@ -114,12 +118,21 @@ export default function EventForm({
         setSelectedCategories(categoryIds);
 
         // Set date from unix timestamp
+        if (eventData.start_date) {
+            setDateRange([
+                new Date(eventData.start_date * 1000),
+                new Date(eventData.end_date * 1000),
+            ]);
+        }
+
         if (eventData.start_time) {
-            const start = new Date(eventData.start_time * 1000)
-            const end = new Date(eventData.end_time * 1000)
-            setSelectedDate(start)
-            setStartTime(start)
-            setEndTime(end)
+            setStartTime(
+                new Date(eventData.start_time * 1000)
+            );
+
+            setEndTime(
+                new Date(eventData.end_time * 1000)
+            );
         }
 
         // Set position from coordinates
@@ -147,7 +160,6 @@ export default function EventForm({
                 },
             });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isEditMode, eventData]);
 
     const toggleCategory = (catId: number) => {
@@ -180,8 +192,21 @@ export default function EventForm({
             return false;
         }
 
-        if (!selectedDate) {
-            toast.error("Date is required");
+        if (!startDate) {
+            toast.error("Start date is required");
+            return false;
+        }
+
+        if (!endDate) {
+            toast.error("End date is required");
+            return false;
+        }
+
+        if (endDate.getTime() < startDate.getTime()) {
+            toast.error(
+                "End date cannot be before start date"
+            );
+
             return false;
         }
 
@@ -208,30 +233,47 @@ export default function EventForm({
         return true;
     };
 
-    const buildPayload = (targetStatus: string, data: formValues) => {
-        const mergeDateTime = (date: Date, time: Date) => {
-            const merged = new Date(date)
-            merged.setHours(time.getHours(), time.getMinutes(), 0, 0)
-            return Math.floor(merged.getTime() / 1000)
-        }
+    const buildPayload = (
+        targetStatus: string,
+        data: formValues
+    ) => {
+        // Merge the time
+        const mergeDateTime = (date: Date, time: Date): number => {
+            const merged = new Date(date);
+            merged.setHours(time.getHours(), time.getMinutes(), 0, 0);
+            return Math.floor(merged.getTime() / 1000);
+        };
+        
+        // start_date and end_date should have the same date as start_time and end_time
+        const startTimeUnix = mergeDateTime(startDate!, startTime!);
+        const endTimeUnix = mergeDateTime(endDate!, endTime!);
+
         return {
             ...data,
             categories: selectedCategories,
-            start_time: mergeDateTime(selectedDate!, startTime!),
-            end_time: mergeDateTime(selectedDate!, endTime!),
+            
+            start_date: startTimeUnix,
+            end_date: endTimeUnix,
+
+            start_time: startTimeUnix,
+            end_time: endTimeUnix,
+
             status: targetStatus,
+
             address: {
                 detail_address: data.detail_address,
                 lat: position[0].toString(),
                 long: position[1].toString(),
                 display_name: selectedLocation?.display_name,
-                city: selectedLocation?.address?.city || selectedLocation?.address?.town || selectedLocation?.address?.village,
+                city:
+                    selectedLocation?.address?.city ||
+                    selectedLocation?.address?.town ||
+                    selectedLocation?.address?.village,
                 country: selectedLocation?.address?.country,
             },
         };
     };
 
-    // Create Mode Handler
     const handleCreate = async (targetStatus: "draft" | "pending", data: formValues) => {
         if (!validateForm(targetStatus)) return;
         const payload = buildPayload(targetStatus, data);
@@ -421,10 +463,18 @@ export default function EventForm({
 
                         <div className="relative z-20">
                             <DatePicker
-                                selected={selectedDate}
-                                onChange={(date: SetStateAction<Date | null>) => setSelectedDate(date)}
+                                selectsRange
+                                startDate={startDate}
+                                endDate={endDate}
+                                onChange={(update) => {
+                                    setDateRange(
+                                        update as [Date | null, Date | null]
+                                    );
+                                }}
                                 dateFormat="dd/MM/yyyy"
-                                placeholderText="dd/mm/yyyy"
+                                placeholderText="Select event dates"
+                                minDate={new Date()}
+                                isClearable
                                 className="
                                     w-full
                                     p-2 sm:p-3
@@ -435,7 +485,6 @@ export default function EventForm({
                                     outline-none
                                 "
                                 wrapperClassName="w-full"
-                                minDate={new Date()}
                             />
 
                             <FiCalendar
@@ -445,7 +494,7 @@ export default function EventForm({
                         </div>
                     </div>
 
-                    {selectedDate && (
+                    {startDate && endDate && (
                         <div className="w-full grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-[#003B95] text-xs sm:text-sm font-medium mb-1 block">

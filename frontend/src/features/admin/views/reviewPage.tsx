@@ -38,7 +38,7 @@ export default function ReviewPage() {
                     isSubmitting={reviewUpdatedPending}
                     onApprove={async () => {
                         await reviewUpdated({ id: updateData.id, status: "approved" });
-                        navigate("/admin/events/pending");
+                        navigate("/admin/events/active");
                     }}
                     onReject={async (reason: string) => {
                         await reviewUpdated({ id: updateData.id, status: "rejected", reason });
@@ -57,7 +57,7 @@ export default function ReviewPage() {
                 isSubmitting={reviewPending}
                 onApprove={async () => {
                     await reviewEvent({ id: id!, status: "active" });
-                    navigate("/admin/events/pending");
+                    navigate("/admin/events/active");
                 }}
                 onReject={async (reason: string) => {
                     await reviewEvent({ id: id!, status: "rejected", reason });

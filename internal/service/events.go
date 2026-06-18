@@ -88,8 +88,12 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 	}
 
 	// Convert unix to date
-	startTime := helper.ConvertUnixtoDate(req.StartTime)
-	endTime := helper.ConvertUnixtoDate(req.EndTime)
+	startDate := helper.ConvertUnixToDate(req.StartDate)
+	endDate := helper.ConvertUnixToDate(req.EndDate)
+
+	// Convert unix to time
+	startTime := helper.ConvertUnixToTime(req.StartTime)
+	endTime := helper.ConvertUnixToTime(req.EndTime)
 
 	// Default status
 	status := string(model.Pending)
@@ -128,13 +132,23 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 		Country:       *location.Country,
 		DetailAddress: req.Address.DetailAddress,
 		Coordinates:   *location.Coordinates,
-		StartTime:     startTime.UTC(),
-		EndTime:       endTime.UTC(),
+		StartDate:     startDate,
+		EndDate:       endDate,
+		StartTime:     startTime,
+		EndTime:       endTime,
 	}
 
 	if req.Status == string(model.Pending) {
 		now := time.Now().UTC()
 		event.SubmittedAt = &now
+	}
+
+	if endDate.Before(startDate) {
+		return errors.New("end date cannot be before start date")
+	}
+
+	if endTime.Before(startTime) {
+		return errors.New("end time cannot be before start time")
 	}
 
 	event, err = s.EventRepo.Create(event, categories)
@@ -427,6 +441,8 @@ func (s *EventService) GetEventByID(id string) (*dto.EventsResp, error) {
 		Event:           event,
 		Organizer:       organizer,
 		EventCategories: eventCategories,
+		StartDate:       helper.ConvertDatetoUnix(event.StartDate.Format(time.RFC3339)),
+		EndDate:         helper.ConvertDatetoUnix(event.EndDate.Format(time.RFC3339)),
 		StartTime:       helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339)),
 		EndTime:         helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339)),
 		CreatedAt:       helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
@@ -484,6 +500,8 @@ func (s *EventService) GetEventBySlug(slug string, userLat, userLon float64) (*d
 		Event:           event,
 		Organizer:       organizer,
 		EventCategories: eventCategories,
+		StartDate:       helper.ConvertDatetoUnix(event.StartDate.Format(time.RFC3339)),
+		EndDate:         helper.ConvertDatetoUnix(event.EndDate.Format(time.RFC3339)),
 		StartTime:       helper.ConvertDatetoUnix(event.StartTime.Format(time.RFC3339)),
 		EndTime:         helper.ConvertDatetoUnix(event.EndTime.Format(time.RFC3339)),
 		CreatedAt:       helper.ConvertDatetoUnix(event.CreatedAt.Format(time.RFC3339)),
@@ -636,8 +654,11 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	}
 
 	// Convert unix to date
-	startTime := helper.ConvertUnixtoDate(req.StartTime)
-	endTime := helper.ConvertUnixtoDate(req.EndTime)
+	startDate := helper.ConvertUnixToDate(req.StartDate)
+	endDate := helper.ConvertUnixToDate(req.EndDate)
+
+	startTime := helper.ConvertUnixToTime(req.StartTime)
+	endTime := helper.ConvertUnixToTime(req.EndTime)
 
 	// Get coordinates from req
 	location := getLocation(req.Address.Lat, req.Address.Long, req.Address)
@@ -681,6 +702,8 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	event.Country = *location.Country
 	event.DetailAddress = req.Address.DetailAddress
 	event.Coordinates = *location.Coordinates
+	event.StartDate = startDate
+	event.EndDate = endDate
 	event.StartTime = startTime
 	event.EndTime = endTime
 
@@ -796,10 +819,11 @@ func (s *EventService) DeleteEvent(id, userID string) error {
 }
 
 func (s *EventService) BuildStagedUpdate(banner *multipart.FileHeader, event *model.Events, req *dto.EventReq) (*model.UpdatedEvents, []*model.Categories, error) {
-	if time.Until(event.StartTime) < 7*24*time.Hour {
-		return nil, nil, errors.New("event cannot be updated within 7 days of the event date")
+	if time.Until(event.StartDate) < 7*24*time.Hour {
+		return nil, nil, errors.New(
+			"event cannot be updated within 7 days of the event date",
+		)
 	}
-
 	if len(req.Categories) == 0 {
 		return nil, nil, errors.New("categories cannot be empty")
 	}
@@ -843,8 +867,10 @@ func (s *EventService) BuildStagedUpdate(banner *multipart.FileHeader, event *mo
 		Country:       *location.Country,
 		DetailAddress: req.Address.DetailAddress,
 		Coordinates:   *location.Coordinates,
-		StartTime:     helper.ConvertUnixtoDate(req.StartTime),
-		EndTime:       helper.ConvertUnixtoDate(req.EndTime),
+		StartDate:     helper.ConvertUnixToDate(req.StartDate),
+		EndDate:       helper.ConvertUnixToDate(req.EndDate),
+		StartTime:     helper.ConvertUnixToTime(req.StartTime),
+		EndTime:       helper.ConvertUnixToTime(req.EndTime),
 	}
 
 	return updatedEvent, categories, nil

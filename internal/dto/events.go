@@ -19,6 +19,8 @@ type EventReq struct {
 	UserID      string          `json:"user_id"`
 	Description string          `json:"description" validate:"required"`
 	Categories  []int64         `json:"categories" validate:"required,min=1"`
+	StartDate   int64           `json:"start_date" validate:"required"`
+	EndDate     int64           `json:"end_date" validate:"required"`
 	StartTime   int64           `json:"start_time" validate:"required"`
 	EndTime     int64           `json:"end_time" validate:"required"`
 	Address     EventAddressReq `json:"address" validate:"required"`
@@ -69,7 +71,7 @@ type EventFilterReq struct {
 	Date      string   `json:"date" query:"date"`
 	Category  []int    `json:"category" query:"category"`
 	Status    string   `json:"status" query:"status"`
-	StartTime int64    `json:"start_time" query:"start_time"`
+	EventDate int64    `json:"event_date" query:"event_date"`
 	Location  string   `json:"location" query:"location"`
 	Month     int      `json:"month" query:"month"`
 	Year      int      `json:"year" query:"year"`
@@ -78,21 +80,21 @@ type EventFilterReq struct {
 }
 
 type EventFilter struct {
-	ProfileID *string    `json:"profile_id"`
-	Title     *string    `json:"title" query:"title"`
-	Search    *string    `json:"search" query:"search"` // global search
-	Sort      *string    `json:"sort"`
-	Date      *string    `json:"date"`
-	Role      *string    `json:"role" query:"role"`
-	Category  []int      `json:"category" query:"category"`
-	Status    *string    `json:"status" query:"status"`
-	Start     *time.Time `json:"start" query:"start"`
-	End       *time.Time `json:"end" query:"end"`
-	Location  *string    `json:"location" query:"location"`
-	Month     *int       `json:"month"`
-	Year      *int       `json:"year"`
-	Lat       *float64   `json:"lat"`
-	Lon       *float64   `json:"lon"`
+	ProfileID  *string    `json:"profile_id"`
+	Title      *string    `json:"title" query:"title"`
+	Search     *string    `json:"search" query:"search"` // global search
+	Sort       *string    `json:"sort"`
+	Date       *string    `json:"date"`
+	Role       *string    `json:"role" query:"role"`
+	Category   []int      `json:"category" query:"category"`
+	Status     *string    `json:"status" query:"status"`
+	RangeStart *time.Time `json:"range_start" query:"range_start"`
+	RangeEnd   *time.Time `json:"range_end" query:"range_end"`
+	Location   *string    `json:"location" query:"location"`
+	Month      *int       `json:"month"`
+	Year       *int       `json:"year"`
+	Lat        *float64   `json:"lat"`
+	Lon        *float64   `json:"lon"`
 }
 
 type EventFilterPublic struct {
@@ -135,6 +137,8 @@ type EventsResp struct {
 	EOProfile    EOProfiles   `json:"eo_profile"`
 	Event        EventDetail  `json:"event"`
 	EventAddress EventAddress `json:"event_address"`
+	StartDate    int64        `json:"start_date"`
+	EndDate      int64        `json:"end_date"`
 	StartTime    int64        `json:"start_time"`
 	EndTime      int64        `json:"end_time"`
 	Distance     string       `json:"distance,omitempty"`
@@ -149,6 +153,8 @@ type EventRespReq struct {
 	Event           *model.Events
 	Organizer       *model.OrganizerProfiles
 	EventCategories []EventCategories
+	StartDate       int64
+	EndDate         int64
 	StartTime       int64
 	EndTime         int64
 	UserLat         float64
@@ -263,6 +269,8 @@ func ToEventResp(req *EventRespReq) (*EventsResp, error) {
 				Lon: req.Event.Lon,
 			},
 		},
+		StartDate:   req.StartDate,
+		EndDate:     req.EndDate,
 		StartTime:   req.StartTime,
 		EndTime:     req.EndTime,
 		Distance:    req.Distance,

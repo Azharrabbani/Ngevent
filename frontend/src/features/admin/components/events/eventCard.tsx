@@ -6,7 +6,7 @@ import type { EventsResponse } from "../../../events/types/eventResponse";
 import type { PaginatedData } from "../../../../types/apiResponse";
 import { FormatRelativeTime } from "../../../../utils/formatRelativeTime";
 import { getStatusColor } from "../../../../utils/status";
-import { toDateString } from "../../../../utils/dateConverter";
+import { eventDateRange, toDateString } from "../../../../utils/dateConverter";
 import { useReviewEvent } from "../../../events/hooks/useReviewEvent";
 import ApproveConfirmModal from "./modal/approveConfirmModal";
 import RejectReasonModal from "./modal/rejectReasonModal";
@@ -50,9 +50,11 @@ function CardGroupSection({ group, isReview, status, onNavigate, onApprove, onRe
             </div>
 
             {group.events.map((item) => {
-                const start = new Date(Number(item.start_time) * 1000);
-                const date = toDateString(start, "short");
-                const submitted = FormatRelativeTime(item.created_at);
+                const eventDate = eventDateRange(
+                    item.start_date,
+                    item.end_date
+                );
+                const submitted = item.submitted_at ? FormatRelativeTime(item.submitted_at) : "-";
 
                 return (
                     <div
@@ -78,7 +80,7 @@ function CardGroupSection({ group, isReview, status, onNavigate, onApprove, onRe
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-sm text-gray-500 mt-0.5">{date}</p>
+                                <p className="text-sm text-gray-500 mt-0.5">{eventDate}</p>
 
                                 <div className="mt-1.5">
                                     <UrgencyBadge urgency={item.urgency} badgeColor={group.badgeColor} />

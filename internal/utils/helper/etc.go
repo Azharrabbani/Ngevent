@@ -7,10 +7,14 @@ func ConvertDatetoUnix(date string) int64 {
 	if err != nil {
 		return 0
 	}
-
 	return unitDate.Unix()
 }
 
-func ConvertUnixtoDate(unix int64) time.Time {
-	return time.Unix(unix, 0)
+func ConvertUnixToDate(unix int64) time.Time {
+	t := time.Unix(unix, 0).UTC()
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+func ConvertUnixToTime(unix int64) time.Time {
+	return time.Unix(unix, 0).UTC()
 }

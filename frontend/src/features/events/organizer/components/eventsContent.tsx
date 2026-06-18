@@ -28,6 +28,8 @@ export default function EventsContent({ data, loading }: Props) {
                             key={data.id}
                             id={data.id}
                             title={data.event.name}
+                            startDate={data.start_date}
+                            endDate={data.end_date}
                             startTime={data.start_time}
                             endTime={data.end_time}
                             location={data.event_address.city}
