@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CgProfile } from "react-icons/cg";
 import { FaRegCircleCheck } from "react-icons/fa6";
-import { HiMenu } from "react-icons/hi";
+import { HiMenu, HiOutlineDocumentReport } from "react-icons/hi";
 import { IoMdSave } from "react-icons/io";
 import { MdOutlineCancel } from "react-icons/md";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -56,6 +56,11 @@ export default function Sidebar({ children, photoProfile }: Props) {
             icon: <IoMdSave />,
             subMenu: true,
             path: "/organizer/draft-event"
+        },
+        {
+            title: "Report",
+            icon: <HiOutlineDocumentReport />,
+            path: "/organizer/report",
         },
         {
             title: "Profile",

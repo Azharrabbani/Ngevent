@@ -73,6 +73,7 @@ func main() {
 	categoryRepo := repository.NewCategoriesRepository(server.DB)
 	eventRepo := repository.NewEventsRepository(server.DB)
 	updateEventRepo := repository.NewUpdatedEventsRepository(server.DB)
+	reportRepo := repository.NewReportRepository(server.DB)
 
 	// Init service
 	authService := service.NewAuthService(userRepo, sessionRepo, otpRepo, unverifiedUserTaskPublisher, unusedOTPTaskPublisher, emailTaskPublisher)
@@ -85,6 +86,7 @@ func main() {
 	eventService := service.NewEventService(eventRepo, userRepo, organizerProfileRepo, categoryRepo, eventExpiryPublisher, emailTaskPublisher, server.RDB)
 	updateEventService := service.NewUpdatedEventService(updateEventRepo, eventRepo, organizerProfileRepo, eventExpiryPublisher, server.RDB, emailTaskPublisher)
 	locationService := service.NewLocationService(server.RDB)
+	reportService := service.NewReportService(reportRepo, organizerProfileRepo)
 
 	// Init handler
 	authHandler := handler.NewAuthHandler(authService, validate)
@@ -97,6 +99,7 @@ func main() {
 	eventHandler := handler.NewEventHandler(eventService, validate)
 	updateEventHandler := handler.NewUpdatedEventHandler(updateEventService, validate)
 	locationHandler := handler.NewLocationHandler(locationService)
+	reportHandler := handler.NewReportHandler(reportService)
 
 	// Register routes
 	server.RegisterFiberRoutes()
@@ -110,6 +113,7 @@ func main() {
 	server.RegisterEventRoutes(eventHandler)
 	server.RegisterUpdatedEventRoutes(updateEventHandler)
 	server.RegisterLocationRoutes(locationHandler)
+	server.RegisterReportRoutes(reportHandler)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

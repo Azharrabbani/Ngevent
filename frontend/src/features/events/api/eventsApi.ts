@@ -6,6 +6,7 @@ import type { locationResp } from "../types/locationResponse"
 import type { FilterEventsRequest, FilterOrganizerEventsRequest, FilterUpdatedEventsRequest, UserLatLonRequest } from "../types/eventRequest"
 import type { EventsResponse, RouteRespone, UpdateEventResponse } from "../types/eventResponse"
 import type { EventDetailResponse } from "../types/publicEventResponse"
+import type { ReportRequest } from "../types/reportRequesr"
 
 export const SearchLocationApi = async (payload: locationReq) => {
     const res = await api.get<successResponse<locationResp[]>>("/location/", {
@@ -34,6 +35,19 @@ export const GetEventsApi = async (params: FilterEventsRequest) => {
 
     return res.data;
 }
+
+export const DownloadReportApi = async (params: ReportRequest): Promise<Blob> => {
+    const res = await api.get("/report", {
+        params: {
+            period: params.period,
+            month: params.period === "monthly" ? params.month : undefined,
+            year: params.year,
+        },
+        responseType: "blob",
+    });
+
+    return res.data as Blob;
+};
 
 export const getEventsActiveApi = async (params: FilterEventsRequest) => {
     const res = await api.get<PaginatedResponse<EventsResponse>>("/event/active", {

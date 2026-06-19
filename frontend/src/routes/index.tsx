@@ -33,6 +33,7 @@ import AuthDashboard from "../layout/authDashboard"
 import EventViewPublicPage from "../features/events/public/views/eventViewPage"
 import EventOwnerDashboard from "../features/events/public/views/eventOwnerDashboard"
 import OwnerViewPage from "../features/events/public/views/ownerViewPage"
+import ReportView from "../features/events/organizer/views/reportView"
 
 export default function AppRoutes() {
     return (
@@ -122,6 +123,12 @@ export default function AppRoutes() {
                             </OrganizerDashboard>
                         } />
 
+                        <Route path="/organizer/report" element={
+                            <OrganizerDashboard>
+                                <ReportView />
+                            </OrganizerDashboard>
+                        } />
+
                         <Route path="event/view/:id" element={
                             <OrganizerDashboard>
                                 <EventViewPage />
@@ -138,6 +145,6 @@ export default function AppRoutes() {
                     </Route>
                 </Route>
             </Routes>
-        </BrowserRouter>
+        </BrowserRouter >
     )
 }

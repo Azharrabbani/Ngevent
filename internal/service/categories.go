@@ -32,7 +32,7 @@ func NewCategoryService(
 }
 
 var categoryCache []string = []string{
-	"category:all:*",
+	"category:all",
 	"category:list:*",
 }
 

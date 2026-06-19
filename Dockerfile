@@ -1,5 +1,5 @@
 # Backend
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache gcc g++ make libwebp-dev
@@ -27,13 +27,28 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o worker ./cmd/worker
 # Final stage backend
 FROM alpine:latest AS prod
 
-RUN apk add --no-cache libwebp tzdata ghostscript
+RUN apk add --no-cache \
+    libwebp \
+    tzdata \
+    ghostscript \
+    chromium \
+    chromium-chromedriver \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    font-noto-emoji
+
+ENV CHROME_BIN=/usr/bin/chromium-browser \
+    CHROME_PATH=/usr/lib/chromium/
 
 # Workdir App
 WORKDIR /app
 COPY --from=builder /app/app . 
 COPY --from=builder /app/worker .
 COPY --from=builder /go/bin/asynq /usr/local/bin/asynq
+COPY --from=builder /app/internal/templates ./internal/templates
 COPY .env .env
 
 RUN mkdir -p /app/storage/profiles /app/storage/npwp /app/storage/nib /app/storage/npwp/stage /app/storage/nib/stage /app/storage/event/banner /app/storage/updated/banner

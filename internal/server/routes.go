@@ -270,6 +270,12 @@ func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 	}
 }
 
+func (s *FiberServer) RegisterReportRoutes(h *handler.ReportHandler) {
+	report := v1.Group("/report")
+	report.Use(middleware.AuthMiddleware(), middleware.AuthorizeRoles(string(model.Organizer)))
+	report.Get("/", h.DownloadPDF)
+}
+
 func (s *FiberServer) RegisterUpdatedEventRoutes(h *handler.UpdatedEventHandler) {
 	updateEvent := v1.Group("/updated-event")
 	updateEvent.Static("/banner", "./storage/updated/banner")

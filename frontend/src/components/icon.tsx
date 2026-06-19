@@ -19,6 +19,7 @@ import { FaInstagram } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import { FiMaximize2 } from "react-icons/fi";
 import { FaCircle } from "react-icons/fa";
+import { IoWarningOutline } from "react-icons/io5";
 
 interface Props {
     className?: string
@@ -148,5 +149,11 @@ export function MaximizeIcon({ className, size }: Props) {
 export function CircleIcon({ className, size }: Props) {
     return (
         <FaCircle className={className} size={size} />
+    )
+}
+
+export function WarningIcon({ className, size }: Props) {
+    return (
+        <IoWarningOutline className={className} size={size} />
     )
 }
