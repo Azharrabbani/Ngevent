@@ -85,7 +85,7 @@ export default function RejectedEventList() {
 
     return (
         <AdminSidebar>
-            <>
+            <div className="p-3 w-full">
                 <EventList
                     status="rejected"
                     data={data}
@@ -111,7 +111,7 @@ export default function RejectedEventList() {
                     setSelectedYear={setSelectedYear}
                     setCurrentPage={setCurrentPage}
                 />
-            </>
+            </div>
         </AdminSidebar>
     );
 }

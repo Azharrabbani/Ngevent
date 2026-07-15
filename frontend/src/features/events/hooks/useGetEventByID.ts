@@ -11,5 +11,6 @@ export const useGetEventByID = (id: string) => {
         },
         enabled: !!id,
         staleTime: 1000 * 60 * 5,
+        refetchInterval: 5000,
     });
 };

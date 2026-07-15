@@ -26,7 +26,7 @@ func (r *EventsRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
-// UpdateStatus implements [EventsRepo].
+// UpdateStatus implements EventsRepo.
 func (r *EventsRepository) UpdateStatus(id, status string) error {
 	return r.db.Model(&model.Events{}).
 		Where("id = ?", id).
@@ -206,8 +206,8 @@ func (r *EventsRepository) SoftDeleteEvents(tx *gorm.DB, profileID string) error
 }
 
 // CancelEvent implements EventsRepo.
-func (r *EventsRepository) CancelEvent(id string) error {
-	return r.db.Model(&model.Events{}).
+func (r *EventsRepository) CancelEvent(tx *gorm.DB, id string) error {
+	return tx.Model(&model.Events{}).
 		Where("id = ?", id).
 		Update("status", model.Cancelled).Error
 }
@@ -496,6 +496,19 @@ func (r *EventsRepository) Update(event *model.Events, categories []*model.Categ
 	return nil
 }
 
+func (r *EventsRepository) FindStaleUnreviewedEvents(reviewCutoff, now time.Time) ([]*model.Events, error) {
+	var events []*model.Events
+
+	err := r.db.
+		Preload("Profile.User").
+		Where("status = ?", string(model.Pending)).
+		Where("submitted_at IS NOT NULL").
+		Where("submitted_at <= ? OR start_date <= ?", reviewCutoff, now).
+		Find(&events).Error
+
+	return events, err
+}
+
 func (r *EventsRepository) CreateStagedUpdate(event *model.Events, updatedEvent *model.UpdatedEvents, updatedCategories []*model.Categories) error {
 	// Make transaction
 	tx := r.db.Begin()
@@ -613,13 +626,16 @@ func filterEventList(filter *dto.EventFilter) func(*gorm.DB) *gorm.DB {
 
 		if filter.Location != nil {
 			location := "%" + strings.ToLower(*filter.Location) + "%"
-			db = db.Where("LOWER(city) LIKE LOWER(?)", location).Or("LOWER(country) LIKE LOWER(?)", location)
+			db = db.Where(
+				"(LOWER(city) LIKE LOWER(?) OR LOWER(country) LIKE LOWER(?))",
+				location,
+				location,
+			)
 		}
 
 		if len(filter.Category) > 0 {
 			db = db.Joins("JOIN event_categories ec ON ec.event_id = events.id AND ec.deleted_at IS NULL").
-				Where("ec.category_id IN ?", filter.Category).
-				Group("events.id")
+				Where("ec.category_id IN ?", filter.Category)
 		}
 
 		if filter.RangeStart != nil &&
@@ -660,11 +676,7 @@ func filterEventListPublic(filter *dto.EventFilterPublic) func(*gorm.DB) *gorm.D
 }
 
 func toEventResponse(events []*model.Events) ([]*dto.EventsResp, error) {
-	var eventsResp []*dto.EventsResp
-
-	if len(events) == 0 {
-		return nil, errors.New("no data found")
-	}
+	eventsResp := make([]*dto.EventsResp, 0, len(events))
 
 	for _, event := range events {
 		var categories []dto.EventCategories

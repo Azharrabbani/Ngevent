@@ -17,8 +17,9 @@ type CreateAttendeeProfileReq struct {
 }
 
 type FilterProfileReq struct {
-	Filter *string `json:"filter" query:"filter"`
-	Status *string `json:"status" query:"status"`
+	Filter         *string `json:"filter"          query:"filter"`
+	Status         *string `json:"status"          query:"status"`
+	RequestUpdates *bool   `json:"request_updates" query:"request_updates"`
 }
 
 type FilterPublicProfileReq struct {
@@ -40,7 +41,7 @@ type CreateOrganizerProfileReq struct {
 	Name          string `form:"name" validate:"required"`
 	PhoneNumber   string `form:"phone_number" validate:"required"`
 	ISO           string
-	Address       *string                 `form:"address" validate:"required"`
+	Address       string                  `form:"address" validate:"required"`
 	SocialMedia   OrganizerSocialMediaReq `validate:"required"`
 	CompanyDetail OrganizerCompDetailReq  `validate:"required"`
 }
@@ -125,21 +126,22 @@ type AttendeeProfilesResponse struct {
 
 // =========== Organizer profile response ==============
 type OrganizerProfilesResponse struct {
-	ID            string                  `json:"id"`
-	UserID        string                  `json:"user_id"`
-	Status        OrganizerStatusResp     `json:"status,omitempty"`
-	Email         string                  `json:"email"`
-	Name          string                  `json:"name"`
-	Slug          string                  `json:"slug"`
-	PhotoProfile  string                  `json:"photo_profile,omitempty"`
-	PhoneNumber   string                  `json:"phone_number"`
-	Country       string                  `json:"country"`
-	Address       *string                 `json:"address,omitempty"`
-	SocialMedia   OrganizerSocialMediaReq `json:"social_media"`
-	CompanyDetail OrganizerCompDetailRes  `json:"company_detail"`
-	EventCount    *int64                  `json:"event_count,omitempty"`
-	CreatedAt     int64                   `json:"created_at"`
-	UpdatedAt     int64                   `json:"updated_at"`
+	ID             string                  `json:"id"`
+	UserID         string                  `json:"user_id"`
+	Status         OrganizerStatusResp     `json:"status,omitempty"`
+	RequestUpdates bool                    `json:"request_updates"`
+	Email          string                  `json:"email"`
+	Name           string                  `json:"name"`
+	Slug           string                  `json:"slug"`
+	PhotoProfile   string                  `json:"photo_profile,omitempty"`
+	PhoneNumber    string                  `json:"phone_number"`
+	Country        string                  `json:"country"`
+	Address        *string                 `json:"address,omitempty"`
+	SocialMedia    OrganizerSocialMediaReq `json:"social_media"`
+	CompanyDetail  OrganizerCompDetailRes  `json:"company_detail"`
+	EventCount     *int64                  `json:"event_count,omitempty"`
+	CreatedAt      int64                   `json:"created_at"`
+	UpdatedAt      int64                   `json:"updated_at"`
 }
 
 type OrganizerUpdatesResponse struct {

@@ -33,10 +33,8 @@ func (p *EventExpiryPublisher) EnqueueEventExpiry(payload *model.EventExpiredPay
 		delay = 0
 	}
 
-	// replaces the old task
 	taskID := fmt.Sprintf("event_expiry:%s", payload.EventID)
 
-	// Delete any existing scheduled task for this event
 	_ = p.cancelByID(taskID)
 
 	task := asynq.NewTask(model.TypeEventExpired, b)
@@ -48,6 +46,7 @@ func (p *EventExpiryPublisher) EnqueueEventExpiry(payload *model.EventExpiredPay
 }
 
 // EnqueueUpdatedEventExpiry schedules a task to mark the event done when an
+// approved updated event's end time is reached.
 func (p *EventExpiryPublisher) EnqueueUpdatedEventExpiry(payload *model.UpdatedEventExpiredPayload, endTime time.Time) error {
 	b, err := json.Marshal(payload)
 	if err != nil {
@@ -74,6 +73,52 @@ func (p *EventExpiryPublisher) EnqueueUpdatedEventExpiry(payload *model.UpdatedE
 // CancelEventExpiry removes a pending expiry task
 func (p *EventExpiryPublisher) CancelEventExpiry(eventID string) error {
 	return p.cancelByID(fmt.Sprintf("event_expiry:%s", eventID))
+}
+
+func (p *EventExpiryPublisher) EnqueueDraftRevert(payload *model.DraftRevertPayload, revertAt time.Time) error {
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	delay := time.Until(revertAt)
+	if delay <= 0 {
+		delay = 0
+	}
+
+	taskID := fmt.Sprintf("draft_revert:%s", payload.EventID)
+	_ = p.cancelByID(taskID)
+
+	task := asynq.NewTask(model.TypeDraftRevert, b)
+	_, err = p.Client.Enqueue(task, asynq.ProcessIn(delay), asynq.TaskID(taskID))
+	return err
+}
+
+func (p *EventExpiryPublisher) CancelDraftRevert(eventID string) error {
+	return p.cancelByID(fmt.Sprintf("draft_revert:%s", eventID))
+}
+
+func (p *EventExpiryPublisher) EnqueueUpdatedDraftRevert(payload *model.UpdatedDraftRevertPayload, revertAt time.Time) error {
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	delay := time.Until(revertAt)
+	if delay <= 0 {
+		delay = 0
+	}
+
+	taskID := fmt.Sprintf("updated_draft_revert:%s", payload.UpdatedEventID)
+	_ = p.cancelByID(taskID)
+
+	task := asynq.NewTask(model.TypeUpdatedDraftRevert, b)
+	_, err = p.Client.Enqueue(task, asynq.ProcessIn(delay), asynq.TaskID(taskID))
+	return err
+}
+
+func (p *EventExpiryPublisher) CancelUpdatedDraftRevert(updatedEventID string) error {
+	return p.cancelByID(fmt.Sprintf("updated_draft_revert:%s", updatedEventID))
 }
 
 func (p *EventExpiryPublisher) cancelByID(taskID string) error {

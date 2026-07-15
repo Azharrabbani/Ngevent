@@ -11,6 +11,7 @@ export const useGetEventRoute = (id: string, params: UserLatLonRequest, enabled:
             return res.data;
         },
         staleTime: 1000 * 60 * 5,
+        retry: false,
         enabled
     })
 }

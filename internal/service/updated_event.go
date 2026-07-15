@@ -52,25 +52,6 @@ var updatedEventCache []string = []string{
 	"updated_event_list:all:*",
 }
 
-func (s *UpdatedEventService) InvalidateUpdatedEventCache() {
-	ctx := context.Background()
-
-	patterns := []string{
-		"updated_events:all:*",
-		"updated_event_list:all:*",
-	}
-
-	for _, pattern := range patterns {
-		iter := s.rdb.Scan(ctx, 0, pattern, 0).Iterator()
-		for iter.Next(ctx) {
-			s.rdb.Del(ctx, iter.Val())
-		}
-	}
-
-	// Use SCAN for pattern keys to avoid blocking
-	log.Println("[CACHE] updated events cache invalidated")
-}
-
 func (s *UpdatedEventService) ListAllUpdatedEvents(filter *dto.UpdatedEventFilter, pagination model.Pagination) (*model.PaginationRow[*dto.EventsUpdatesResp], error) {
 	var updatedEvents *model.PaginationRow[*dto.EventsUpdatesResp]
 
@@ -236,7 +217,7 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 		event.ReviewedBy = req.ReviewedBy
 		event.ReviewedAt = &now
 		update := &dto.UpdateEvent{
-			EventTx:      tx, 
+			EventTx:      tx,
 			UpdatedEvent: updatedEvent,
 			Event:        event,
 		}
@@ -248,6 +229,10 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 
 		if err := tx.Commit().Error; err != nil {
 			return err
+		}
+
+		if err := s.EventExpiryPublisher.CancelUpdatedDraftRevert(updatedEvent.ID); err != nil {
+			log.Printf("[DRAFT-REVERT] failed to cancel revert for updated event %s: %v", updatedEvent.ID, err)
 		}
 
 		if oldBanner != "" {
@@ -265,6 +250,10 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 	} else {
 		if err := tx.Commit().Error; err != nil {
 			return err
+		}
+
+		if err := s.EventExpiryPublisher.CancelUpdatedDraftRevert(updatedEvent.ID); err != nil {
+			log.Printf("[DRAFT-REVERT] failed to cancel revert for updated event %s: %v", updatedEvent.ID, err)
 		}
 	}
 
@@ -292,6 +281,10 @@ func (s *UpdatedEventService) ReviewUpdated(req *dto.ReviewUpdatedEventReq) erro
 func (s *UpdatedEventService) CancelUpdate(id string) error {
 	if err := s.UpdatedEventRepo.Cancel(id); err != nil {
 		return err
+	}
+
+	if err := s.EventExpiryPublisher.CancelUpdatedDraftRevert(id); err != nil {
+		log.Printf("[DRAFT-REVERT] failed to cancel for updated event %s: %v", id, err)
 	}
 
 	// Invalidate cache after update
@@ -334,7 +327,7 @@ func updateEventWithUpdated(update *dto.UpdateEvent) (string, error) {
 	update.Event.StartTime = update.UpdatedEvent.StartTime
 	update.Event.EndTime = update.UpdatedEvent.EndTime
 	update.Event.UpdatedAt = time.Now().UTC()
-	update.Event.RequestUpdates = false 
+	update.Event.RequestUpdates = false
 
 	if err := update.EventTx.Updates(update.Event).Error; err != nil {
 		log.Printf("[ERROR] update event failed: %v", err)

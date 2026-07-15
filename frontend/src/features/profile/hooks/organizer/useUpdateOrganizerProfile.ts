@@ -30,9 +30,13 @@ export const useUpdateOrganizerProfile = () => {
         },
 
         onError: (err: any, _, context) => {
+            console.log("error: ", err?.response?.data?.error)
             if (err?.response?.data?.error === "NPWP and NIB file required") {
                 toast.error("NPWP and NIB file required");
-            } else {
+            } else if (err?.response?.data?.error === "duplicated key not allowed") {
+                toast.error("Profile still under review. Please wait for the review process to complete before updating.");
+            }
+            else {
                 toast.error(err?.response?.data?.error || "Update failed");
             }
 

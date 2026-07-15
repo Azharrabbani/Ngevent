@@ -284,7 +284,11 @@ func (s *AuthService) ResetPassword(id, newPassword, confirmPassword string) (in
 	// Check the OTP
 	userOTP, err := s.otpRepo.FindByID(id)
 	if err != nil {
-		return fiber.StatusNotFound, errors.New("otp expired or not found")
+		return fiber.StatusNotFound, errors.New("Session has expired")
+	}
+
+	if userOTP.IsUsed {
+		return fiber.StatusBadRequest, errors.New("Session has expired")
 	}
 
 	user, err := s.userRepo.FindByID(userOTP.UserID)
@@ -294,11 +298,16 @@ func (s *AuthService) ResetPassword(id, newPassword, confirmPassword string) (in
 
 	// Check if otp expired
 	if time.Now().UTC().After(userOTP.ExpiredAt) || userOTP.IsUsed {
-		return fiber.StatusBadRequest, errors.New("otp expired or invalid")
+		return fiber.StatusBadRequest, errors.New("Session has expired")
 	}
 
 	if newPassword != confirmPassword {
 		return fiber.StatusBadRequest, errors.New("password not match")
+	}
+
+	// Check is the current password is the same like new password
+	if err := helper.ValidePassword(user.Password, newPassword); err == nil {
+		return fiber.StatusBadRequest, errors.New("new password can't be the same like your old password")
 	}
 
 	newHashPassword, err := helper.HashPassword(newPassword)

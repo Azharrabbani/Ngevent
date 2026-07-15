@@ -97,6 +97,7 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 		profile.SocialMedias.Instagram = updateData.Instagram
 		profile.CompanyDetail.NPWPNumber = updateData.NPWPNumber
 		profile.CompanyDetail.NIBNumber = updateData.NIBNumber
+		profile.RequestUpdates = false
 
 		// 2. [Opt] Copy file from staging to destination path
 		if isFilesUpdates {
@@ -155,11 +156,11 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 		}
 
 		// 6. Send email to user
-		EmailPayload := &model.EmailPayload{
-			To:   profile.User.Email,
-			Name: profile.Name,
-		}
-		s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileVerified, EmailPayload)
+		// EmailPayload := &model.EmailPayload{
+		// 	To:   profile.User.Email,
+		// 	Name: profile.Name,
+		// }
+		// s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileVerified, EmailPayload)
 	case "rejected":
 		if req.Reason == "" {
 			return errors.New("reason required")
@@ -173,6 +174,13 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 			profileX.Rollback()
 			updateX.Rollback()
 			return errors.New("validate failed")
+		}
+
+		profile.RequestUpdates = false
+		if err := profileX.Save(profile).Error; err != nil {
+			profileX.Rollback()
+			updateX.Rollback()
+			return err
 		}
 
 		// Send email to notify user
@@ -196,6 +204,7 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 
 	// Invalidate cache after update
 	utils.InvalidateCache(s.rdb, organizerUpdateCache)
+	utils.InvalidateCache(s.rdb, organizerCache)
 
 	return nil
 }

@@ -19,7 +19,6 @@ export default function OrganizerProfile({ profile, update, profileLoading, upda
 
     const hasUpdate = !!update && !isError;;
     const isApproved = profile?.status?.status === "approved";
-    const isPending = profile?.status?.status !== "approved";
 
     return (
         <>
@@ -38,7 +37,7 @@ export default function OrganizerProfile({ profile, update, profileLoading, upda
                 </div>
             </div>
 
-            {isPending && hasUpdate ? (
+            {hasUpdate ? (
                 <OrganizerComparePreview
                     requestUpdate={update}
                     current={profile}

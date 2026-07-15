@@ -92,8 +92,8 @@ export default function EventViewPage() {
                     <Button
                         type="button"
                         onClick={() => setConfirmAction("cancel")}
-                        disabled={cancelEventMutation.isPending}
-                        className="w-full sm:w-auto rounded-xl px-8 py-3 text-white font-semibold bg-red-500 hover:bg-red-600 transition"
+                        disabled={cancelEventMutation.isPending || event.request_updates}
+                        className="w-full sm:w-auto rounded-xl px-8 py-3 text-white font-semibold bg-red-500 hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {cancelEventMutation.isPending ? "Canceling..." : "Cancel Event"}
                     </Button>
@@ -194,9 +194,8 @@ export default function EventViewPage() {
                                         Update Under Review
                                     </p>
                                     <p className="text-sm text-amber-500 leading-relaxed">
-                                        You have a pending update request for this event. Editing is
-                                        disabled until the current update has been reviewed by our
-                                        admins.
+                                        You have a pending update request for this event. Editing or Canceling
+                                        is disabled until the current update has been reviewed by our admins.
                                     </p>
                                 </div>
                             </div>

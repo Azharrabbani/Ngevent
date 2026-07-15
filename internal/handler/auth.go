@@ -93,7 +93,7 @@ func (h *AuthHandler) VerififyEmail(c *fiber.Ctx) error {
 		fiber.StatusOK,
 		"success",
 		"success",
-		"success verified email",
+		"Verification success. You may login to your account",
 	))
 
 }
@@ -338,7 +338,7 @@ func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 		fiber.StatusOK,
 		"success",
 		"success",
-		"password have been reset",
+		"Password have been reset. You can login with your new password",
 	))
 }
 

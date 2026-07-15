@@ -107,6 +107,13 @@ func (s *FiberServer) RegisterFiberRoutes() {
 
 }
 
+func (s *FiberServer) RegisterTestRoutes() {
+	v1.Get("/test/dijkstra-accuracy", handler.DijkstraAccuracyTestHandler)
+	v1.Get("/reports/download/:filename", handler.DownloadReportHandler)
+	v1.Get("/test/dijkstra-accuracy/single/:index", handler.SingleDijkstraAccuracyTestHandler)
+	v1.Post("/test/dijkstra-accuracy/mape-summary", handler.MAPESummaryHandler)
+}
+
 func (s *FiberServer) RegisterAuthRoutes(h *handler.AuthHandler) {
 	authLimiter := limiter.New(limiter.Config{
 		Max:        10,
@@ -253,6 +260,7 @@ func (s *FiberServer) RegisterEventRoutes(h *handler.EventHandler) {
 	// Public routes
 	event.Get("/active", h.GetActiveEvents)
 	event.Get("/nearest", h.FindNearestEvents)
+	event.Get("/test/route", middleware.AuthMiddleware(), middleware.AuthorizeRoles(string(model.Admin)), h.GetRouteTest)
 	event.Get("/route/:id", routeLimiter, h.GetEventRoute)
 	event.Get("/view/:slug", h.GetEventBySlug)
 	event.Get("/public/:id", h.GetEventsByProfileIDPublic)

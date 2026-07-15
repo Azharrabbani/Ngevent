@@ -109,9 +109,7 @@ func (r *UsersRepository) Update(users *model.Users) (*model.Users, error) {
 }
 
 func (r *UsersRepository) Delete(id string) error {
-	return r.db.Model(&model.Users{}).
-		Where("id = ?", id).
-		Update("deleted_at", time.Now().UTC()).Error
+	return r.db.Where("id = ?", id).Delete(&model.Users{}).Error
 }
 
 func (r *UsersRepository) SoftDeleteUser(tx *gorm.DB, userID string) error {

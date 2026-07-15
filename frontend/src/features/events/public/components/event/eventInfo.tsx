@@ -1,5 +1,6 @@
 import { EventIcon, PinIcon } from "../../../../../components/icon";
 import { eventDateRange } from "../../../../../utils/dateConverter";
+import { formatEventTime } from "../../../../../utils/formatTime";
 
 interface Props {
     name: string;
@@ -10,15 +11,6 @@ interface Props {
     detailAddress: string;
     city: string;
     distance?: string;
-}
-
-function formatEventTime(unix: number): string {
-    const date = new Date(unix * 1000);
-    return date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-    });
 }
 
 function getTimezone(): string {

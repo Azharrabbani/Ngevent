@@ -44,8 +44,8 @@ export default function AdminList() {
 
     return (
         <AdminSidebar>
-            <>
-                <h1 className="text-2xl font-semibold">Hello Admin!</h1>
+            <div className="p-6 w-full">
+                <h1 className="text-2xl font-semibold">Admin Management</h1>
 
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <form
@@ -88,7 +88,7 @@ export default function AdminList() {
                             <SpinnerIcon className="animate-spin w-8 h-8 text-blue-500" />
                         </div>
                     ) : !data?.rows || data.rows.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <div className="md:text-center">
                             <h1 className="text-xl font-semibold text-gray-700">
                                 No admin found
                             </h1>
@@ -151,7 +151,7 @@ export default function AdminList() {
                     onNext={() => setCurrentPage((prev) => Math.min(prev + 1, totalPage))}
                     onCurrent={(page) => setCurrentPage(page)}
                 />
-            </>
+            </div>
         </AdminSidebar>
     )
 

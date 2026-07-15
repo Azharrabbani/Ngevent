@@ -4,5 +4,6 @@ export const LOCATIONS = [
     "Bogor",
     "Depok",
     "Tangerang",
+    "Pagedangan",
     "Bekasi",
 ];

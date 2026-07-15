@@ -6,11 +6,11 @@ import { GetOrganizersProfileApi } from "../../api/profileApi"
 export const useListOrganizer = (params: FilterOrganizerReq) => {
     return useQuery({
         queryKey: organizerKeys.list(params),
-        queryFn: async() => {
+        queryFn: async () => {
             const res = await GetOrganizersProfileApi(params);
-
             return res.data;
         },
         staleTime: 1000 * 60 * 5,
+        refetchInterval: 5000,
     });
 };

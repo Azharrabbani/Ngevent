@@ -4,6 +4,7 @@ import LocationFilter from "./locationFilter";
 import NearestFilter from "./nearestFilter";
 
 interface Props {
+    viewMode: "list" | "map";
     location?: string;
     setLocation: (value?: string) => void;
     dateFilterType: DateFilterType;
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function FilterSection({
+    viewMode,
     location,
     setLocation,
     dateFilterType,
@@ -55,12 +57,14 @@ export default function FilterSection({
                 setSelectedYear={setSelectedYear}
             />
 
-            <NearestFilter
-                enabled={nearestEnabled}
-                onToggle={setNearestEnabled}
-                locationLoading={locationLoading}
-                denied={locationDenied}
-            />
+            {viewMode === "list" && (
+                <NearestFilter
+                    enabled={nearestEnabled}
+                    onToggle={setNearestEnabled}
+                    locationLoading={locationLoading}
+                    denied={locationDenied}
+                />
+            )}
         </div>
     );
 }

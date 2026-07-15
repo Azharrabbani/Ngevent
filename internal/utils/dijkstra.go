@@ -1,12 +1,14 @@
 package utils
 
 import (
-	"container/heap"
+	"errors"
 	"fmt"
+	"log"
 	"math"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
 	"strings"
+	"time"
 )
 
 type Item struct {
@@ -14,153 +16,243 @@ type Item struct {
 	Priority float64
 }
 
-type PriorityQueue []*Item
+type MinHeap struct{ data []Item }
 
-func (pq PriorityQueue) Len() int {
-	return len(pq)
+func NewMinHeap() *MinHeap  { return &MinHeap{} }
+func (h *MinHeap) Len() int { return len(h.data) }
+
+func (h *MinHeap) Push(item Item) {
+	h.data = append(h.data, item)
+	h.siftUp(len(h.data) - 1)
 }
 
-func (pq PriorityQueue) Less(i, j int) bool {
-	return pq[i].Priority < pq[j].Priority
+func (h *MinHeap) Pop() Item {
+	min := h.data[0]
+	last := len(h.data) - 1
+	h.data[0] = h.data[last]
+	h.data = h.data[:last]
+	if len(h.data) > 0 {
+		h.siftDown(0)
+	}
+	return min
 }
 
-func (pq PriorityQueue) Swap(i, j int) {
-	pq[i], pq[j] = pq[j], pq[i]
+func (h *MinHeap) siftUp(i int) {
+	for i > 0 {
+		p := (i - 1) / 2
+		if h.data[i].Priority >= h.data[p].Priority {
+			break
+		}
+		h.data[i], h.data[p] = h.data[p], h.data[i]
+		i = p
+	}
 }
 
-func (pq *PriorityQueue) Push(x interface{}) {
-	*pq = append(*pq, x.(*Item))
+func (h *MinHeap) siftDown(i int) {
+	n := len(h.data)
+	for {
+		s := i
+		l, r := 2*i+1, 2*i+2
+		if l < n && h.data[l].Priority < h.data[s].Priority {
+			s = l
+		}
+		if r < n && h.data[r].Priority < h.data[s].Priority {
+			s = r
+		}
+		if s == i {
+			break
+		}
+		h.data[i], h.data[s] = h.data[s], h.data[i]
+		i = s
+	}
 }
 
-func (pq *PriorityQueue) Pop() interface{} {
-	old := *pq
-	n := len(old)
-	item := old[n-1]
-	*pq = old[:n-1]
-
-	return item
-}
-
-func Dijkstra(graph model.Graph, start string) (map[string]float64, map[string]string) {
-	dist := make(map[string]float64)
-	prev := make(map[string]string)
+func Dijkstra(graph model.Graph, start, target string) (map[string]float64, map[string]string) {
+	dist := make(map[string]float64, len(graph))
+	prev := make(map[string]string, len(graph))
+	visited := make(map[string]bool, len(graph))
 
 	for node := range graph {
 		dist[node] = math.Inf(1)
 	}
 	dist[start] = 0
 
-	pq := &PriorityQueue{}
-	heap.Init(pq)
-	heap.Push(pq, &Item{Node: start, Priority: 0})
+	pq := NewMinHeap()
+	pq.Push(Item{Node: start, Priority: 0})
 
 	for pq.Len() > 0 {
-		current := heap.Pop(pq).(*Item)
+		cur := pq.Pop()
 
-		for _, edge := range graph[current.Node] {
-			newDist := dist[current.Node] + edge.Weight
+		if cur.Node == target {
+			break
+		}
 
-			if newDist < dist[edge.To] {
-				dist[edge.To] = newDist
-				prev[edge.To] = current.Node
+		if visited[cur.Node] {
+			continue
+		}
+		visited[cur.Node] = true
 
-				heap.Push(pq, &Item{
-					Node:     edge.To,
-					Priority: newDist,
-				})
+		for _, edge := range graph[cur.Node] {
+			if visited[edge.To] {
+				continue
+			}
+			if nd := dist[cur.Node] + edge.Weight; nd < dist[edge.To] {
+				dist[edge.To] = nd
+				prev[edge.To] = cur.Node
+				pq.Push(Item{Node: edge.To, Priority: nd})
 			}
 		}
 	}
-
 	return dist, prev
 }
 
-func BuildRoadPathWithCoords(prev map[string]string, start, target string, osmNodes map[int64]*model.OSMNode, userLat, userLon, eventLat, eventLon float64) []dto.PathPoint {
-	// 1. Reconstruct raw node from prev map
+func BuildRoadPathWithCoords(
+	prev map[string]string,
+	start, target string,
+	osmNodes map[int64]*model.OSMNode,
+	snapCoords map[string][2]float64,
+	userLat, userLon float64,
+	eventLat, eventLon float64,
+) (float64, []dto.PathPoint) {
+	// 1. Reconstruct the node sequence from prevMap
 	var raw []string
+	seen := make(map[string]bool)
 	cur := target
-	for cur != "" {
+	for cur != "" && !seen[cur] {
+		seen[cur] = true
 		raw = append([]string{cur}, raw...)
-		cur = prev[cur]
+		next := prev[cur]
+		if next == cur {
+			break
+		}
+		cur = next
 	}
 
 	if len(raw) == 0 || raw[0] != start {
-		return []dto.PathPoint {
-			{Name: start, Lat: userLat, Lon: userLon},
+		fallbackDist := Haversine(userLat, userLon, eventLat, eventLon)
+		return fallbackDist, []dto.PathPoint{
+			{Name: "user", Lat: userLat, Lon: userLon},
 			{Name: target, Lat: eventLat, Lon: eventLon},
 		}
 	}
 
-	// 2. Resolve each node to name and coordinate
-	var resolved []dto.PathPoint
+	// 2. Resolve each node to coordinates
+	type point struct {
+		key      string
+		name     string
+		lat, lon float64
+	}
+
+	var points []point
 	for _, node := range raw {
-		if strings.HasPrefix(node, "osm:") {
+		switch {
+		case node == start:
+			points = append(points, point{key: node, name: "user", lat: userLat, lon: userLon})
+
+		case node == target:
+			points = append(points, point{key: node, name: target, lat: eventLat, lon: eventLon})
+
+		case strings.HasPrefix(node, "osm:"):
 			var id int64
 			fmt.Sscanf(node, "osm:%d", &id)
-			if n, ok := osmNodes[id]; ok && n.StreetName != "" {
-				resolved = append(resolved, dto.PathPoint{
-					Name: n.StreetName,
-					Lat: n.Lat,
-					Lon: n.Lon,
-				})
+			if n, ok := osmNodes[id]; ok {
+				points = append(points, point{key: node, name: n.StreetName, lat: n.Lat, lon: n.Lon})
 			}
-		} else if node == start {
-			resolved = append(resolved, dto.PathPoint{Name: "user", Lat: userLat, Lon: userLon})
-		} else if node == target {
-			resolved = append(resolved, dto.PathPoint{Name: target, Lat: eventLat, Lon: eventLon})
+
+		case strings.HasPrefix(node, "snap:"):
+			if coords, ok := snapCoords[node]; ok {
+				points = append(points, point{key: node, name: "", lat: coords[0], lon: coords[1]})
+			}
 		}
 	}
 
-	// 3. Deduplicate display name, but keep the coordinate
-	lastName := ""
-	for i := range resolved {
-		if resolved[i].Name != "" && resolved[i].Name != lastName {
-			lastName = resolved[i].Name
-		} else if resolved[i].Name == lastName {
-			resolved[i].Name = "" // Street name same, suppress repeat label
-		}
+	// 3. Calculate the actual physical distance from the resolved coordinates
+	var realDist float64
+	for i := 1; i < len(points); i++ {
+		realDist += Haversine(points[i-1].lat, points[i-1].lon, points[i].lat, points[i].lon)
 	}
 
-	return resolved
+	// 4. Suppress repeated street names, but all coordinates remain included
+	var result []dto.PathPoint
+	lastStreet := ""
+	for _, p := range points {
+		display := p.name
+		if strings.HasPrefix(p.key, "osm:") || strings.HasPrefix(p.key, "snap:") {
+			if p.name == "" || p.name == lastStreet {
+				display = ""
+			} else {
+				lastStreet = p.name
+			}
+		}
+		result = append(result, dto.PathPoint{Name: display, Lat: p.lat, Lon: p.lon})
+	}
+
+	return realDist, result
 }
 
-func ComputePathToEvent(userLat, userLon float64, eventName string, eventLat, eventLon float64) (string, []dto.PathPoint) {
-	user := model.Location{
-		Name: "user",
-		Lat:  userLat,
-		Lon:  userLon,
-	}
-
-	event := model.Location{
-		Name: eventName,
-		Lat:  eventLat,
-		Lon:  eventLon,
-	}
-
+func ComputePathToEvent(userLat, userLon float64, eventName string, eventLat, eventLon float64) (*dto.RouteComputation, error) {
+	user := model.Location{Name: "user", Lat: userLat, Lon: userLon}
+	event := model.Location{Name: eventName, Lat: eventLat, Lon: eventLon}
 	events := []model.Location{event}
 
-	// Bounding box around user and event with 2km padding
-	minLat, minLon, maxLat, maxLon := BoundingBox(user, events, 2.0)
+	directDist := Haversine(userLat, userLon, eventLat, eventLon)
+	padding := math.Max(2.0, directDist*0.3)
+	minLat, minLon, maxLat, maxLon := BoundingBox(user, events, padding)
 
+	fetchStart := time.Now()
 	osmNodes, ways, err := FetchRoadGraph(minLat, minLon, maxLat, maxLon)
-	if err != nil {
-		fmt.Printf("ComputePathToEvent: Overpass ERROR: %v\n", err)
+	fetchElapsed := time.Since(fetchStart)
 
-		// Fallback straight-line distance
-		hav := Haversine(userLat, userLon, eventLat, eventLon)
-		return fmt.Sprintf("%.2f km", hav), []dto.PathPoint{
-			{Name: "user",      Lat: userLat,  Lon: userLon},
-			{Name: eventName,   Lat: eventLat, Lon: eventLon},
-		}
+	if err != nil {
+		log.Printf("[Route] Overpass ERROR: %v", err)
+		return nil, fmt.Errorf(" failed to fetch road map data: %w", err)
 	}
 
-	graph := BuildGraphFromOSM(user, events, osmNodes, ways)
-	distMap, prevMap := Dijkstra(*graph, user.Name)
+	if len(osmNodes) == 0 || len(ways) == 0 {
+		log.Printf("[Route] Overpass returned empty data: nodes=%d ways=%d", len(osmNodes), len(ways))
+		return nil, errors.New("failed to fetch road map data: empty data returned from Overpass")
+	}
 
-	dist := distMap[eventName]
-	distStr := fmt.Sprintf("%.2f km", dist)
+	log.Printf("[Route] Overpass: nodes=%d ways=%d padding=%.1fkm fetchTime=%.3fs",
+		len(osmNodes), len(ways), padding, fetchElapsed.Seconds())
 
-	path := BuildRoadPathWithCoords(prevMap, user.Name, eventName, osmNodes, userLat, userLon, eventLat, eventLon)
+	graph, snapCoords := BuildGraphFromOSM(user, events, osmNodes, ways)
 
-	return distStr, path
+	log.Printf("[Route] Graph: totalNodes=%d userEdges=%d eventEdges=%d",
+		len(*graph), len((*graph)[user.Name]), len((*graph)[eventName]))
+
+	algoStart := time.Now()
+	distMap, prevMap := Dijkstra(*graph, user.Name, eventName)
+	algoElapsed := time.Since(algoStart)
+
+	cost := distMap[eventName]
+	log.Printf("[Route] Dijkstra cost=%.4f (weighted) algoTime=%.4fs", cost, algoElapsed.Seconds())
+
+	if math.IsInf(cost, 1) || cost == 0 {
+		log.Printf("[Route] Dijkstra unreachable")
+		return nil, errors.New("failed to find route to event location")
+	}
+
+	realDist, path := BuildRoadPathWithCoords(
+		prevMap, user.Name, eventName,
+		osmNodes, snapCoords,
+		userLat, userLon, eventLat, eventLon,
+	)
+
+	log.Printf("[Analytic] ============================================")
+	log.Printf("[Analytic] Event              : %s", eventName)
+	log.Printf("[Analytic] Jarak fisik rute   : %.2f km", realDist)
+	log.Printf("[Analytic] Jarak garis lurus  : %.2f km", directDist)
+	log.Printf("[Analytic] Fetch OSM          : %.3f s (I/O jaringan)", fetchElapsed.Seconds())
+	log.Printf("[Analytic] Kalkulasi Dijkstra : %.4f s (murni algoritma)", algoElapsed.Seconds())
+	log.Printf("[Analytic] Total nodes graph  : %d", len(*graph))
+	log.Printf("[Analytic] Waypoints di rute  : %d titik", len(path))
+	log.Printf("[Analytic] ============================================")
+
+	return &dto.RouteComputation{
+		Distance:       fmt.Sprintf("%.1f km", realDist),
+		Path:           path,
+		DijkstraCost:   cost,
+		DijkstraTimeMs: float64(algoElapsed.Microseconds()) / 1000.0,
+	}, nil
 }

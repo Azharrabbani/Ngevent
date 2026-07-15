@@ -2,13 +2,14 @@ import { useState } from "react"
 import type { VerifyEmailRequest } from "../types/authRequest"
 import { verifyEmailApi } from "../api/authApi"
 import toast from "react-hot-toast"
+import { useNavigate } from "react-router-dom"
 
 export const useVerifyEmail = () => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [message, setMessage] = useState<string | null>(null)
-    const baseUrlPort = import.meta.env.VITE_URL_PORT
+    const navigate = useNavigate();
 
     const verifyEmail = async (payload: VerifyEmailRequest) => {
         try {
@@ -35,8 +36,7 @@ export const useVerifyEmail = () => {
 
             localStorage.removeItem("verification_email")
 
-            window.location.href = `http://localhost:${baseUrlPort}/login`
-
+            navigate("/login");
         } catch (err: any) {
             const validationError = err.response?.data?.error
 

@@ -213,7 +213,7 @@ func OrganizerProfileAdminNotificationEmail(adminEmail, organizerName, userEmail
 </p>`,
 		verb,
 		infoBox,
-		emailButton("#F59E0B", "https://ngevent.id/admin/organizers", "Review Organizer Profile"),
+		emailButton("#F59E0B", "http://localhost:5173/admin/event-owners", "Review Organizer Profile"),
 		emailDivider(),
 	)
 
@@ -265,7 +265,6 @@ func OrganizerProfileVerifiedEmail(email, organizerName string) error {
 <ul style="font-size:15px;line-height:2;color:#475569;padding-left:20px;margin:0 0 24px 0;">
   <li>Create and manage events</li>
   <li>Publish events to the public</li>
-  <li>Accept participants and transactions</li>
 </ul>
 
 %s
@@ -275,7 +274,7 @@ func OrganizerProfileVerifiedEmail(email, organizerName string) error {
 </p>`,
 		organizerName,
 		emailInfoBox("#F0FDF4", "#BBF7D0", `<p style="margin:0;font-size:14px;color:#166534;font-weight:500;">✅ Your profile is now active and visible on Ngevent.</p>`),
-		emailButton("#22C55E", "https://ngevent.id/organizer/dashboard", "Go to Dashboard"),
+		emailButton("#22C55E", "http://localhost:5173/organizer/dashboard", "Go to Dashboard"),
 		emailDivider(),
 	)
 
@@ -314,7 +313,7 @@ func OrganizerProfileRejectedEmail(email, organizerName, rejectedReason string) 
 </p>`,
 		organizerName,
 		reasonBox,
-		emailButton("#EF4444", "https://ngevent.id/organizer/profile", "Update My Profile"),
+		emailButton("#EF4444", "http://localhost:5173/profile", "Update My Profile"),
 		emailDivider(),
 	)
 
@@ -365,7 +364,7 @@ func AdminEventNotification(email, organizerName, eventName, EOEmail, status str
   Please log in to the admin dashboard to review and approve or reject this event.
 </p>`,
 		message, infoBox,
-		emailButton(color, "https://ngevent.id/admin/events", "Review Event"),
+		emailButton(color, "http://localhost:5173/admin/events/pending", "Review Event"),
 		emailDivider(),
 	)
 
@@ -405,7 +404,7 @@ func OrganizerEventNotification(email, organizerName, eventName string) error {
 <p style="margin:8px 0 0 0;font-size:13px;color:#166534;">Status: <strong>Pending Review</strong></p>`,
 			emailRow("Event Name", eventName),
 		)),
-		emailButton("#22C55E", "https://ngevent.id/organizer/events", "View My Events"),
+		emailButton("#22C55E", "http://localhost:5173/organizer/dashboard", "View My Events"),
 		emailDivider(),
 	)
 
@@ -515,10 +514,88 @@ func OrganizerUpdatedEventNotif(email, organizerName, eventName, status, reason 
   If you have any questions, please reach out to our support team.
 </p>`,
 		organizerName, message, eventBox, reasonBlock,
-		emailButton(color, "https://ngevent.id/organizer/events", "View My Events"),
+		emailButton(color, "http://localhost:5173/organizer/dashboard", "View My Events"),
 		emailDivider(),
 	)
 
 	htmlBody := emailWrapper(color, title, body)
 	return sendMail(email, subject+" — Ngevent", htmlBody)
+}
+
+
+
+func OrganizerEventRevertNotification(email, organizerName, eventName string) error {
+	eventBox := emailInfoBox("#FFFBEB", "#FDE68A", fmt.Sprintf(`
+%s
+<p style="margin:8px 0 0 0;font-size:13px;color:#92400E;">Status: <strong>Moved to Draft</strong></p>`,
+		emailRow("Event Name", eventName),
+	))
+
+	body := fmt.Sprintf(`
+<p style="font-size:15px;line-height:1.7;color:#475569;margin-bottom:16px;">
+  Hello <strong style="color:#1E293B;">%s</strong>,
+</p>
+<p style="font-size:15px;line-height:1.7;color:#475569;margin-bottom:0;">
+  We're sorry to inform you that your event submission could not be reviewed by our admin team within the allotted time.
+</p>
+
+%s
+
+<p style="font-size:15px;line-height:1.7;color:#475569;margin-bottom:0;">
+  Your event has been automatically moved back to <strong style="color:#1E293B;">draft</strong> status.
+  Don't worry — none of your event details have been lost. You're welcome to review the information
+  and resubmit it for approval whenever you're ready.
+</p>
+
+%s
+%s
+<p style="font-size:13px;color:#94A3B8;line-height:1.6;">
+  If you have any questions, please reach out to our support team.
+</p>`,
+		organizerName,
+		eventBox,
+		emailButton("#F59E0B", "http://localhost:5173/organizer/draft-event", "Resubmit My Event"),
+		emailDivider(),
+	)
+
+	htmlBody := emailWrapper("#F59E0B", "Event Moved to Draft", body)
+	return sendMail(email, "Your Event Submission Requires Resubmission — Ngevent", htmlBody)
+}
+
+func OrganizerUpdatedEventRevertNotification(email, organizerName, eventName string) error {
+	eventBox := emailInfoBox("#FFFBEB", "#FDE68A", fmt.Sprintf(`
+%s
+<p style="margin:8px 0 0 0;font-size:13px;color:#92400E;">Status: <strong>Update Request Discarded</strong></p>`,
+		emailRow("Event Name", eventName),
+	))
+
+	body := fmt.Sprintf(`
+<p style="font-size:15px;line-height:1.7;color:#475569;margin-bottom:16px;">
+  Hello <strong style="color:#1E293B;">%s</strong>,
+</p>
+<p style="font-size:15px;line-height:1.7;color:#475569;margin-bottom:0;">
+  We're sorry to inform you that the update you submitted for your event could not be reviewed by our admin team within the allotted time.
+</p>
+
+%s
+
+<p style="font-size:15px;line-height:1.7;color:#475569;margin-bottom:0;">
+  Unlike a new event submission, this update request has been <strong style="color:#1E293B;">discarded</strong> —
+  it will not be saved as a draft. Your original event remains live and unchanged, exactly as it was
+  before you submitted the update. If you'd still like to make these changes, please submit the update again.
+</p>
+
+%s
+%s
+<p style="font-size:13px;color:#94A3B8;line-height:1.6;">
+  If you have any questions, please reach out to our support team.
+</p>`,
+		organizerName,
+		eventBox,
+		emailButton("#F59E0B", "http://localhost:5173/organizer/dashboard", "View My Event"),
+		emailDivider(),
+	)
+
+	htmlBody := emailWrapper("#F59E0B", "Update Request Discarded", body)
+	return sendMail(email, "Your Event Update Requires Resubmission — Ngevent", htmlBody)
 }

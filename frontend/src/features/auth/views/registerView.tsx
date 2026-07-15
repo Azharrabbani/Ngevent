@@ -1,5 +1,4 @@
 import AuthContainer from "../components/container";
-import GoogleButton from "../components/googleButton";
 import RegisterForm from "../components/registerForm";
 import Link from "../../../components/link";
 import { useRegister } from "../hooks/useRegister";
@@ -13,8 +12,8 @@ export default function RegisterView() {
     const {
         mutateAsync: register,
         isPending,
-        error,
         errors,
+        generalError,
         isSuccess,
     } = useRegister();
 
@@ -50,7 +49,7 @@ export default function RegisterView() {
                 </h2>
 
                 <p className="text-center text-gray-500 mt-2 mb-6">
-                    Sign up to become an Event Organizer on Ngevent
+                    Sign up to become an Event Owner on Ngevent
                 </p>
 
                 <RegisterForm
@@ -65,9 +64,9 @@ export default function RegisterView() {
                     </p>
                 )}
 
-                {error && (
+                {generalError && (
                     <p className="text-red-500 mt-3 text-center">
-                        {(error as any)?.response?.data?.error}
+                        {generalError}
                     </p>
                 )}
 
@@ -76,8 +75,6 @@ export default function RegisterView() {
                     <p className="text-center text-sm">or</p>
                     <hr className="border-gray-300" />
                 </div>
-
-                <GoogleButton />
 
                 <hr className="border-gray-200 my-6" />
 

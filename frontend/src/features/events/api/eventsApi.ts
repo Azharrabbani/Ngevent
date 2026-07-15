@@ -7,6 +7,7 @@ import type { FilterEventsRequest, FilterOrganizerEventsRequest, FilterUpdatedEv
 import type { EventsResponse, RouteRespone, UpdateEventResponse } from "../types/eventResponse"
 import type { EventDetailResponse } from "../types/publicEventResponse"
 import type { ReportRequest } from "../types/reportRequesr"
+import type { RouteTestRequest, RouteTestResponse } from "../types/routeTest"
 
 export const SearchLocationApi = async (payload: locationReq) => {
     const res = await api.get<successResponse<locationResp[]>>("/location/", {
@@ -146,6 +147,13 @@ export const GetEventRouteApi = async (id: string, params: UserLatLonRequest) =>
 
     return res.data;
 }
+
+export const getRouteTestApi = async (params: RouteTestRequest) => {
+    const res = await api.get<{ data: RouteTestResponse }>("/event/test/route", {
+        params,
+    });
+    return res.data.data;
+};
 
 export const GetUpdateByEventIDApi = async (eventID: string, status: string) => {
     const res = await api.get<successResponse<UpdateEventResponse>>(`updated-event/${eventID}`, {

@@ -65,7 +65,7 @@ export default function ActiveEventList() {
 
     return (
         <AdminSidebar>
-            <>
+            <div className="p-3 w-full">
                 <EventList
                     status="active"
                     data={data}
@@ -89,7 +89,7 @@ export default function ActiveEventList() {
                     setSelectedYear={setSelectedYear}
                     setCurrentPage={setCurrentPage}
                 />
-            </>
+            </div>
         </AdminSidebar>
     )
 }

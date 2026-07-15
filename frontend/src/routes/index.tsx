@@ -34,6 +34,7 @@ import EventViewPublicPage from "../features/events/public/views/eventViewPage"
 import EventOwnerDashboard from "../features/events/public/views/eventOwnerDashboard"
 import OwnerViewPage from "../features/events/public/views/ownerViewPage"
 import ReportView from "../features/events/organizer/views/reportView"
+import RouteTestPage from "../features/testing/views/routeTestPage"
 
 export default function AppRoutes() {
     return (
@@ -89,8 +90,9 @@ export default function AppRoutes() {
 
                 <Route path="/admin" element={<ProtectedRoute />}>
                     <Route element={<RoleGuard allowedRoles={["admin"]} />}>
+                        <Route path="test/route" element={<RouteTestPage />} />
                         <Route path="dashboard" element={<AdminDashboard />} />
-                        <Route path="organizer-list" element={<OrganizerList />} />
+                        <Route path="event-owners" element={<OrganizerList />} />
                         <Route path="admin-list" element={<AdminList />} />
                         <Route path="events/active" element={<ActiveEventList />} />
                         <Route path="events/pending" element={<PendingEventList />} />

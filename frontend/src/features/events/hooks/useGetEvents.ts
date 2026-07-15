@@ -15,5 +15,6 @@ export const useGetEvents = (
         },
         staleTime: 1000 * 60 * 5,
         enabled,
+        refetchInterval: 5000 ,
     });
 };

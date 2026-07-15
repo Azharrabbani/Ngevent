@@ -10,5 +10,6 @@ export const useGetCurrentOrganizerProfile = (enabled?: boolean) => {
             return res.data;
         },
         enabled,
+        refetchInterval: 5000,
     });
 }

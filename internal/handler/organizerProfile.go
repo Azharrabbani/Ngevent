@@ -75,7 +75,7 @@ func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 				fiber.StatusBadRequest,
 				"failed",
 				"error",
-				"File is too big",
+				"Photo is too big. Please provide photo under 5MB",
 			))
 		}
 	} else {
@@ -88,12 +88,12 @@ func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 
 	if npwpFile != nil && nibFile != nil {
 		// Check pdf size
-		if npwpFile.Size > (100*1024*1024) || nibFile.Size > (100*1024*1024) {
+		if npwpFile.Size > (10*1024*1024) || nibFile.Size > (10*1024*1024) {
 			return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 				fiber.StatusBadRequest,
 				"failed",
 				"error",
-				"file for npwp or nib is too big",
+				"File for NPWP or NIB is too big. Please provide file under 10MB",
 			))
 		}
 	} else {
@@ -121,7 +121,7 @@ func (h *OrganizerProfileHandler) CreateProfile(c *fiber.Ctx) error {
 		Name:         name,
 		PhoneNumber:  phoneNumber,
 		ISO:          iso,
-		Address:      &address,
+		Address:      address,
 		SocialMedia: dto.OrganizerSocialMediaReq{
 			Email:     &email,
 			Instagram: &instagram,
@@ -409,6 +409,15 @@ func (h *OrganizerProfileHandler) UpdatePhotoProfile(c *fiber.Ctx) error {
 		))
 	}
 
+	if photo.Size > (5 * 1024 * 1024) {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest,
+			"failed",
+			"error",
+			"Photo is too big. Please provide photo under 5MB",
+		))
+	}
+
 	status, err := h.OrganizerService.UpdatePhotoProfile(photo, userID)
 	if err != nil {
 		return c.Status(status).JSON(dto.Error(
@@ -455,6 +464,18 @@ func (h *OrganizerProfileHandler) UpdateProfile(c *fiber.Ctx) error {
 	// OPTIONAL FILE
 	npwpFile, _ := c.FormFile("npwp_file")
 	nibFile, _ := c.FormFile("nib_file")
+
+	// Check pdf size
+	if npwpFile != nil && nibFile != nil {
+		if npwpFile.Size > (10*1024*1024) || nibFile.Size > (10*1024*1024) {
+			return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+				fiber.StatusBadRequest,
+				"failed",
+				"error",
+				"File for NPWP or NIB is too big. Please provide file under 10MB",
+			))
+		}
+	}
 
 	name := c.FormValue("name")
 	phoneNumber := c.FormValue("phonenumber")

@@ -12,5 +12,6 @@ export const useGetUpdateByEventID = (eventID: string, status: string) => {
         staleTime: 1000 * 60 * 5,
         retry: false,
         throwOnError: false,
+        refetchInterval: 30000,
     });
 };

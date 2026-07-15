@@ -11,5 +11,6 @@ export const useListUsers = (params: UserQueryParams) => {
             return res.data;
         },
         staleTime: 1000 * 60 * 5,
+        refetchInterval: 30000,
     })
 }

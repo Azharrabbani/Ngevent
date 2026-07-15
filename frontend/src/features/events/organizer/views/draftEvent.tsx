@@ -70,7 +70,6 @@ export default function DraftEvents() {
         const delay = setTimeout(() => {
             setCurrentPage(1);
         }, 500);
-
         return () => clearTimeout(delay);
     }, [location, event]);
 

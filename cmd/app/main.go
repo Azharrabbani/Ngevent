@@ -114,6 +114,7 @@ func main() {
 	server.RegisterUpdatedEventRoutes(updateEventHandler)
 	server.RegisterLocationRoutes(locationHandler)
 	server.RegisterReportRoutes(reportHandler)
+	server.RegisterTestRoutes()
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

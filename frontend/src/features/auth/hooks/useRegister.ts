@@ -8,8 +8,8 @@ import { useState } from "react";
 export const useRegister = () => {
     const queryClient = useQueryClient();
 
-    const [errors, setErrors] =
-        useState<Record<string, string>>({});
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [generalError, setGeneralError] = useState<string>("");
 
     const mutation = useMutation({
         mutationFn: (payload: RegisterRequest) =>
@@ -17,6 +17,7 @@ export const useRegister = () => {
 
         onMutate: () => {
             setErrors({});
+            setGeneralError("");
         },
 
         onSuccess: (data, variables) => {
@@ -56,15 +57,14 @@ export const useRegister = () => {
                 return;
             }
 
-            toast.error(
-                err?.response?.data?.error ||
-                "Failed register"
-            );
+            setGeneralError(err?.response?.data?.error || "Failed register");
+
         },
     });
 
     return {
         ...mutation,
+        generalError,
         errors,
     };
 };

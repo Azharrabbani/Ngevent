@@ -7,7 +7,7 @@ interface Props {
     onClick?: () => void;
 }
 
-export default function EventCard({ event, onClick }: Props) {
+export default function OwnerEventCard({ event, onClick }: Props) {
     const date = eventDateRange(event.start_date, event.end_date);
     return (
         <div

@@ -59,7 +59,7 @@ export default function AdminSidebar({ children }: Props) {
             subMenu: true,
             subMenuItems: [
                 { title: "Admin", path: "/admin/admin-list" },
-                { title: "Organizer", path: "/admin/organizer-list" },
+                { title: "Event Owners", path: "/admin/event-owners" },
             ],
         },
         {
@@ -170,9 +170,12 @@ export default function AdminSidebar({ children }: Props) {
                         />
                     </div>
                     {!userLoading && user && (
-                        <h1 className="text-center text-white text-sm break-all px-2">
-                            {user.email}
-                        </h1>
+                        <div className="text-white flex flex-col items-center justify-center">
+                            <h1 className="text-lg">
+                                Event Manager
+                            </h1>
+                            <p className="text-sm">Global administration</p>
+                        </div>
                     )}
                 </div>
 

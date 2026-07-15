@@ -33,7 +33,7 @@ export default function SelectItems({
             >
                 {selectedItems.length > 0 ? (
                     <div className="flex-1 min-w-0 flex flex-wrap gap-2 max-h-20 overflow-y-auto">
-                         {selectedItems.map((id) => {
+                        {selectedItems.map((id) => {
                             const item = items?.find((item) => item.id === id);
                             return (
                                 <span
@@ -50,7 +50,7 @@ export default function SelectItems({
                                             toogleItem(id)
                                         }}
                                     >
-                                        <IoClose size={16}/>
+                                        <IoClose size={16} />
                                     </button>
                                 </span>
                             )
@@ -61,13 +61,12 @@ export default function SelectItems({
                         {placeholder}
                     </span>
                 )}
-                <IoChevronDown className={`ml-auto shrink-0 mt-1 transition ${
-                  isItemOpen ? "rotate-180" : ""
-                }`}/>
+                <IoChevronDown className={`ml-auto shrink-0 mt-1 transition ${isItemOpen ? "rotate-180" : ""
+                    }`} />
             </div>
-            
+
             {isItemOpen && (
-                <div className="absolute z-50 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-72 overflow-y-auto">
+                <div className="absolute z-[110] mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-72 overflow-y-auto">
                     {itemsLoading ? (
                         <span className="w-full px-4 py-4 flex items-center justify-between text-left">Loading...</span>
                     ) : !items?.length ? (
@@ -79,7 +78,7 @@ export default function SelectItems({
                                 type="button"
                                 onClick={() => toogleItem(item.id)}
                                 className="w-full px-4 py-4 flex items-center justify-between hover:bg-gray-50 text-left"
-                            >   
+                            >
                                 <span>{item.name}</span>
                                 {selectedItems.includes(item.id) && (
                                     <IoCheckmark

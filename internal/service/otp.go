@@ -45,7 +45,7 @@ func (s *OTPService) ResendOTPCode(email string) (int, error) {
 	// Find user
 	user, err := s.UserRepo.FindByEmail(email)
 	if err != nil {
-		return fiber.StatusNotFound, errors.New("user with this email not found")
+		return fiber.StatusNotFound, errors.New("account not found or has expired. Please register again")
 	}
 
 	// Delete the task

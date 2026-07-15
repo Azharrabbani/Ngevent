@@ -104,6 +104,7 @@ export const GetOrganizersProfileApi = async (params: FilterOrganizerReq) => {
         params: {
             filter: params.filter,
             status: params.status,
+            request_updates: params.request_updates ?? undefined,
             page: params.pagination?.page,
             limit: params.pagination?.limit,
             sort: params.pagination?.sort,
@@ -111,7 +112,7 @@ export const GetOrganizersProfileApi = async (params: FilterOrganizerReq) => {
     });
 
     return res.data;
-}
+};
 
 
 export const GetPublicOrganizersApi = async (params: FilterOrganizerReq) => {

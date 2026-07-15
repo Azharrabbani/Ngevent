@@ -3,7 +3,10 @@ import type { FilterEventsRequest } from "../types/eventRequest";
 import { getEventsActiveApi } from "../api/eventsApi";
 import { eventsKeys } from "../../../utils/cacheKey";
 
-export const useGetEventsActive = (params: Omit<FilterEventsRequest, "pagination"> & { limit?: number }) => {
+export const useGetEventsActive = (
+    params: Omit<FilterEventsRequest, "pagination"> & { limit?: number },
+    enabled: boolean = true
+) => {
     return useInfiniteQuery({
         queryKey: eventsKeys.list({ ...params, type: "infinite" }),
         queryFn: async ({ pageParam = 1 }: { pageParam: number }) => {
@@ -22,5 +25,7 @@ export const useGetEventsActive = (params: Omit<FilterEventsRequest, "pagination
             return nextPage <= lastPage.total_pages ? nextPage : undefined;
         },
         staleTime: 1000 * 60 * 5,
+        refetchInterval: 5000,
+        enabled,
     });
 };

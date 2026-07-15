@@ -12,12 +12,10 @@ export function useReviewEvent() {
             toast.success("Event successfully reviewed")
             queryClient.invalidateQueries({
                 queryKey: eventsKeys.all,
-                refetchType: "active",
             });
 
             queryClient.invalidateQueries({
                 queryKey: eventsPublicKeys.all,
-                refetchType: "active",
             });
         },
         onError: (error: any) => {

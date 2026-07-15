@@ -11,5 +11,6 @@ export const useGetOrganizerEvents = (params: FilterEventsRequest) => {
             return res.data;
         },
         staleTime: 1000 * 60 * 5,
+        refetchInterval: 5000,
     });
 };

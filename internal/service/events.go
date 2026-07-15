@@ -13,7 +13,6 @@ import (
 	"ngevent/internal/model"
 	"ngevent/internal/repository"
 	"ngevent/internal/utils"
-	"ngevent/internal/utils/analytics"
 	"ngevent/internal/utils/helper"
 	"os"
 	"path/filepath"
@@ -25,7 +24,11 @@ import (
 type NewTaskEventExpiryPublisher interface {
 	EnqueueEventExpiry(payload *model.EventExpiredPayload, endTime time.Time) error
 	EnqueueUpdatedEventExpiry(payload *model.UpdatedEventExpiredPayload, endTime time.Time) error
+	EnqueueDraftRevert(payload *model.DraftRevertPayload, revertAt time.Time) error
+	EnqueueUpdatedDraftRevert(payload *model.UpdatedDraftRevertPayload, revertAt time.Time) error
 	CancelEventExpiry(eventID string) error
+	CancelDraftRevert(eventID string) error
+	CancelUpdatedDraftRevert(updatedEventID string) error
 }
 
 type EventService struct {
@@ -68,6 +71,11 @@ var eventCache []string = []string{
 	"events:nearest:*",
 	"organizer_events:all:*",
 }
+
+var (
+	ErrEventNotFound    = errors.New("event not found")
+	ErrRouteUnavailable = errors.New("route unavailable")
+)
 
 func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventReq) error {
 	// Search the eo profile
@@ -138,7 +146,7 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 		EndTime:       endTime,
 	}
 
-	if req.Status == string(model.Pending) {
+	if status == string(model.Pending) {
 		now := time.Now().UTC()
 		event.SubmittedAt = &now
 	}
@@ -167,6 +175,8 @@ func (s *EventService) CreateEvent(banner *multipart.FileHeader, req *dto.EventR
 		if err != nil {
 			log.Println("[ERROR] admin data not found")
 		}
+
+		s.ScheduleDraftRevert(event)
 
 		for _, admin := range admins {
 			AdminEmailPayload := &model.EventEmailPayload{
@@ -218,6 +228,10 @@ func (s *EventService) ReviewEvent(req *dto.ReviewEventReq) error {
 
 	if err := s.EventRepo.ReviewEvent(event); err != nil {
 		return err
+	}
+
+	if err := s.EventExpiryPublisher.CancelDraftRevert(event.ID); err != nil {
+		log.Printf("[DRAFT-REVERT] failed to cancel for event %s: %v", event.ID, err)
 	}
 
 	if req.Status == string(model.Active) {
@@ -531,24 +545,35 @@ func (s *EventService) GetEventBySlug(slug string, userLat, userLon float64) (*d
 func (s *EventService) GetEventRoute(id string, userLat, userLon float64) (*dto.RouteResp, error) {
 	event, err := s.EventRepo.FindByID(id)
 	if err != nil {
-		return nil, errors.New("event not found")
+		return nil, ErrEventNotFound
 	}
 
-	distance, path := utils.ComputePathToEvent(userLat, userLon, event.Name, event.Lat, event.Lon)
-
-	// Compute analytic in background
-	go func() {
-		user := model.Location{Name: "user", Lat: userLat, Lon: userLon}
-		eventLoc := model.Location{Name: event.Name, Lat: event.Lat, Lon: event.Lon}
-		events := []model.Location{eventLoc}
-
-		go analytics.ComputeAnalytic(user, events)
-	}()
+	result, err := utils.ComputePathToEvent(userLat, userLon, event.Name, event.Lat, event.Lon)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrRouteUnavailable, err.Error())
+	}
 
 	return &dto.RouteResp{
-		Event:    event.Name,
-		Distance: distance,
-		Path:     path,
+		Event:          event.Name,
+		Distance:       result.Distance,
+		Path:           result.Path,
+		DijkstraCost:   result.DijkstraCost,
+		DijkstraTimeMs: result.DijkstraTimeMs,
+	}, nil
+}
+
+func (s *EventService) GetRouteBetweenPoints(req *dto.RouteTestReq) (*dto.RouteResp, error) {
+	result, err := utils.ComputePathToEvent(req.FromLat, req.FromLon, req.ToName, req.ToLat, req.ToLon)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.RouteResp{
+		Event:          req.ToName,
+		Distance:       result.Distance,
+		Path:           result.Path,
+		DijkstraCost:   result.DijkstraCost,
+		DijkstraTimeMs: result.DijkstraTimeMs,
 	}, nil
 }
 
@@ -604,6 +629,21 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 		return "", errors.New(fmt.Sprintf("event status is %s", event.Status))
 	}
 
+	// Convert unix to date
+	startDate := helper.ConvertUnixToDate(req.StartDate)
+	endDate := helper.ConvertUnixToDate(req.EndDate)
+
+	startTime := helper.ConvertUnixToTime(req.StartTime)
+	endTime := helper.ConvertUnixToTime(req.EndTime)
+
+	if startTime.After(endTime) {
+		return "", errors.New("start time must be before end time")
+	}
+
+	if endTime.Before(startTime) {
+		return "", errors.New("end time must be after current time")
+	}
+
 	// If event status already active
 	// The organizer can't update it to draft
 	if event.Status == string(model.Active) && req.Status == string(model.Draft) {
@@ -625,11 +665,12 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 		// Invalidate cache after update
 		utils.InvalidateCache(s.rdb, updatedEventCache)
 
-		// Email the admins
 		admins, err := s.UserRepo.FindByRole(string(model.Admin))
 		if err != nil {
 			log.Println("[ERROR] admin data not found")
 		}
+
+		s.UpdateScheduleDraftRevert(updatedEvent)
 
 		for _, admin := range admins {
 			AdminEmailPayload := &model.EventEmailPayload{
@@ -652,13 +693,6 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	if err != nil {
 		return "", err
 	}
-
-	// Convert unix to date
-	startDate := helper.ConvertUnixToDate(req.StartDate)
-	endDate := helper.ConvertUnixToDate(req.EndDate)
-
-	startTime := helper.ConvertUnixToTime(req.StartTime)
-	endTime := helper.ConvertUnixToTime(req.EndTime)
 
 	// Get coordinates from req
 	location := getLocation(req.Address.Lat, req.Address.Long, req.Address)
@@ -727,6 +761,8 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 			log.Println("[ERROR] admin data not found")
 		}
 
+		s.ScheduleDraftRevert(event)
+
 		statusStr := string(model.Update)
 		if originalStatus == string(model.Draft) {
 			statusStr = string(model.Create)
@@ -740,6 +776,7 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 				EventName: event.Name,
 				Status:    statusStr,
 			}
+
 			if err := s.EmailTaskPublisher.Enqueue(model.TypeEventAdminNotification, AdminEmailPayload); err != nil {
 				log.Printf("[EMAIL] failed sending email to admin %s\n", admin.Email)
 			}
@@ -747,6 +784,34 @@ func (s *EventService) UpdateEvent(banner *multipart.FileHeader, req *dto.EventR
 	}
 
 	return "event updated", nil
+}
+
+func (s *EventService) ScheduleDraftRevert(event *model.Events) {
+	deadline := event.SubmittedAt.Add(72 * time.Hour)
+
+	if event.StartTime.Before(deadline) {
+		deadline = event.StartTime
+	}
+
+	payload := &model.DraftRevertPayload{EventID: event.ID}
+	if err := s.EventExpiryPublisher.EnqueueDraftRevert(payload, deadline); err != nil {
+		log.Printf("[DRAFT-REVERT] failed to enqueue for event %s: %v", event.ID, err)
+	}
+}
+
+func (s *EventService) UpdateScheduleDraftRevert(updatedEvent *model.UpdatedEvents) {
+	deadline := updatedEvent.SubmittedAt.Add(72 * time.Hour)
+	if updatedEvent.StartTime.Before(deadline) {
+		deadline = updatedEvent.StartTime
+	}
+
+	payload := &model.UpdatedDraftRevertPayload{
+		UpdatedEventID: updatedEvent.ID,
+		EventID:        updatedEvent.EventID,
+	}
+	if err := s.EventExpiryPublisher.EnqueueUpdatedDraftRevert(payload, deadline); err != nil {
+		log.Printf("[DRAFT-REVERT] failed to enqueue for updated event %s: %v", updatedEvent.ID, err)
+	}
 }
 
 func (s *EventService) CancelEvent(id, userID string) error {
@@ -778,14 +843,35 @@ func (s *EventService) CancelEvent(id, userID string) error {
 		return errors.New("event cannot be cancelled less than 3 days before it starts")
 	}
 
+	tx := s.EventRepo.GetDB().Begin()
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
+
 	// Cancel event
-	if err := s.EventRepo.CancelEvent(event.ID); err != nil {
+	if err := s.EventRepo.CancelEvent(tx, event.ID); err != nil {
 		log.Printf("[ERROR] error canceling event %v\n", err)
 		return errors.New("failed to cancel")
 	}
 
 	if err := s.EventExpiryPublisher.CancelEventExpiry(event.ID); err != nil {
+		tx.Rollback()
 		log.Printf("[EXPIRY] failed to cancel expiry task for event %s: %v", event.ID, err)
+	}
+
+	if err := s.EventExpiryPublisher.CancelDraftRevert(event.ID); err != nil {
+		tx.Rollback()
+		log.Printf("[DRAFT-REVERT] failed to cancel revert for event %s: %v", event.ID, err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		log.Printf("[ERROR] error canceling event %v\n", err)
+		return errors.New("failed to cancel")
 	}
 
 	// Invalidate cache after update
@@ -855,8 +941,10 @@ func (s *EventService) BuildStagedUpdate(banner *multipart.FileHeader, event *mo
 		}
 	}
 
+	now := time.Now().UTC()
 	updatedEvent := &model.UpdatedEvents{
 		EventID:       event.ID,
+		SubmittedAt:   now,
 		Name:          req.Name,
 		Banner:        &bannerFileName,
 		Slug:          utils.GenerateEventSlug(req.Name),

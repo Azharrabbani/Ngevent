@@ -13,6 +13,7 @@ import RejectReasonModal from "./modal/rejectReasonModal";
 import { groupEventsByUrgency } from "../../utils/eventUrgency";
 import UrgencyGroupHeader from "./header/urgencyGroupHeader";
 import UrgencyBadge from "./badge/urgencyBadge";
+import { useReviewUpdatedEvent } from "../../../events/hooks/useReviewUpdateEvent";
 
 interface Props {
     status: string;
@@ -20,24 +21,38 @@ interface Props {
     isReview: boolean;
     sort?: string;
     setSort?: React.Dispatch<React.SetStateAction<string | undefined>>;
+    getUpdate?: boolean;
 }
 
-export default function EventTable({ status, isReview, data }: Props) {
+export default function EventTable({ status, isReview, data, getUpdate }: Props) {
     const navigate = useNavigate();
     const { mutateAsync: reviewEvent, isPending } = useReviewEvent();
+    const { mutateAsync: reviewUpdatedEvent, isPending: isReviewUpdatePending } = useReviewUpdatedEvent();
 
     const [approveTarget, setApproveTarget] = useState<EventsResponse | null>(null);
     const [rejectTarget, setRejectTarget] = useState<EventsResponse | null>(null);
 
     const handleApprove = async () => {
         if (!approveTarget) return;
-        await reviewEvent({ id: approveTarget.id, status: "active" });
+        if (getUpdate) {
+            const updateEvent = approveTarget?.update_request_id || ""
+            await reviewUpdatedEvent({ id: updateEvent, status: "approved" });
+        } else {
+            await reviewEvent({ id: approveTarget.id, status: "active" });
+        }
+        navigate("/admin/events/pending");
         setApproveTarget(null);
     };
 
     const handleReject = async (reason: string) => {
         if (!rejectTarget) return;
-        await reviewEvent({ id: rejectTarget.id, status: "rejected", reason });
+        if (getUpdate) {
+            const updateEvent = rejectTarget?.update_request_id || ""
+            await reviewUpdatedEvent({ id: updateEvent, status: "rejected", reason });
+        } else {
+            await reviewEvent({ id: rejectTarget.id, status: "rejected", reason });
+        }
+        navigate("/admin/events/pending");
         setRejectTarget(null);
     };
 
@@ -199,14 +214,14 @@ export default function EventTable({ status, isReview, data }: Props) {
                     setApproveTarget(null);
                 }}
                 onApprove={handleApprove}
-                isPending={isPending}
+                isPending={isPending || isReviewUpdatePending}
             />
 
             <RejectReasonModal
                 isOpen={!!rejectTarget}
                 onClose={() => setRejectTarget(null)}
                 onSubmit={handleReject}
-                isPending={isPending}
+                isPending={isPending || isReviewUpdatePending}
             />
         </>
     );

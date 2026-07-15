@@ -12,15 +12,12 @@ export function useReviewUpdatedEvent() {
             toast.success("Event update successfully reviewed")
             queryClient.invalidateQueries({
                 queryKey: eventsKeys.all,
-                refetchType: "active",
             });
             queryClient.invalidateQueries({
                 queryKey: updateEventKeys.all,
-                refetchType: "active",
             });
             queryClient.invalidateQueries({
                 queryKey: eventsPublicKeys.all,
-                refetchType: "active",
             });
         },
         onError: (error: any) => {

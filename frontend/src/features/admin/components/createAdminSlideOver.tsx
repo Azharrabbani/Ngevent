@@ -82,7 +82,7 @@ export default function CreateAdminSlideOver({ isOpen, onClose }: Props) {
                         </label>
                         <Input
                             ref={inputRef}
-                            type="text"
+                            type="email"
                             placeholder="e.g. [EMAIL_ADDRESS]"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}

@@ -26,7 +26,7 @@ func New() *FiberServer {
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,
 			IdleTimeout:  60 * time.Second,
-			BodyLimit:    10 * 1024 * 1024,
+			BodyLimit:    50 * 1024 * 1024,
 			ServerHeader: "ngevent",
 			AppName:      "ngevent",
 

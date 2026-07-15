@@ -141,7 +141,7 @@ export default function OrganizerComparePreview({
 
                     <div className="p-5 space-y-4 text-sm">
                         <InfoItem label="Name" value={requestUpdate.name} />
-                        <InfoItem label="Email" value={requestUpdate.email} />
+                        <InfoItem label="Secondary Email" value={requestUpdate.email} />
                         <InfoItem label="Phone" value={requestUpdate.phone_number} />
                         <InfoItem label="Country" value={requestUpdate.country} />
                         <InfoItem label="Address" value={requestUpdate.address} />
@@ -219,7 +219,7 @@ export default function OrganizerComparePreview({
                         className="bg-white p-6 rounded-xl w-full max-w-md border-2 border-black shadow-[6px_6px_0px_black]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <h2 className="font-bold text-lg mb-3">Reject Reason</h2>
+                        <h2 className="font-bold text-lg mb-3">Reject Event Owner</h2>
 
                         <textarea
                             className="w-full p-3 rounded-lg bg-gray-100 outline-none resize-none"

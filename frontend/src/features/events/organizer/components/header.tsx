@@ -5,6 +5,7 @@ import type { categoriesResp } from "../../../categories/types/categoryResponse"
 import { useNavigate } from "react-router-dom";
 import type { DateFilterType } from "../../../../utils/dateFilter";
 import DateFilterDropdown from "../../../../components/dateFilter/dateFilterDropdown";
+import { LOCATIONS } from "../../../../features/events/public/constants/location";
 
 interface Props {
     organizerName: string | undefined;
@@ -149,21 +150,31 @@ export default function Header({
 
                                     {/* LOCATION */}
                                     {menu.title === "Location" && (
-                                        <form
-                                            onSubmit={(e) => {
-                                                e.preventDefault();
-                                            }}
-                                            className="relative"
-                                        >
-                                            <input
-                                                type="text"
-                                                placeholder="Enter Location..."
-                                                value={location}
-                                                onChange={(e) => setLocation(e.target.value)}
-                                                className="w-full border px-3 py-2 rounded-lg pr-10 focus:ring-2 focus:ring-blue-400"
-                                            />
-                                            <IoIosSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                        </form>
+                                        <div className="flex flex-col gap-2">
+                                            {LOCATIONS.map((loc) => {
+                                                const isSelected =
+                                                    loc === "All Locations" ? !location : location === loc;
+
+                                                return (
+                                                    <div
+                                                        key={loc}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setLocation(loc === "All Locations" ? undefined : loc);
+                                                            setActiveMenu(null);
+                                                        }}
+                                                        className={`flex justify-between items-center px-2 py-1 rounded cursor-pointer
+                        ${isSelected
+                                                                ? "bg-blue-100 text-blue-600 font-medium"
+                                                                : "hover:bg-gray-100"
+                                                            }`}
+                                                    >
+                                                        <span>{loc}</span>
+                                                        {isSelected && "✔"}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     )}
 
                                     {/* DATE */}

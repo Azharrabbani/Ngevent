@@ -164,13 +164,20 @@ export default function OrganizerProfileForm({ profile }: Props) {
     };
 
     const status = profile?.status?.status;
-
+    const requestUpdate = profile?.request_updates;
+    const showCloseButton = status === "approved" && !requestUpdate;
+    
     useEffect(() => {
         return () => {
             if (npwpBlobUrl && npwpBlobUrl.startsWith("blob:")) URL.revokeObjectURL(npwpBlobUrl)
+        }
+    }, [npwpBlobUrl])
+
+    useEffect(() => {
+        return () => {
             if (nibBlobUrl && nibBlobUrl.startsWith("blob:")) URL.revokeObjectURL(nibBlobUrl)
         }
-    }, [npwpBlobUrl, nibBlobUrl])
+    }, [nibBlobUrl])
 
     return (
         <>
@@ -238,6 +245,17 @@ export default function OrganizerProfileForm({ profile }: Props) {
                         </div>
                     )}
                 </UploadPhoto>
+
+                {requestUpdate && (
+                    <div className="space-y-0 text-center">
+                        <p className="italic text-sm text-yellow-600">
+                            Your update is currently being reviewed by the admin.
+                        </p>
+                        <p className="italic text-sm text-gray-500">
+                            Please wait for the approval process to be completed.
+                        </p>
+                    </div>
+                )}
 
                 {status === "pending" && (
                     <div className="space-y-0 text-center">
@@ -355,6 +373,7 @@ export default function OrganizerProfileForm({ profile }: Props) {
                         type="text"
                         {...register("npwp", { required: "NPWP number is required" })}
                         placeholder="00-000-000-00"
+                        error={errors.npwp?.message}
                     />
                     <Input
                         className="p-2 sm:p-3 text-sm sm:text-base"
@@ -362,6 +381,7 @@ export default function OrganizerProfileForm({ profile }: Props) {
                         type="text"
                         {...register("nib", { required: "NIB number is required" })}
                         placeholder="00-000-000-00"
+                        error={errors.nib?.message}
                     />
                 </div>
 
@@ -422,15 +442,20 @@ export default function OrganizerProfileForm({ profile }: Props) {
                 </div>
 
 
-                <div className="flex flex-col sm:flex-row gap-6 sm:gap-6 justify-between mt-2">
-                    <Button
-                        type="button"
-                        className="rounded-md px-4 text-red-600 bg-white border border-red-300 hover:bg-red-50"
-                        onClick={() => setShowCloseModal(true)}
-                        disabled={isClosePending}
-                    >
-                        Close Account
-                    </Button>
+                <div
+                    className={`flex flex-col sm:flex-row gap-6 sm:gap-6 mt-2 ${showCloseButton ? "justify-between" : "justify-end"
+                        }`}
+                >
+                    {showCloseButton && (
+                        <Button
+                            type="button"
+                            className="rounded-md px-4 text-red-600 bg-white border border-red-300 hover:bg-red-50"
+                            onClick={() => setShowCloseModal(true)}
+                            disabled={isClosePending}
+                        >
+                            Close Account
+                        </Button>
+                    )}
 
                     <div className="flex flex-col sm:flex-row gap-3">
                         <Button
@@ -440,6 +465,7 @@ export default function OrganizerProfileForm({ profile }: Props) {
                         >
                             Back To Home
                         </Button>
+
                         <Button
                             type="submit"
                             disabled={!isDirty || isProfilePending}

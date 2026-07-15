@@ -59,9 +59,11 @@ type PathPoint struct {
 }
 
 type RouteResp struct {
-	Event    string      `json:"event"`
-	Distance string      `json:"distance"`
-	Path     []PathPoint `json:"path"`
+	Event          string      `json:"event"`
+	Distance       string      `json:"distance"`
+	Path           []PathPoint `json:"path"`
+	DijkstraCost   float64     `json:"dijkstra_cost"`
+	DijkstraTimeMs float64     `json:"dijkstra_time_ms"`
 }
 
 type EventFilterReq struct {

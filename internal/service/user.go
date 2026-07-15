@@ -192,6 +192,9 @@ func (s *UserService) RegisterAdmin(email, password, confirmPassword string) (*d
 		return nil, err
 	}
 
+	// Invalidate cache after update
+	utils.InvalidateCache(s.rdb, userCache)
+
 	return userResp, nil
 
 }
@@ -298,9 +301,6 @@ func (s *UserService) DeleteUnverifiedUser(id string) error {
 	if err := s.UserRepo.Delete(id); err != nil {
 		return err
 	}
-
-	// Invalidate cache after update
-	utils.InvalidateCache(s.rdb, userCache)
 
 	return nil
 }

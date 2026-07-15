@@ -101,6 +101,7 @@ export default function EventList({
                         isReview={reviewEvent}
                         sort={sort}
                         setSort={setSort}
+                        getUpdate={getUpdate}
                     />
 
                     <EventCard
@@ -110,6 +111,7 @@ export default function EventList({
                         isReview={reviewEvent}
                         sort={sort}
                         setSort={setSort}
+                        getUpdate={getUpdate}
                     />
 
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 md:px-8 py-4 border-t border-gray-100">

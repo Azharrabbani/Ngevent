@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"net/url"
@@ -24,27 +25,36 @@ type OverpassElement struct {
 	Tags  map[string]string `json:"tags"`
 }
 
-// FetchRoadGraph queries Overpass API for road topology within a bounding box.
-func FetchRoadGraph(minLat, minLon, maxLat, maxLon float64) (map[int64]*model.OSMNode, [][]int64, error) {
+type SnapResult struct {
+	VirtualKey string
+	Lat, Lon   float64
+	NodeAKey   string
+	NodeBKey   string
+	DistToA    float64
+	DistToB    float64
+	IsOneway   bool
+	NodeAID    int64
+	NodeBID    int64
+}
+
+func FetchRoadGraph(minLat, minLon, maxLat, maxLon float64) (map[int64]*model.OSMNode, []model.OSMWay, error) {
 	query := fmt.Sprintf(`
-		[out:json][timeout:30];
-		(
-		  way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street)$"]
-		     (%f,%f,%f,%f);
-		);
-		(._;>;);
-		out body;
-	`, minLat, minLon, maxLat, maxLon)
+    [out:json][timeout:30];
+    (
+
+      way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|primary_link|secondary_link|motorway_link|trunk_link|living_street|service|road)$"]
+         (%f,%f,%f,%f);
+    );
+    (._;>;);
+    out body;
+`, minLat, minLon, maxLat, maxLon)
 
 	apiURL := "https://overpass-api.de/api/interpreter?data=" + url.QueryEscape(query)
-
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("overpass build request failed: %w", err)
 	}
-
 	req.Header.Set("User-Agent", "ngevent-app/1.0")
-	req.Header.Set("Accept", "application/json")
 
 	client := &http.Client{Timeout: 35 * time.Second}
 	resp, err := client.Do(req)
@@ -55,7 +65,7 @@ func FetchRoadGraph(minLat, minLon, maxLat, maxLon float64) (map[int64]*model.OS
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, nil, fmt.Errorf("overpass returned HTTP %d: %s", resp.StatusCode, string(body))
+		return nil, nil, fmt.Errorf("overpass HTTP %d: %s", resp.StatusCode, string(body))
 	}
 
 	var result OverpassResponse
@@ -64,7 +74,7 @@ func FetchRoadGraph(minLat, minLon, maxLat, maxLon float64) (map[int64]*model.OS
 	}
 
 	nodes := make(map[int64]*model.OSMNode)
-	var ways [][]int64
+	var ways []model.OSMWay
 
 	for _, el := range result.Elements {
 		switch el.Type {
@@ -75,49 +85,43 @@ func FetchRoadGraph(minLat, minLon, maxLat, maxLon float64) (map[int64]*model.OS
 				Lon: el.Lon,
 			}
 		case "way":
-			if len(el.Nodes) > 0 {
-				ways = append(ways, el.Nodes)
+			if len(el.Nodes) < 2 {
+				continue
 			}
+			onewayTag := el.Tags["oneway"]
+			isOneway := onewayTag == "yes" || onewayTag == "1" || onewayTag == "true"
+			isReverse := onewayTag == "-1" || onewayTag == "reverse"
+
+			if el.Tags["highway"] == "motorway" && onewayTag == "" {
+				isOneway = true
+			}
+			if el.Tags["junction"] == "roundabout" {
+				isOneway = true
+			}
+
+			ways = append(ways, model.OSMWay{
+				Nodes:   el.Nodes,
+				Name:    el.Tags["name"],
+				Highway: el.Tags["highway"],
+				Oneway:  isOneway,
+				Reverse: isReverse,
+			})
 		}
 	}
 
-	// Assign street names from ways onto their nodes
-	for _, el := range result.Elements {
-		if el.Type != "way" {
+	// Assign street name ke nodes
+	for _, way := range ways {
+		if way.Name == "" {
 			continue
 		}
-		streetName := el.Tags["name"]
-		if streetName == "" {
-			continue
-		}
-		for _, nodeID := range el.Nodes {
+		for _, nodeID := range way.Nodes {
 			if n, ok := nodes[nodeID]; ok && n.StreetName == "" {
-				n.StreetName = streetName
+				n.StreetName = way.Name
 			}
 		}
 	}
 
 	return nodes, ways, nil
-}
-
-// SnapToGraph finds the nearest OSM node ID to a given lat/lon.
-func SnapToGraph(lat, lon float64, nodes map[int64]*model.OSMNode) (int64, bool) {
-	if len(nodes) == 0 {
-		return 0, false
-	}
-
-	minDist := math.Inf(1)
-	var nearest int64
-
-	for id, node := range nodes {
-		d := Haversine(lat, lon, node.Lat, node.Lon)
-		if d < minDist {
-			minDist = d
-			nearest = id
-		}
-	}
-
-	return nearest, true
 }
 
 func BoundingBox(user model.Location, events []model.Location, paddingKm float64) (minLat, minLon, maxLat, maxLon float64) {
@@ -141,46 +145,98 @@ func BoundingBox(user model.Location, events []model.Location, paddingKm float64
 		}
 	}
 
-	// ~1 degree lat ≈ 111 km
 	pad := paddingKm / 111.0
 	minLat -= pad
 	maxLat += pad
 	minLon -= pad
 	maxLon += pad
-
 	return
 }
 
-// BuildGraphFromOSM constructs a full road graph from OSM nodes/ways,
-// then injects user and event nodes snapped to their nearest road nodes.
+func highwayWeight(highway string) float64 {
+	switch highway {
+
+	case "motorway":
+		return 10.0
+
+	case "motorway_link":
+		return 8.0
+
+	case "trunk":
+		return 1.0
+
+	case "trunk_link":
+		return 1.05
+
+	case "primary":
+		return 1.1
+
+	case "primary_link":
+		return 1.15
+
+	case "secondary":
+		return 1.3
+
+	case "secondary_link":
+		return 1.35
+
+	case "tertiary":
+		return 1.6
+
+	case "residential":
+		return 2.5
+
+	case "road":
+		return 3.0
+
+	case "service":
+		return 4.0
+
+	case "living_street":
+		return 5.0
+
+	default:
+		return 4.0
+	}
+}
+
+// BuildGraphFromOSM builds a directed graph from OSM data.
+// Returns: graph pointer + snapCoords (virtual snap nodes)
+
 func BuildGraphFromOSM(
 	user model.Location,
 	events []model.Location,
 	osmNodes map[int64]*model.OSMNode,
-	ways [][]int64,
-) *model.Graph {
+	ways []model.OSMWay,
+) (*model.Graph, map[string][2]float64) {
 	graph := make(model.Graph)
+	snapCoords := make(map[string][2]float64)
+	nodesWithEdges := make(map[string]bool)
 
-	// If no OSM data, fall back to Haversine star graph ───
-	if len(osmNodes) == 0 {
+	if len(osmNodes) == 0 || len(ways) == 0 {
 		graph[user.Name] = []model.Edge{}
 		for _, event := range events {
 			dist := Haversine(user.Lat, user.Lon, event.Lat, event.Lon)
-			graph[user.Name] = append(graph[user.Name], model.Edge{
-				To:     event.Name,
-				Weight: dist,
-			})
+			graph[user.Name] = append(graph[user.Name], model.Edge{To: event.Name, Weight: dist})
 			graph[event.Name] = []model.Edge{}
 		}
-		return &graph
+		return &graph, snapCoords
 	}
 
-	// Build road edges between consecutive nodes in each way (bidirectional)
+	// Build road edges with oneway rules
 	for _, way := range ways {
-		for i := 0; i < len(way)-1; i++ {
-			fromID := way[i]
-			toID := way[i+1]
+		nodeIDs := way.Nodes
+		if way.Reverse {
+			reversed := make([]int64, len(nodeIDs))
+			for i, id := range nodeIDs {
+				reversed[len(nodeIDs)-1-i] = id
+			}
+			nodeIDs = reversed
+		}
 
+		for i := 0; i < len(nodeIDs)-1; i++ {
+			fromID := nodeIDs[i]
+			toID := nodeIDs[i+1]
 			fromNode, ok1 := osmNodes[fromID]
 			toNode, ok2 := osmNodes[toID]
 			if !ok1 || !ok2 {
@@ -189,38 +245,164 @@ func BuildGraphFromOSM(
 
 			fromKey := fmt.Sprintf("osm:%d", fromID)
 			toKey := fmt.Sprintf("osm:%d", toID)
-			dist := Haversine(fromNode.Lat, fromNode.Lon, toNode.Lat, toNode.Lon)
 
-			graph[fromKey] = append(graph[fromKey], model.Edge{To: toKey, Weight: dist})
-			graph[toKey] = append(graph[toKey], model.Edge{To: fromKey, Weight: dist})
+			physDist := Haversine(fromNode.Lat, fromNode.Lon, toNode.Lat, toNode.Lon)
+			// weightedDist := physDist * highwayWeight(way.Highway) 
+
+			if _, exists := graph[fromKey]; !exists {
+				graph[fromKey] = []model.Edge{}
+			}
+			if _, exists := graph[toKey]; !exists {
+				graph[toKey] = []model.Edge{}
+			}
+
+			graph[fromKey] = append(graph[fromKey],
+				model.Edge{
+					To:     toKey,
+					Weight: physDist})
+			nodesWithEdges[fromKey] = true
+			nodesWithEdges[toKey] = true
+
+			if !way.Oneway && !way.Reverse {
+				graph[toKey] = append(graph[toKey], model.Edge{To: fromKey, Weight: physDist})
+			}
 		}
 	}
 
-	// Snap user to nearest road node
-	if userSnapID, ok := SnapToGraph(user.Lat, user.Lon, osmNodes); ok {
-		userSnapKey := fmt.Sprintf("osm:%d", userSnapID)
-		userSnapNode := osmNodes[userSnapID]
-		snapDistUser := Haversine(user.Lat, user.Lon, userSnapNode.Lat, userSnapNode.Lon)
+	// Snap user to the nearest road segment
+	graph[user.Name] = []model.Edge{}
+	if snap, ok := snapToSegment(user.Lat, user.Lon, osmNodes, ways); ok {
+		snapCoords[snap.VirtualKey] = [2]float64{snap.Lat, snap.Lon}
 
-		graph[user.Name] = []model.Edge{{To: userSnapKey, Weight: snapDistUser}}
-		graph[userSnapKey] = append(graph[userSnapKey], model.Edge{To: user.Name, Weight: snapDistUser})
-	} else {
-		graph[user.Name] = []model.Edge{}
+		if _, exists := graph[snap.VirtualKey]; !exists {
+			graph[snap.VirtualKey] = []model.Edge{}
+		}
+
+		// Virtual node can go to both ends (user is not yet on the road, free to choose entry direction)
+		graph[snap.VirtualKey] = append(graph[snap.VirtualKey],
+			model.Edge{To: snap.NodeAKey, Weight: snap.DistToA},
+			model.Edge{To: snap.NodeBKey, Weight: snap.DistToB},
+		)
+
+		userSnapDist := Haversine(user.Lat, user.Lon, snap.Lat, snap.Lon)
+		graph[user.Name] = append(graph[user.Name], model.Edge{To: snap.VirtualKey, Weight: userSnapDist})
+		graph[snap.VirtualKey] = append(graph[snap.VirtualKey], model.Edge{To: user.Name, Weight: userSnapDist})
 	}
 
-	// Snap each event to nearest road node
+	// Snap each event to the nearest road segment
 	for _, event := range events {
-		if eventSnapID, ok := SnapToGraph(event.Lat, event.Lon, osmNodes); ok {
-			eventSnapKey := fmt.Sprintf("osm:%d", eventSnapID)
-			eventSnapNode := osmNodes[eventSnapID]
-			snapDistEvent := Haversine(event.Lat, event.Lon, eventSnapNode.Lat, eventSnapNode.Lon)
+		graph[event.Name] = []model.Edge{}
+		if snap, ok := snapToSegment(event.Lat, event.Lon, osmNodes, ways); ok {
+			snapCoords[snap.VirtualKey] = [2]float64{snap.Lat, snap.Lon}
 
-			graph[event.Name] = []model.Edge{{To: eventSnapKey, Weight: snapDistEvent}}
-			graph[eventSnapKey] = append(graph[eventSnapKey], model.Edge{To: event.Name, Weight: snapDistEvent})
-		} else {
-			graph[event.Name] = []model.Edge{}
+			if _, exists := graph[snap.VirtualKey]; !exists {
+				graph[snap.VirtualKey] = []model.Edge{}
+			}
+
+			// Both ends of the segment can enter the virtual node (event can be reached from two directions)
+			graph[snap.NodeAKey] = append(graph[snap.NodeAKey],
+				model.Edge{To: snap.VirtualKey, Weight: snap.DistToA},
+			)
+			if !snap.IsOneway {
+				graph[snap.NodeBKey] = append(graph[snap.NodeBKey],
+					model.Edge{To: snap.VirtualKey, Weight: snap.DistToB},
+				)
+			}
+
+			eventSnapDist := Haversine(event.Lat, event.Lon, snap.Lat, snap.Lon)
+			graph[snap.VirtualKey] = append(graph[snap.VirtualKey],
+				model.Edge{To: event.Name, Weight: eventSnapDist},
+			)
+			graph[event.Name] = append(graph[event.Name],
+				model.Edge{To: snap.VirtualKey, Weight: eventSnapDist},
+			)
 		}
 	}
 
-	return &graph
+	for _, way := range ways {
+		if way.Name == "Jalan Gerbang Pemuda" {
+			log.Printf(
+				"Way %s, highway=%s, nodes=%d",
+				way.Name,
+				way.Highway,
+				len(way.Nodes),
+			)
+		}
+	}
+
+	return &graph, snapCoords
+}
+
+// snapToSegment finds the nearest road segment to use as a snap point.
+func snapToSegment(lat, lon float64, osmNodes map[int64]*model.OSMNode, ways []model.OSMWay) (SnapResult, bool) {
+	bestDist := math.Inf(1)
+	var best SnapResult
+	found := false
+
+	for _, way := range ways {
+		nodeIDs := way.Nodes
+		if way.Reverse {
+			reversed := make([]int64, len(nodeIDs))
+			for i, id := range nodeIDs {
+				reversed[len(nodeIDs)-1-i] = id
+			}
+			nodeIDs = reversed
+		}
+
+		for i := 0; i < len(nodeIDs)-1; i++ {
+			aID := nodeIDs[i]
+			bID := nodeIDs[i+1]
+			aNode, ok1 := osmNodes[aID]
+			bNode, ok2 := osmNodes[bID]
+			if !ok1 || !ok2 {
+				continue
+			}
+
+			projLat, projLon := projectPointToSegment(lat, lon, aNode.Lat, aNode.Lon, bNode.Lat, bNode.Lon)
+			realDist := Haversine(lat, lon, projLat, projLon)
+
+			
+			if realDist < bestDist {
+				bestDist = realDist
+				best = SnapResult{
+					VirtualKey: fmt.Sprintf("snap:%d:%d", aID, bID),
+					Lat:        projLat,
+					Lon:        projLon,
+					NodeAKey:   fmt.Sprintf("osm:%d", aID),
+					NodeBKey:   fmt.Sprintf("osm:%d", bID),
+					NodeAID:    aID,
+					NodeBID:    bID,
+					DistToA:    Haversine(projLat, projLon, aNode.Lat, aNode.Lon),
+					DistToB:    Haversine(projLat, projLon, bNode.Lat, bNode.Lon),
+					IsOneway:   way.Oneway || way.Reverse,
+				}
+				found = true
+			}
+		}
+	}
+
+	return best, found
+}
+
+func projectPointToSegment(pLat, pLon, aLat, aLon, bLat, bLon float64) (float64, float64) {
+	abLat := bLat - aLat
+	abLon := bLon - aLon
+	apLat := pLat - aLat
+	apLon := pLon - aLon
+
+	dot := apLat*abLat + apLon*abLon
+	lenSq := abLat*abLat + abLon*abLon
+	if lenSq == 0 {
+		return aLat, aLon
+	}
+
+	t := dot / lenSq
+	if t < 0 {
+		t = 0
+	}
+	if t > 1 {
+		t = 1
+	}
+
+	return aLat + t*abLat, aLon + t*abLon
 }

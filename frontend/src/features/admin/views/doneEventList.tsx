@@ -58,7 +58,7 @@ export default function DoneEventList() {
     }, [search]);
     return (
         <AdminSidebar>
-            <>
+            <div className="p-3 w-full">
                 <EventList
                     status="done"
                     data={data}
@@ -82,7 +82,7 @@ export default function DoneEventList() {
                     setSelectedYear={setSelectedYear}
                     setCurrentPage={setCurrentPage}
                 />
-            </>
+            </div>
         </AdminSidebar>
     )
 }

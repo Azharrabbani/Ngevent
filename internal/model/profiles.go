@@ -17,21 +17,22 @@ type AttendeeProfiles struct {
 }
 
 type OrganizerProfiles struct {
-	ID            string               `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
-	UserID        string               `json:"user_id"`
-	Status        OrganizerStatus      `json:"status" gorm:"embedded"`
-	Name          string               `json:"name"`
-	Slug          string               `json:"slug"`
-	PhotoProfile  *string              `json:"photo_profile"`
-	PhoneNumber   string               `json:"phone_number"`
-	Country       string               `json:"country"`
-	Address       *string              `json:"address"`
-	SocialMedias  OrganizerSocialMedia `json:"social_media" gorm:"embedded"`
-	CompanyDetail OrganizerCompDetail  `json:"company_detail" gorm:"embedded"`
-	CreatedAt     time.Time            `json:"created_at" gorm:"default:now()"`
-	UpdatedAt     time.Time            `json:"updated_at" gorm:"default:now()"`
-	DeletedAt     *time.Time           `json:"deleted_at"`
-	User          Users                `gorm:"foreignKey:UserID"`
+	ID             string               `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	UserID         string               `json:"user_id"`
+	Status         OrganizerStatus      `json:"status" gorm:"embedded"`
+	RequestUpdates bool                 `json:"request_updates" gorm:"default:false"`
+	Name           string               `json:"name"`
+	Slug           string               `json:"slug"`
+	PhotoProfile   *string              `json:"photo_profile"`
+	PhoneNumber    string               `json:"phone_number"`
+	Country        string               `json:"country"`
+	Address        *string              `json:"address"`
+	SocialMedias   OrganizerSocialMedia `json:"social_media" gorm:"embedded"`
+	CompanyDetail  OrganizerCompDetail  `json:"company_detail" gorm:"embedded"`
+	CreatedAt      time.Time            `json:"created_at" gorm:"default:now()"`
+	UpdatedAt      time.Time            `json:"updated_at" gorm:"default:now()"`
+	DeletedAt      *time.Time           `json:"deleted_at"`
+	User           Users                `gorm:"foreignKey:UserID"`
 }
 
 type OrganizerProfilesUpdates struct {

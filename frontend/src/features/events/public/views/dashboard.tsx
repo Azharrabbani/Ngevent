@@ -8,6 +8,8 @@ import FilterSection from "../components/dashboard/filterSection";
 import EventGrid from "../components/event/eventGrid";
 import { useUserLocation } from "../../hooks/useUserLocation";
 import { useSearchParams } from "react-router-dom";
+import { FiMap, FiList } from "react-icons/fi";
+import EventsMapContainer from "../components/map/eventMapContainer";
 
 function SkeletonCard() {
     return (
@@ -27,6 +29,7 @@ function SkeletonCard() {
 
 export default function PublicDashboard() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
     const [selectedCategory, setSelectedCategory] = useState<number[] | undefined>(
         searchParams.get("category")
@@ -88,23 +91,25 @@ export default function PublicDashboard() {
         selectedMonth,
         selectedYear
     );
-
     const {
         data,
         isLoading,
         isFetchingNextPage,
         hasNextPage,
         fetchNextPage
-    } = useGetEventsActive({
-        category: selectedCategory,
-        location: location,
-        search: search || undefined,
-        ...dateFilters,
-        limit: 8,
-        ...(nearestEnabled && lat && lon ? { lat, lon } : {}),
-    });
+    } = useGetEventsActive(
+        {
+            category: selectedCategory,
+            location: location,
+            search: search || undefined,
+            ...dateFilters,
+            limit: 8,
+            ...(nearestEnabled && lat && lon ? { lat, lon } : {}),
+        },
+        viewMode === "list"
+    );
 
-    const events = data?.pages.flatMap((page) => page.rows) || [];
+    const events = data?.pages.flatMap((page) => page.rows ?? []) || [];
     const observerTarget = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -197,7 +202,26 @@ export default function PublicDashboard() {
                             Discover the most exciting events around you
                         </p>
                     </div>
-                    <EventCreatorTabs activeTab="event" />
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setViewMode((prev) => (prev === "list" ? "map" : "list"))}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-slate-300 transition"
+                        >
+                            {viewMode === "list" ? (
+                                <>
+                                    <FiMap className="w-4 h-4" />
+                                    View On The Map
+                                </>
+                            ) : (
+                                <>
+                                    <FiList className="w-4 h-4" />
+                                    View On The List
+                                </>
+                            )}
+                        </button>
+                        <EventCreatorTabs activeTab="event" />
+                    </div>
                 </div>
 
                 <CategorySlider
@@ -207,6 +231,7 @@ export default function PublicDashboard() {
 
                 <div className="mt-6">
                     <FilterSection
+                        viewMode={viewMode}
                         location={location}
                         setLocation={setLocation}
                         dateFilterType={dateFilterType}
@@ -224,7 +249,16 @@ export default function PublicDashboard() {
                     />
                 </div>
 
-                {isLoading ? (
+                {viewMode === "map" ? (
+                    <div className="mt-8">
+                        <EventsMapContainer
+                            category={selectedCategory}
+                            location={location}
+                            search={search || undefined}
+                            dateFilters={dateFilters}
+                        />
+                    </div>
+                ) : isLoading ? (
                     <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                         {Array.from({ length: 8 }).map((_, i) => (
                             <SkeletonCard key={i} />

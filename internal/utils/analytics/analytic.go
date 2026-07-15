@@ -2,53 +2,48 @@ package analytics
 
 import (
 	"log"
-	"math"
+	"time"
+
 	"ngevent/internal/model"
 	"ngevent/internal/utils"
 )
 
+
+const boundingBoxPaddingKm = 5.0
+
+
 func ComputeAnalytic(user model.Location, events []model.Location) {
-    // Haversine
-    havPerf := HaversinePerformance(user, events)
-    havTime, _, havNearest := HaversineAccuracy(havPerf, events)
+	if len(events) == 0 {
+		return
+	}
 
-    // Dijkstra
-    dijPerf := DijkstraPerformance(user, events)
-    dijTime, _, dijNearest, _ := DijkstraAccuracy(dijPerf, havPerf.Results, events)
+	minLat, minLon, maxLat, maxLon := utils.BoundingBox(user, events, boundingBoxPaddingKm)
 
-    for _, e := range events {
-        havDist := havPerf.Results[e.Name]
-        dijDist := dijPerf.DistMap[e.Name]
+	fetchStart := time.Now()
+	osmNodes, ways, err := utils.FetchRoadGraph(minLat, minLon, maxLat, maxLon)
+	fetchElapsed := time.Since(fetchStart)
+	if err != nil {
+		log.Printf("[ANALYTIC] Gagal fetch data OSM: %v — analytic dibatalkan\n", err)
+		return
+	}
 
-        osrmDist, err := utils.GetDistanceOSRM(user.Lat, user.Lon, e.Lat, e.Lon)
-        if err != nil {
-            log.Printf("[ROUTE] OSRM failed for %s: %v\n", e.Name, err)
-            continue
-        }
+	graph, snapCoords := utils.BuildGraphFromOSM(user, events, osmNodes, ways)
 
-        havAccuracy := 0.0
-        if osrmDist > 0 {
-            havAccuracy = (1 - math.Abs(osrmDist-havDist)/osrmDist) * 100
-        }
+	for _, e := range events {
+		algoStart := time.Now()
+		_, prevMap := utils.Dijkstra(*graph, user.Name, e.Name)
+		dist, _ := utils.BuildRoadPathWithCoords(
+			prevMap, user.Name, e.Name,
+			osmNodes, snapCoords,
+			user.Lat, user.Lon, e.Lat, e.Lon,
+		)
+		algoElapsed := time.Since(algoStart)
 
-        dijAccuracy := 0.0
-        if osrmDist > 0 {
-            dijAccuracy = (1 - math.Abs(osrmDist-dijDist)/osrmDist) * 100
-        }
-
-        log.Printf("[ANALYTIC] ============================================\n")
-        log.Printf("[ANALYTIC] Event         : %s\n", e.Name)
-        log.Printf("[ANALYTIC] Ground Truth  : %.2f km (OSRM)\n", osrmDist)
-        log.Printf("[ANALYTIC] --------------------------------------------\n")
-        log.Printf("[ANALYTIC] Haversine     : %.2f km | time: %s | akurasi: %.2f%%\n",
-            havDist, havTime, havAccuracy)
-        log.Printf("[ANALYTIC] Dijkstra      : %.2f km | time: %s | akurasi: %.2f%%\n",
-            dijDist, dijTime, dijAccuracy)
-        log.Printf("[ANALYTIC] Detour factor : %.2fx (jalan %.1f%% lebih panjang dari garis lurus)\n",
-            osrmDist/havDist, (osrmDist/havDist-1)*100)
-        log.Printf("[ANALYTIC] ============================================\n")
-    }
-
-    _ = havNearest
-    _ = dijNearest
+		log.Printf("[ANALYTIC] ============================================\n")
+		log.Printf("[ANALYTIC] Event                    : %s\n", e.Name)
+		log.Printf("[ANALYTIC] Jarak rute (Dijkstra)     : %.2f km\n", dist)
+		log.Printf("[ANALYTIC] Waktu fetch OSM            : %.3fs (I/O jaringan, sekali untuk semua event)\n", fetchElapsed.Seconds())
+		log.Printf("[ANALYTIC] Waktu kalkulasi Dijkstra   : %.4fs (murni algoritma: shortest path + rekonstruksi rute)\n", algoElapsed.Seconds())
+		log.Printf("[ANALYTIC] ============================================\n")
+	}
 }

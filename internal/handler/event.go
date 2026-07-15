@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"mime/multipart"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
@@ -178,6 +179,7 @@ func (h *EventHandler) GetActiveEvents(c *fiber.Ctx) error {
 	var title string
 	if filterReq.Title != "" {
 		title = utils.CreateSlug(filterReq.Title)
+
 	}
 
 	filter := &dto.EventFilter{
@@ -314,6 +316,15 @@ func (h *EventHandler) GetEventRoute(c *fiber.Ctx) error {
 
 	resp, err := h.EventService.GetEventRoute(eventID, userLat, userLon)
 	if err != nil {
+		if errors.Is(err, service.ErrRouteUnavailable) {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(dto.Error(
+				fiber.StatusServiceUnavailable,
+				"failed",
+				"error",
+				"Failed to find route to event location, please try again later.",
+			))
+		}
+
 		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
 			fiber.StatusBadRequest,
 			"failed",
@@ -327,6 +338,26 @@ func (h *EventHandler) GetEventRoute(c *fiber.Ctx) error {
 		"success",
 		"success",
 		resp,
+	))
+}
+
+func (h *EventHandler) GetRouteTest(c *fiber.Ctx) error {
+	req := new(dto.RouteTestReq)
+	if err := c.QueryParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest, "failed", "error", err.Error(),
+		))
+	}
+
+	resp, err := h.EventService.GetRouteBetweenPoints(req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.Error(
+			fiber.StatusBadRequest, "failed", "error", err.Error(),
+		))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.Success(
+		fiber.StatusOK, "success", "success", resp,
 	))
 }
 

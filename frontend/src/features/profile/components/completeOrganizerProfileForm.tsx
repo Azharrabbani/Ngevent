@@ -23,6 +23,8 @@ export default function CompleteOrganizerProfileForm({ onSubmit, loading, errors
     const [npwpNumber, setNpwpNumber] = useState<string>("");
     const [npwp, setNPWP] = useState<File | null>(null);
     const [address, setAddress] = useState<string>("");
+    const nibErrors = errors.nib ? "NIB number is requried" : "";
+    const npwpErrors = errors.npwp ? "NPWP number is requried" : "";
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
@@ -33,7 +35,7 @@ export default function CompleteOrganizerProfileForm({ onSubmit, loading, errors
         }
 
         if (!nib || !npwp) {
-            alert("nib and nwpwp must be upload")
+            alert("NIB and NPWP must be upload")
             return;
         }
 
@@ -158,7 +160,7 @@ export default function CompleteOrganizerProfileForm({ onSubmit, loading, errors
                     placeholder="Enter your residential address"
                     onChange={(e) => setAddress(e.target.value)}
                 />
-                {errors.address && <p className="text-red-500">{errors.address}</p>}
+                {errors.address && <p className="text-sm text-red-500">{errors.address}</p>}
             </div>
 
             <Input
@@ -178,7 +180,7 @@ export default function CompleteOrganizerProfileForm({ onSubmit, loading, errors
                 name="npwp"
                 placeholder="00-000-000-00"
                 onChange={(e) => setNpwpNumber(e.target.value)}
-                error={errors.npwp}
+                error={npwpErrors}
             />
 
             <Input
@@ -188,7 +190,7 @@ export default function CompleteOrganizerProfileForm({ onSubmit, loading, errors
                 name="nib"
                 placeholder="00-000-000-00"
                 onChange={(e) => setNibNumber(e.target.value)}
-                error={errors.nib}
+                error={nibErrors}
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -215,7 +217,6 @@ export default function CompleteOrganizerProfileForm({ onSubmit, loading, errors
                                     flex flex-col gap-2 items-center justify-center
                                     cursor-pointer hover:bg-gray-200
                                     transition
-                                    ${errors.npwp && "border border-red-500"}
                                 `}
                     >
                         {npwp ? (
@@ -237,7 +238,6 @@ export default function CompleteOrganizerProfileForm({ onSubmit, loading, errors
                             </>
                         )}
                     </label>
-                    {errors.npwp && <p className="text-red-500">{errors.npwp}</p>}
                 </div>
 
                 {/* NIB */}
@@ -263,7 +263,6 @@ export default function CompleteOrganizerProfileForm({ onSubmit, loading, errors
                                     flex flex-col gap-2 items-center justify-center
                                     cursor-pointer hover:bg-gray-200
                                     transition
-                                    ${errors.nib && "border border-red-500"}
                                 `}
                     >
                         {nib ? (
@@ -285,7 +284,6 @@ export default function CompleteOrganizerProfileForm({ onSubmit, loading, errors
                             </>
                         )}
                     </label>
-                    {errors.nib && <p className="text-red-500">{errors.nib}</p>}
                 </div>
 
             </div>

@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"errors"
 	"fmt"
 	"ngevent/internal/dto"
 	"ngevent/internal/model"
@@ -241,10 +240,6 @@ func filterUpdatedEventList(filter *dto.UpdatedEventFilter) func(*gorm.DB) *gorm
 
 func toUpdatedEventsResp(updatedEvents []*model.UpdatedEvents) ([]*dto.EventsUpdatesResp, error) {
 	var updatedEventResp []*dto.EventsUpdatesResp
-
-	if len(updatedEvents) == 0 {
-		return nil, errors.New("no data found")
-	}
 
 	for _, event := range updatedEvents {
 		var categories []dto.EventCategories

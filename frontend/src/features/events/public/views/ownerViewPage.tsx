@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/header/dashboardHeader";
 import { useGetOrganizerBySlug } from "../../../profile/hooks/organizer/useGetOrganizerBySlug";
@@ -7,10 +7,10 @@ import OwnerProfileSkeleton from "../components/skeleton/ownerProfileSkeleton";
 import OwnerProfileCard from "../components/event_owner/ownerProfileCard";
 import EventStatusTabs from "../components/tabs/eventStatusTabs";
 import EventCardSkeleton from "../components/skeleton/eventCardSkeleton";
-import EventCard from "../components/event/ownerEventCard";
 import PaginationTabs from "../components/tabs/paginationTabs";
 import { ShockIcon } from "../../../../components/icon";
 import { defaultPagination } from "../../../../utils/pagination";
+import OwnerEventCard from "../components/event/ownerEventCard";
 
 type EventStatus = "active" | "done";
 
@@ -48,10 +48,10 @@ export default function OwnerViewPage() {
         setCurrentPage(1);
     };
 
-    const handleSearchChange = (val: string) => {
+    const handleSearchChange = useCallback((val: string) => {
         setSearch(val);
         setCurrentPage(1);
-    };
+    }, []);
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -102,7 +102,7 @@ export default function OwnerViewPage() {
                     ) : (
                         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                             {events.map((event) => (
-                                <EventCard
+                                <OwnerEventCard
                                     key={event.id}
                                     event={event}
                                     onClick={() => navigate(`/events/${event.event.slug}`)}

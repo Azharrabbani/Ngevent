@@ -21,6 +21,16 @@ CREATE TABLE "public"."users"(
 	CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
+
+INSERT INTO "public"."users" ("email", "password", "role", "is_verified")
+VALUES (
+    'admin123@gmail.com',
+    '$2a$14$yc/1IK39duXVofHOWm3zd.oslWd1HhowZWXWqi6pnSIVg62xCzhle',
+    'admin',
+    true
+);
+
+
 CREATE TABLE "public"."sessions"(
 	"id" uuid DEFAULT uuid_generate_v4() NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -70,6 +80,7 @@ CREATE TABLE "public"."organizer_profiles"(
 	"rejected_reason" TEXT,
 	"reviewed_by" uuid,
 	"reviewed_at" TIMESTAMPTZ,
+	"request_updates" BOOLEAN NOT NULL DEFAULT false,
 	"name" VARCHAR(255) NOT NULL,
 	"slug" VARCHAR(255) NOT NULL,
 	"photo_profile" TEXT,

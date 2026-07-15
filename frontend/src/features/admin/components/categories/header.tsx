@@ -15,7 +15,7 @@ export default function CategoriesHeader({ search, setSearch }: Props) {
     return (
         <>
             <div className="flex flex-col gap-y-5 p-6 md:flex-row md:items-center md:justify-between">
-                <h1 className="text-3xl font-bold text-center md:text-left">Categories</h1>
+                <h1 className="text-3xl font-semibold text-center md:text-left">Categories</h1>
 
                 <div className="flex flex-col md:flex-row gap-4 items-center">
                     <div className="relative w-full md:w-[280px]">

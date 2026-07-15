@@ -1,3 +1,4 @@
+// internal/service/eventExpiryService.go
 package service
 
 import (
@@ -11,20 +12,23 @@ import (
 )
 
 type EventExpiryService struct {
-	EventRepo        repository.EventsRepo
-	UpdatedEventRepo repository.EventsUpdateRepo
-	rdb              *redis.Client
+	EventRepo          repository.EventsRepo
+	UpdatedEventRepo   repository.EventsUpdateRepo
+	EmailTaskPublisher NewTaskEmail
+	rdb                *redis.Client
 }
 
 func NewEventExpiryService(
 	eventRepo repository.EventsRepo,
 	updatedEventRepo repository.EventsUpdateRepo,
+	emailTaskPublisher NewTaskEmail,
 	rdb *redis.Client,
 ) *EventExpiryService {
 	return &EventExpiryService{
-		EventRepo:        eventRepo,
-		UpdatedEventRepo: updatedEventRepo,
-		rdb:              rdb,
+		EventRepo:          eventRepo,
+		UpdatedEventRepo:   updatedEventRepo,
+		EmailTaskPublisher: emailTaskPublisher,
+		rdb:                rdb,
 	}
 }
 
@@ -80,5 +84,108 @@ func (s *EventExpiryService) MarkUpdatedEventAsDone(updatedEventID, eventID stri
 	utils.InvalidateCache(s.rdb, eventCache)
 
 	log.Printf("[EXPIRY] event %s marked as done (triggered by updated event %s)", eventID, updatedEventID)
+	return nil
+}
+
+func (s *EventExpiryService) RevertToDraft(eventID string) error {
+	event, err := s.EventRepo.FindByID(eventID)
+	if err != nil {
+		return errors.New("event not found")
+	}
+
+	if event.Status != string(model.Pending) {
+		return nil
+	}
+
+	reason := "not reviewed within the allotted time"
+	event.Status = string(model.Draft)
+	event.SubmittedAt = nil
+	event.RejectedReason = &reason
+
+	var categories []*model.Categories
+	for _, ec := range event.Categories {
+		categories = append(categories, &model.Categories{
+			ID: ec.CategoryID,
+		})
+	}
+
+	if err := s.EventRepo.Update(event, categories); err != nil {
+		return err
+	}
+
+	utils.InvalidateCache(s.rdb, eventCache)
+
+	// Notify the organizer that their event was reverted to draft
+	if event.Profile.User.Email != "" {
+		payload := &model.EventEmailPayload{
+			To:        event.Profile.User.Email,
+			EOName:    event.Profile.Name,
+			EventName: event.Name,
+		}
+		if err := s.EmailTaskPublisher.Enqueue(model.TypeEventEORevertNotification, payload); err != nil {
+			log.Printf("[DRAFT-REVERT] failed to send revert notification email for event %s: %v", event.ID, err)
+		}
+	}
+
+	return nil
+}
+
+func (s *EventExpiryService) UpdateRevertToDraft(updateEventID string) error {
+	updatedEvent, err := s.UpdatedEventRepo.FindByID(updateEventID)
+	if err != nil {
+		return errors.New("event not found")
+	}
+
+	if updatedEvent.Status != string(model.Pending) {
+		return nil
+	}
+
+	tx := s.EventRepo.GetDB().Begin()
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			log.Printf("[PANIC] UpdateRevertToDraft transaction rolled back: %v", r)
+		}
+	}()
+
+	// Find the main event data, then reset the request_updates flag
+	event, err := s.EventRepo.FindByID(updatedEvent.EventID)
+	if err != nil {
+		tx.Rollback()
+		return errors.New("the main event data not found")
+	}
+
+	event.RequestUpdates = false
+
+	if err := tx.Model(&event).Updates(map[string]interface{}{"request_updates": false}).Error; err != nil {
+		tx.Rollback()
+		return errors.New("failed to update event")
+	}
+
+	if err := s.UpdatedEventRepo.Cancel(updateEventID); err != nil {
+		tx.Rollback()
+		return errors.New("failed to cancel updated event")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return errors.New("failed to update event")
+	}
+
+	utils.InvalidateCache(s.rdb, updatedEventCache)
+
+	// Notify the organizer that their update request was discarded
+	if event.Profile.User.Email != "" {
+		payload := &model.EventEmailPayload{
+			To:        event.Profile.User.Email,
+			EOName:    event.Profile.Name,
+			EventName: event.Name,
+		}
+		if err := s.EmailTaskPublisher.Enqueue(model.TypeEventEOUpdateRevertNotification, payload); err != nil {
+			log.Printf("[DRAFT-REVERT] failed to send update-revert notification email for updated event %s: %v", updatedEvent.ID, err)
+		}
+	}
+
 	return nil
 }

@@ -83,7 +83,7 @@ func (s *OrganizerProfileService) CreateProfile(profile *dto.CreateOrganizerProf
 		UserID:      profile.UserID,
 		Name:        profile.Name,
 		Slug:        utils.GenerateEventSlug(profile.Name),
-		Address:     profile.Address,
+		Address:     &profile.Address,
 		PhoneNumber: fmt.Sprintf("+%s", phonenumber),
 		Country:     country,
 		SocialMedias: model.OrganizerSocialMedia{
@@ -207,7 +207,15 @@ func (s *OrganizerProfileService) FindAll(pagination model.Pagination, filter *d
 	var organizers *model.PaginationRow[*dto.OrganizerProfilesResponse]
 
 	// Genereate cache key
-	cacheKey := fmt.Sprintf("organizer:all:%d:%d:%s:%s:%s", pagination.Limit, pagination.Page, pagination.Sort, filter.Filter, filter.Status)
+	cacheKey := fmt.Sprintf(
+		"organizer:all:%d:%d:%s:%s:%s:%s",
+		pagination.Limit,
+		pagination.Page,
+		pagination.Sort,
+		helper.StringValue(filter.Filter),
+		helper.StringValue(filter.Status),
+		helper.BoolValue(filter.RequestUpdates),
+	)
 
 	// Tru get from cache
 	val, err := s.rdb.Get(context.Background(), cacheKey).Result()
@@ -386,11 +394,11 @@ func (s *OrganizerProfileService) VerifiedProfile(id string, req *dto.ApprovedRe
 	}
 
 	// Send email
-	payload := &model.EmailPayload{
-		To:   profile.User.Email,
-		Name: profile.Name,
-	}
-	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileVerified, payload)
+	// payload := &model.EmailPayload{
+	// 	To:   profile.User.Email,
+	// 	Name: profile.Name,
+	// }
+	// s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileVerified, payload)
 
 	// Invalidate cache after update
 	utils.InvalidateCache(s.rdb, organizerCache)
@@ -439,6 +447,10 @@ func (s *OrganizerProfileService) UpdatePhotoProfile(file *multipart.FileHeader,
 		return fiber.StatusUnauthorized, errors.New("unauthorized action")
 	}
 
+	if profile.Status.Status == string(model.Pending) || profile.RequestUpdates {
+		return fiber.StatusBadRequest, errors.New("Profile still under review. Please wait for the review process to complete before updating.")
+	}
+
 	oldPhoto := fmt.Sprintf("%s/%s", profileUploadPath, *profile.PhotoProfile)
 
 	// Validate image
@@ -478,10 +490,14 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 		return fiber.StatusUnauthorized, false, errors.New("unauthorized action")
 	}
 
-	admins, err := s.UserRepo.FindByRole("admin")
-	if err != nil {
-		return fiber.StatusBadRequest, false, err
+	if profile.Status.Status == string(model.Pending) {
+		return fiber.StatusBadRequest, false, errors.New("Profile still under review. Please wait for the review process to complete before updating.")
 	}
+
+	// admins, err := s.UserRepo.FindByRole("admin")
+	// if err != nil {
+	// 	return fiber.StatusBadRequest, false, err
+	// }
 
 	// Validate phone
 	phonenumber, country, err := utils.ValidatePhoneCode(req.PhoneNumber, req.ISO)
@@ -578,33 +594,31 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 			return fiber.StatusBadRequest, false, err
 		}
 
-		// Update status → pending
-		profile.Status.Status = "pending"
-
+		profile.RequestUpdates = true
 		if err := s.OrganizerRepo.Update(profile); err != nil {
 			return fiber.StatusBadRequest, false, err
 		}
 
 		// Send email async
-		go func() {
-			// Organizer email
-			organizerPayload := &model.EmailPayload{
-				To:   profile.User.Email,
-				Name: profile.Name,
-			}
-			s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerPayload)
+		// go func() {
+		// 	// Organizer email
+		// 	organizerPayload := &model.EmailPayload{
+		// 		To:   profile.User.Email,
+		// 		Name: profile.Name,
+		// 	}
+		// 	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerPayload)
 
-			// Admin email
-			for _, admin := range admins {
-				adminPayload := &model.EmailPayload{
-					To:        admin.Email,
-					Name:      profile.Name,
-					UserEmail: profile.User.Email,
-					Action:    "updated",
-				}
-				s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
-			}
-		}()
+		// 	// Admin email
+		// 	for _, admin := range admins {
+		// 		adminPayload := &model.EmailPayload{
+		// 			To:        admin.Email,
+		// 			Name:      profile.Name,
+		// 			UserEmail: profile.User.Email,
+		// 			Action:    "updated",
+		// 		}
+		// 		s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
+		// 	}
+		// }()
 
 	} else {
 		// =============================
@@ -626,6 +640,7 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 
 	// Invalidate cache
 	utils.InvalidateCache(s.rdb, organizerCache)
+	utils.InvalidateCache(s.rdb, organizerUpdateCache)
 
 	return fiber.StatusOK, criticalChanged, nil
 }
@@ -717,16 +732,17 @@ func toOrganizerProfileResponse(profile *model.OrganizerProfiles) *dto.Organizer
 		Status: dto.OrganizerStatusResp{
 			Status:         profile.Status.Status,
 			RejectedReason: profile.Status.RejectedReason,
-			ReviewedBy:     profile.Status.ReviewedBy,
+			ReviewedBy:     &profile.User.Email,
 			ReviewedAt:     &reviewedAt,
 		},
-		Email:        profile.User.Email,
-		Name:         profile.Name,
-		Slug:         profile.Slug,
-		PhotoProfile: fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", helper.StringValue(profile.PhotoProfile)),
-		PhoneNumber:  profile.PhoneNumber,
-		Country:      profile.Country,
-		Address:      profile.Address,
+		RequestUpdates: profile.RequestUpdates,
+		Email:          profile.User.Email,
+		Name:           profile.Name,
+		Slug:           profile.Slug,
+		PhotoProfile:   fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", helper.StringValue(profile.PhotoProfile)),
+		PhoneNumber:    profile.PhoneNumber,
+		Country:        profile.Country,
+		Address:        profile.Address,
 		SocialMedia: dto.OrganizerSocialMediaReq{
 			Email:     profile.SocialMedias.Email,
 			Instagram: profile.SocialMedias.Instagram,
@@ -766,13 +782,14 @@ func toOrganizerListResponse(profiles []*model.OrganizerProfiles, counts map[str
 				ReviewedBy:     profile.Status.ReviewedBy,
 				ReviewedAt:     &reviewedAt,
 			},
-			Name:         profile.Name,
-			Slug:         profile.Slug,
-			Email:        profile.User.Email,
-			PhotoProfile: fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", helper.StringValue(profile.PhotoProfile)),
-			PhoneNumber:  profile.PhoneNumber,
-			Country:      profile.Country,
-			Address:      profile.Address,
+			RequestUpdates: profile.RequestUpdates,
+			Name:           profile.Name,
+			Slug:           profile.Slug,
+			Email:          profile.User.Email,
+			PhotoProfile:   fmt.Sprintf("http://localhost:8080/api/v1/organizer/photo/%s", helper.StringValue(profile.PhotoProfile)),
+			PhoneNumber:    profile.PhoneNumber,
+			Country:        profile.Country,
+			Address:        profile.Address,
 			SocialMedia: dto.OrganizerSocialMediaReq{
 				Email:     profile.SocialMedias.Email,
 				Instagram: profile.SocialMedias.Instagram,

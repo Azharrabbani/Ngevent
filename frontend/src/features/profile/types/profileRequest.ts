@@ -27,9 +27,10 @@ export interface FilterAttendeeReq {
 // Organizer data
 export interface FilterOrganizerReq {
     filter?: string;
-    status?: string | null,
+    status?: string | null;
+    request_updates?: boolean;
     pagination?: PaginationParams;
-};
+}
 
 export interface CreateOrganizerProfileReq {
     photo: File;
@@ -59,11 +60,11 @@ export interface UpdateOrganizerProfileReq {
 }
 
 export interface validateOrganizerReq {
-    status:   string;
-	reason:   string;
+    status: string;
+    reason: string;
 };
 
-export interface rejectOrganizerReq {  
+export interface rejectOrganizerReq {
     reason: string;
 };
 

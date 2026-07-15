@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { FiNavigation } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { FiAlertCircle, FiNavigation } from "react-icons/fi";
+import toast from "react-hot-toast";
 import type { PathPoint } from "../../../types/publicEventResponse";
 import { useGetEventRoute } from "../../../hooks/useGetEventRoute";
 import type { UserLatLonRequest } from "../../../types/eventRequest";
@@ -40,11 +41,28 @@ export default function LocationCard({
     const {
         data: routeData,
         isFetching: routeLoading,
+        isError: routeError,
+        errorUpdatedAt,
+        refetch: refetchRoute,
     } = useGetEventRoute(eventId, userLocation, routeRequested && canFetchRoute);
+
+    useEffect(() => {
+        if (routeError) {
+            toast.error("Failed to find route to event location, please try again later.");
+        }
+    }, [routeError, errorUpdatedAt]);
 
     const hasGeneratedRoute = Array.isArray(routeData?.path) && routeData.path.length > 0;
     const activePath = hasGeneratedRoute ? routeData.path : initialPath;
     const mapCenter: [number, number] = [coordinates.lat, coordinates.lon];
+
+    const handleRouteButtonClick = () => {
+        if (routeRequested) {
+            refetchRoute();
+        } else {
+            setRouteRequested(true);
+        }
+    };
 
     return (
         <>
@@ -83,23 +101,37 @@ export default function LocationCard({
                 {canFetchRoute && (
                     <>
                         {!hasGeneratedRoute && (
-                            <button
-                                onClick={() => setRouteRequested(true)}
-                                disabled={routeLoading}
-                                className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-700 disabled:bg-slate-400 text-white text-sm font-medium py-3 rounded-xl transition-colors"
-                            >
-                                {routeLoading ? (
-                                    <>
-                                        <SpinnerIcon className="w-4 h-4 animate-spin" />
-                                        Generating route...
-                                    </>
-                                ) : (
-                                    <>
-                                        <FiNavigation className="w-4 h-4" />
-                                        See Route
-                                    </>
+                            <div className="space-y-2">
+                                <button
+                                    onClick={handleRouteButtonClick}
+                                    disabled={routeLoading}
+                                    className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-700 disabled:bg-slate-400 text-white text-sm font-medium py-3 rounded-xl transition-colors"
+                                >
+                                    {routeLoading ? (
+                                        <>
+                                            <SpinnerIcon className="w-4 h-4 animate-spin" />
+                                            Generating route...
+                                        </>
+                                    ) : routeError ? (
+                                        <>
+                                            <FiNavigation className="w-4 h-4" />
+                                            Retry
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FiNavigation className="w-4 h-4" />
+                                            See Route
+                                        </>
+                                    )}
+                                </button>
+
+                                {routeError && !routeLoading && (
+                                    <p className="flex items-center gap-1.5 text-xs text-red-600">
+                                        <FiAlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                        Failed to find route to event location, please try again later.
+                                    </p>
                                 )}
-                            </button>
+                            </div>
                         )}
 
                         {hasGeneratedRoute && (

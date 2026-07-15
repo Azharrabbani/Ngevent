@@ -70,9 +70,9 @@ export default function CancelEvent() {
         const delay = setTimeout(() => {
             setCurrentPage(1);
         }, 500);
-
         return () => clearTimeout(delay);
     }, [location, event]);
+    
 
     return (
         <Sidebar photoProfile={organizer?.data?.photo_profile}>

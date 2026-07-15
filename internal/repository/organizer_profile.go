@@ -225,25 +225,33 @@ func filterOrganizerForPublic(filter *dto.FilterPublicProfileReq) func(*gorm.DB)
 func filterOrganizer(filter *dto.FilterProfileReq) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 
+		// ── Soft-delete / deactivated ──────────────────────────────────────
 		if filter.Status != nil && *filter.Status == "deactivated" {
 			db = db.Where("organizer_profiles.deleted_at IS NOT NULL")
 		} else {
 			db = db.Where("organizer_profiles.deleted_at IS NULL")
 		}
 
+		// ── Full-text filter (email / name / country) ──────────────────────
 		if filter.Filter != nil {
-			query := "%" + strings.ToLower(*filter.Filter) + "%"
+			q := "%" + strings.ToLower(*filter.Filter) + "%"
 
 			db = db.Joins("JOIN users ON users.id = organizer_profiles.user_id").
 				Where(
-					db.Where("LOWER(users.email) LIKE ?", query).
-						Or("LOWER(organizer_profiles.name) LIKE ?", query).
-						Or("LOWER(organizer_profiles.country) LIKE ?", query),
+					db.Where("LOWER(users.email) LIKE ?", q).
+						Or("LOWER(organizer_profiles.name) LIKE ?", q).
+						Or("LOWER(organizer_profiles.country) LIKE ?", q),
 				)
 		}
 
+		// ── Status filter (skip when "deactivated", already handled above) ─
 		if filter.Status != nil && *filter.Status != "deactivated" {
 			db = db.Where("organizer_profiles.status = ?", *filter.Status)
+		}
+
+		// ── Request-updates filter ─────────────────────────────────────────
+		if filter.RequestUpdates != nil {
+			db = db.Where("organizer_profiles.request_updates = ?", *filter.RequestUpdates)
 		}
 
 		return db

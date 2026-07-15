@@ -68,11 +68,20 @@ export default function EventForm({
         reset,
         watch,
         setValue,
+        trigger,
         formState: { errors },
     } = useForm<formValues>({
         defaultValues: {
             description: ""
         }
+    });
+
+    register("description", {
+        required: "Description is required",
+        validate: (val) => {
+            const text = val?.replace(/<[^>]*>/g, "").trim();
+            return text.length > 0 || "Description is required";
+        },
     });
 
     const navigate = useNavigate();
@@ -81,22 +90,32 @@ export default function EventForm({
 
     const [banner, setBanner] = useState<File | null>(null);
     const [bannerPreview, setBannerPreview] = useState<string>("");
-    const [dateRange, setDateRange] = useState<
-        [Date | null, Date | null]
-    >([null, null]);
+    const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
 
     const [startDate, endDate] = dateRange;
-    const [startTime, setStartTime] = useState<Date | null>(null)
-    const [endTime, setEndTime] = useState<Date | null>(null)
+    const [startTime, setStartTime] = useState<Date | null>(null);
+    const [endTime, setEndTime] = useState<Date | null>(null);
+
     const [position, setPosition] = useState<[number, number]>([0, 0]);
+    const [isLocationConfirmed, setIsLocationConfirmed] = useState(false);
     const [showDropdown, setShowDropdown] = useState<boolean>(false);
+    const [timeError, setTimeError] = useState<string | null>(null);
+
+    const MIN_EVENT_DURATION_MINUTES = 60;
+    const MIN_EVENT_DURATION_SECONDS = MIN_EVENT_DURATION_MINUTES * 60;
+    const [now, setNow] = useState<Date>(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 60 * 1000);
+        return () => clearInterval(timer);
+    }, []);
 
     const createEventMutation = useCreateEvent();
     const updateEventMutation = useUpdateEvent();
     const cancelEventMutation = useCancelEvent();
     const deleteEventMutation = useDeleteEvent();
 
-    const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null)
+    const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null);
 
     const isPending = isEditMode
         ? updateEventMutation.isPending
@@ -106,18 +125,15 @@ export default function EventForm({
     useEffect(() => {
         if (!isEditMode || !eventData) return;
 
-        // Reset form fields
         reset({
             name: eventData.event.name,
             detail_address: eventData.event_address.detail_address,
             description: eventData.event.description,
         });
 
-        // Set categories
         const categoryIds = eventData.event.categories.map((c) => Number(c.id));
         setSelectedCategories(categoryIds);
 
-        // Set date from unix timestamp
         if (eventData.start_date) {
             setDateRange([
                 new Date(eventData.start_date * 1000),
@@ -126,23 +142,18 @@ export default function EventForm({
         }
 
         if (eventData.start_time) {
-            setStartTime(
-                new Date(eventData.start_time * 1000)
-            );
-
-            setEndTime(
-                new Date(eventData.end_time * 1000)
-            );
+            setStartTime(new Date(eventData.start_time * 1000));
+            setEndTime(new Date(eventData.end_time * 1000));
         }
 
-        // Set position from coordinates
         const { lat, lon } = eventData.event_address.coordinates;
         if (lat && lon) {
             setPosition([lat, lon]);
             setSearchQuery(eventData.event_address.address);
+            // FIX BUG 2: Tandai lokasi sebagai confirmed saat populate dari data lama
+            setIsLocationConfirmed(true);
         }
 
-        // Set banner preview from existing banner URL
         if (eventData.event.banner) {
             setBannerPreview(eventData.event.banner);
         }
@@ -162,6 +173,47 @@ export default function EventForm({
         }
     }, [isEditMode, eventData]);
 
+    useEffect(() => {
+        if (!startTime || !endTime || !startDate || !endDate) {
+            setTimeError(null);
+            return;
+        }
+
+        const mergedStart = mergeDateTime(startDate, startTime);
+        const mergedEnd = mergeDateTime(endDate, endTime);
+
+        if (mergedEnd - mergedStart < MIN_EVENT_DURATION_SECONDS) {
+            setTimeError(`End time must be at least ${MIN_EVENT_DURATION_MINUTES} minutes after start time`);
+        } else {
+            setTimeError(null);
+        }
+    }, [startTime, endTime, startDate, endDate]);
+
+    const isStartDateToday = (() => {
+        if (!startDate) return false;
+        return (
+            startDate.getFullYear() === now.getFullYear() &&
+            startDate.getMonth() === now.getMonth() &&
+            startDate.getDate() === now.getDate()
+        );
+    })();
+
+    const startTimeMinTime = isStartDateToday
+        ? now
+        : new Date(new Date().setHours(0, 0, 0, 0));
+    useEffect(() => {
+        if (!startDate || !startTime) return;
+        if (!isStartDateToday) return;
+
+        const mergedStart = mergeDateTime(startDate, startTime);
+        const nowUnix = Math.floor(now.getTime() / 1000);
+
+        if (mergedStart < nowUnix) {
+            setStartTime(null);
+            setEndTime(null);
+        }
+    }, [now, startDate, isStartDateToday]);
+
     const toggleCategory = (catId: number) => {
         setSelectedCategories((prev) => toggleItem(prev, catId));
     };
@@ -180,8 +232,13 @@ export default function EventForm({
         setBannerPreview(URL.createObjectURL(file));
     };
 
+    const mergeDateTime = (date: Date, time: Date): number => {
+        const merged = new Date(date);
+        merged.setHours(time.getHours(), time.getMinutes(), 0, 0);
+        return Math.floor(merged.getTime() / 1000);
+    };
+
     const validateForm = (targetStatus: string): boolean => {
-        // Banner required when publishing (not draft)
         if (targetStatus !== "draft" && !isEditMode && !banner) {
             toast.error("Banner required to publish event");
             return false;
@@ -203,29 +260,42 @@ export default function EventForm({
         }
 
         if (endDate.getTime() < startDate.getTime()) {
-            toast.error(
-                "End date cannot be before start date"
-            );
-
+            toast.error("End date cannot be before start date");
             return false;
         }
 
         if (!startTime) {
-            toast.error("Start time is required")
-            return false
+            toast.error("Start time is required");
+            return false;
         }
 
         if (!endTime) {
-            toast.error("End time is required")
-            return false
+            toast.error("End time is required");
+            return false;
         }
 
-        if (endTime.getTime() <= startTime.getTime()) {
-            toast.error("End time must be after start time")
-            return false
+        const mergedStart = mergeDateTime(startDate, startTime);
+        const mergedEnd = mergeDateTime(startDate, endTime);
+
+        if (mergedEnd - mergedStart < MIN_EVENT_DURATION_SECONDS) {
+            toast.error(`End time must be at least ${MIN_EVENT_DURATION_MINUTES} minutes after start time`);
+            return false;
         }
 
-        if (position[0] === 0 || position[1] === 0) {
+        if (startDate) {
+            const nowCheck = new Date();
+            const isToday =
+                startDate.getFullYear() === nowCheck.getFullYear() &&
+                startDate.getMonth() === nowCheck.getMonth() &&
+                startDate.getDate() === nowCheck.getDate();
+
+            if (isToday && mergedStart < Math.floor(nowCheck.getTime() / 1000)) {
+                toast.error("Start time cannot be in the past");
+                return false;
+            }
+        }
+
+        if (!isLocationConfirmed || position[0] === 0 || position[1] === 0) {
             toast.error("Please input and select the correct address");
             return false;
         }
@@ -233,33 +303,18 @@ export default function EventForm({
         return true;
     };
 
-    const buildPayload = (
-        targetStatus: string,
-        data: formValues
-    ) => {
-        // Merge the time
-        const mergeDateTime = (date: Date, time: Date): number => {
-            const merged = new Date(date);
-            merged.setHours(time.getHours(), time.getMinutes(), 0, 0);
-            return Math.floor(merged.getTime() / 1000);
-        };
-        
-        // start_date and end_date should have the same date as start_time and end_time
+    const buildPayload = (targetStatus: string, data: formValues) => {
         const startTimeUnix = mergeDateTime(startDate!, startTime!);
-        const endTimeUnix = mergeDateTime(endDate!, endTime!);
+        const endTimeUnix = mergeDateTime(startDate!, endTime!);
 
         return {
             ...data,
             categories: selectedCategories,
-            
             start_date: startTimeUnix,
             end_date: endTimeUnix,
-
             start_time: startTimeUnix,
             end_time: endTimeUnix,
-
             status: targetStatus,
-
             address: {
                 detail_address: data.detail_address,
                 lat: position[0].toString(),
@@ -280,7 +335,11 @@ export default function EventForm({
 
         try {
             await createEventMutation.mutateAsync({ payload, banner });
-            navigate(-1);
+            if (targetStatus === "draft") {
+                navigate("/organizer/draft-event");
+            } else {
+                navigate("/organizer/dashboard");
+            }
         } catch (err) {
             console.error(err);
         }
@@ -296,7 +355,7 @@ export default function EventForm({
             if (targetStatus === "draft") {
                 navigate("/organizer/draft-event");
             } else {
-                navigate(`/organizer/dashboard`);
+                navigate("/organizer/dashboard");
             }
         } catch (err) {
             console.error(err);
@@ -304,16 +363,16 @@ export default function EventForm({
     };
 
     const handleCancel = async () => {
-        if (!id) return
-        await cancelEventMutation.mutateAsync(id)
-        navigate("/organizer/cancel-event")
-    }
+        if (!id) return;
+        await cancelEventMutation.mutateAsync(id);
+        navigate("/organizer/cancel-event");
+    };
 
     const handleDelete = async () => {
-        if (!id) return
-        await deleteEventMutation.mutateAsync(id)
-        navigate(-1)
-    }
+        if (!id) return;
+        await deleteEventMutation.mutateAsync(id);
+        navigate(-1);
+    };
 
     useEffect(() => {
         return () => {
@@ -335,22 +394,19 @@ export default function EventForm({
                     >
                         {isPending ? "Loading..." : "Draft"}
                     </Button>
-
                     <Button
                         type="button"
                         onClick={handleSubmit((data) => handleCreate("pending", data))}
                         disabled={isPending}
                         className="w-full sm:w-auto rounded-md px-10 py-3 text-white font-semibold bg-[#003B95] hover:bg-[#004ec2]"
                     >
-                        {isPending ? "Loading..." : "Create"}
+                        {isPending ? "Loading..." : "Publish"}
                     </Button>
                 </>
             );
         }
 
-        if (eventStatus === "pending") {
-            return null;
-        }
+        if (eventStatus === "pending") return null;
 
         if (eventStatus === "cancelled") {
             return (
@@ -363,7 +419,6 @@ export default function EventForm({
                     >
                         {isPending ? "Loading..." : "Save as Draft"}
                     </Button>
-
                     <Button
                         type="button"
                         onClick={handleSubmit((data) => handleUpdate("pending", data))}
@@ -387,7 +442,6 @@ export default function EventForm({
                     >
                         {isPending ? "Loading..." : "Update"}
                     </Button>
-
                     <Button
                         type="button"
                         onClick={handleSubmit((data) => handleUpdate("pending", data))}
@@ -460,83 +514,97 @@ export default function EventForm({
                         <label className="text-[#003B95] text-xs sm:text-sm font-medium mb-1 block">
                             Date
                         </label>
-
                         <div className="relative z-20">
                             <DatePicker
                                 selectsRange
                                 startDate={startDate}
                                 endDate={endDate}
                                 onChange={(update) => {
-                                    setDateRange(
-                                        update as [Date | null, Date | null]
-                                    );
+                                    setDateRange(update as [Date | null, Date | null]);
                                 }}
                                 dateFormat="dd/MM/yyyy"
                                 placeholderText="Select event dates"
                                 minDate={new Date()}
                                 isClearable
-                                className="
-                                    w-full
-                                    p-2 sm:p-3
-                                    pr-10
-                                    text-sm sm:text-base
-                                    bg-gray-200
-                                    rounded-xl
-                                    outline-none
-                                "
+                                className="w-full p-2 sm:p-3 pr-10 text-sm sm:text-base bg-gray-200 rounded-xl outline-none"
                                 wrapperClassName="w-full"
                             />
-
                             <FiCalendar
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+                                className="z-100 absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
                                 size={18}
                             />
                         </div>
                     </div>
 
                     {startDate && endDate && (
-                        <div className="w-full grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-[#003B95] text-xs sm:text-sm font-medium mb-1 block">
-                                    Start Time (WIB)
-                                </label>
-                                <div className="relative z-20">
-                                    <DatePicker
-                                        selected={startTime}
-                                        onChange={(time: SetStateAction<Date | null>) => setStartTime(time)}
-                                        showTimeSelect
-                                        showTimeSelectOnly
-                                        timeIntervals={15}
-                                        timeCaption="Start"
-                                        dateFormat="HH:mm"
-                                        placeholderText="09:00 WIB"
-                                        className="w-full p-2 sm:p-3 text-sm sm:text-base bg-gray-200 rounded-xl outline-none"
-                                        wrapperClassName="w-full"
-                                    />
+                        <div className="w-full flex flex-col gap-1">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[#003B95] text-xs sm:text-sm font-medium mb-1 block">
+                                        Start Time (WIB)
+                                    </label>
+                                    <div className="relative z-100">
+                                        <DatePicker
+                                            selected={startTime}
+                                            onChange={(time: Date | null) => {
+                                                setStartTime(time);
+                                                if (time && endTime && startDate && endDate) {
+                                                    const newMergedStart = mergeDateTime(startDate, time);
+                                                    const currentMergedEnd = mergeDateTime(startDate, endTime);
+                                                    if (currentMergedEnd - newMergedStart < MIN_EVENT_DURATION_SECONDS) {
+                                                        setEndTime(null);
+                                                    }
+                                                }
+                                            }}
+                                            showTimeSelect
+                                            showTimeSelectOnly
+                                            timeIntervals={15}
+                                            timeCaption="Start"
+                                            dateFormat="HH:mm"
+                                            placeholderText="09:00 WIB"
+                                            minTime={startTimeMinTime}
+                                            maxTime={new Date(new Date().setHours(23, 45))}
+                                            className={`w-full p-2 sm:p-3 text-sm sm:text-base bg-gray-200 rounded-xl outline-none ${timeError ? "border border-red-400" : ""}`}
+                                            wrapperClassName="w-full"
+                                        />
+                                        {isStartDateToday && (
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                Only times from now onward are selectable today.
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[#003B95] text-xs sm:text-sm font-medium mb-1 block">
+                                        End Time (WIB)
+                                    </label>
+                                    <div className="relative z-20">
+                                        <DatePicker
+                                            selected={endTime}
+                                            onChange={(time: Date | null) => setEndTime(time)}
+                                            showTimeSelect
+                                            showTimeSelectOnly
+                                            timeIntervals={15}
+                                            timeCaption="End"
+                                            dateFormat="HH:mm"
+                                            placeholderText="17:00 WIB"
+                                            minTime={
+                                                startTime
+                                                    ? new Date(startTime.getTime() + MIN_EVENT_DURATION_MINUTES * 60 * 1000)
+                                                    : new Date(new Date().setHours(0, 0, 0, 0))
+                                            }
+                                            maxTime={new Date(new Date().setHours(23, 45))}
+                                            className={`w-full p-2 sm:p-3 text-sm sm:text-base bg-gray-200 rounded-xl outline-none ${timeError ? "border border-red-400" : ""}`}
+                                            wrapperClassName="w-full"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="text-[#003B95] text-xs sm:text-sm font-medium mb-1 block">
-                                    End Time (WIB)
-                                </label>
-                                <div className="relative z-20">
-                                    <DatePicker
-                                        selected={endTime}
-                                        onChange={(time: SetStateAction<Date | null>) => setEndTime(time)}
-                                        showTimeSelect
-                                        showTimeSelectOnly
-                                        timeIntervals={15}
-                                        timeCaption="End"
-                                        dateFormat="HH:mm"
-                                        placeholderText="17:00 WIB"
-                                        minTime={startTime ? new Date(startTime.getTime() + 15 * 60 * 1000) : undefined}
-                                        maxTime={new Date(new Date().setHours(23, 45))}
-                                        className="w-full p-2 sm:p-3 text-sm sm:text-base bg-gray-200 rounded-xl outline-none"
-                                        wrapperClassName="w-full"
-                                    />
-                                </div>
-                            </div>
+                            {timeError && (
+                                <p className="text-red-500 text-sm mt-1">{timeError}</p>
+                            )}
                         </div>
                     )}
 
@@ -551,6 +619,7 @@ export default function EventForm({
                             onChange={(e) => {
                                 setSearchQuery(e.target.value);
                                 setShowDropdown(true);
+                                setIsLocationConfirmed(false);
                             }}
                         />
 
@@ -572,6 +641,7 @@ export default function EventForm({
                                                     parseFloat(loc.lat),
                                                     parseFloat(loc.lon),
                                                 ]);
+                                                setIsLocationConfirmed(true);
                                                 setShowDropdown(false);
                                             }}
                                             className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm"
@@ -581,6 +651,12 @@ export default function EventForm({
                                     ))
                                 )}
                             </div>
+                        )}
+
+                        {searchQuery && !isLocationConfirmed && (
+                            <p className="text-amber-500 text-xs mt-1">
+                                Please select a location from the search results
+                            </p>
                         )}
                     </div>
                 </div>
@@ -616,7 +692,10 @@ export default function EventForm({
                     </label>
                     <RichTextEditor
                         value={watch("description") ?? ""}
-                        onChange={(val) => setValue("description", val, { shouldDirty: true })}
+                        onChange={(val) => {
+                            setValue("description", val, { shouldDirty: true });
+                            trigger("description");
+                        }}
                         error={errors.description?.message}
                     />
                 </div>
@@ -696,8 +775,8 @@ export default function EventForm({
                             </button>
                             <button
                                 onClick={() => {
-                                    setConfirmAction(null)
-                                    confirmAction === "cancel" ? handleCancel() : handleDelete()
+                                    setConfirmAction(null);
+                                    confirmAction === "cancel" ? handleCancel() : handleDelete();
                                 }}
                                 className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm"
                             >

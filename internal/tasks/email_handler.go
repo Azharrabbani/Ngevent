@@ -76,6 +76,7 @@ func (h *EmailTaskHandler) HandlerOrganizerProfileRejected(ctx context.Context, 
 }
 
 // ============ Email event handler ===============
+
 // Admin new event notification
 func (h *EmailTaskHandler) HandlerEventAdminNotification(ctx context.Context, t *asynq.Task) error {
 	var p *model.EventEmailPayload
@@ -113,4 +114,22 @@ func (h *EmailTaskHandler) HandlerUpdateEventOrganizerNotif(ctx context.Context,
 	}
 
 	return utils.OrganizerUpdatedEventNotif(p.To, p.EOName, p.EventName, p.Status, p.Reason)
+}
+
+func (h *EmailTaskHandler) HandlerEventOrganizerRevertNotif(ctx context.Context, t *asynq.Task) error {
+	var p *model.EventEmailPayload
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return err
+	}
+
+	return utils.OrganizerEventRevertNotification(p.To, p.EOName, p.EventName)
+}
+
+func (h *EmailTaskHandler) HandlerEventOrganizerUpdateRevertNotif(ctx context.Context, t *asynq.Task) error {
+	var p *model.EventEmailPayload
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return err
+	}
+
+	return utils.OrganizerUpdatedEventRevertNotification(p.To, p.EOName, p.EventName)
 }

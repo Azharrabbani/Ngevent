@@ -321,11 +321,11 @@ export default function OrganizerPreview({
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h2 className="text-xl font-bold text-gray-800 mb-2">
-                            Reject Organizer
+                            Reject Event Owner
                         </h2>
 
                         <p className="text-sm text-gray-500 mb-4">
-                            Please provide the reason for rejecting this organizer.
+                            Please provide the reason for rejecting this owner.
                         </p>
 
                         <textarea

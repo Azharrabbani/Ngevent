@@ -86,9 +86,10 @@ export default function PendingEventList() {
         return () => clearTimeout(delay);
     }, [search, getUpdate]);
 
+
     return (
         <AdminSidebar>
-            <>
+            <div className="p-3 w-full">
                 <EventList
                     status="pending"
                     data={data}
@@ -112,7 +113,7 @@ export default function PendingEventList() {
                     setGetupdate={setGetUpdate}
                     setCurrentPage={setCurrentPage}
                 />
-            </>
+            </div>
         </AdminSidebar>
     );
 }

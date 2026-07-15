@@ -18,9 +18,10 @@ export const useCreateOrganizerProfile = () => {
             queryClient.invalidateQueries({ queryKey: organizerKeys.me() });
         },
         onError: (err: any) => {
-            const msg = err.response?.data?.error
+            const msg = err?.response?.data?.error
+            console.log("msg: ", msg)
             if (!Array.isArray(msg)) {
-                toast.error(msg || "Failed to create profile")
+                toast.error(msg || "Failed to create profile");
             }
         }
     })

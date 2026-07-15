@@ -4,7 +4,6 @@ import AuthContainer from "../components/container";
 import { IoIosArrowRoundBack } from "react-icons/io";
 import Link from "../../../components/link";
 import LoginForm from "../components/loginForm";
-import GoogleButton from "../components/googleButton";
 
 export default function LoginView() {
     const baseUrlPort = import.meta.env.VITE_URL_PORT;
@@ -72,8 +71,6 @@ export default function LoginView() {
                     <p className="text-center text-sm">or</p>
                     <hr className="border-gray-300" />
                 </div>
-
-                <GoogleButton />
 
                 <hr className="border-gray-200 my-6" />
 

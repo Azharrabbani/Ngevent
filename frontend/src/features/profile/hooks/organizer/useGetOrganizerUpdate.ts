@@ -11,6 +11,7 @@ export const useGetOrganizerUpdate = (id: string) => {
         },
         staleTime: 1000 * 60 * 5,
         enabled: !!id,
-        retry: false, 
+        retry: false,
+        refetchInterval: 5000, 
     });
 };

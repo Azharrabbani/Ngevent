@@ -1,7 +1,4 @@
 package model
-
-// Type is a string value that indicates the type of the task.
-// A list of task types.
 const (
 	TypeVerifiedUser = "user:verified"
 	TypeVerifiedOTP  = "otp:verified"
@@ -15,17 +12,30 @@ const (
 	TypeEmailOrganizerProfileRejected = "email:organizer:profile:rejected"
 
 	// Event email
-	TypeEventAdminNotification  = "event:admin:notification"
-	TypeEventEONotification     = "event:eo:notification"
-	TypeEventEOVerification     = "event:eo:verification"
-	TypeEventUpdateNotification = "updated_event:eo:notification"
+	TypeEventAdminNotification          = "event:admin:notification"
+	TypeEventEONotification             = "event:eo:notification"
+	TypeEventEOVerification             = "event:eo:verification"
+	TypeEventEORevertNotification       = "event:eo:revert"
+	TypeEventEOUpdateRevertNotification = "event:eo:update_revert"
+	TypeEventUpdateNotification         = "updated_event:eo:notification"
 
 	TypeEventExpired        = "event:expired"
+	TypeDraftRevert         = "event:draft_revert"
+	TypeUpdatedDraftRevert  = "event:updated_draft_revert"
 	TypeUpdatedEventExpired = "updated_event:expired"
 )
 
 type EventExpiredPayload struct {
 	EventID string `json:"event_id"`
+}
+
+type DraftRevertPayload struct {
+	EventID string `json:"event_id"`
+}
+
+type UpdatedDraftRevertPayload struct {
+	UpdatedEventID string `json:"updated_event_id"`
+	EventID        string `json:"event_id"`
 }
 
 type UpdatedEventExpiredPayload struct {
