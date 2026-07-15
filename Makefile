@@ -49,6 +49,10 @@ itest:
 # Database Migrations
 migrate-up:
 	@echo "Running migrations up..."
+	@if ! command -v migrate >/dev/null 2>&1; then \
+		echo "migrate CLI not found, installing..."; \
+		go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest; \
+	fi
 	@migrate -path internal/migrations -database "$(DB_URL)" -verbose up
 
 migrate-down:
@@ -58,6 +62,10 @@ migrate-down:
 migrate-create:
 	@echo "Creating new migration (Usage: make migrate-create name=init)..."
 	@migrate create -ext sql -dir internal/migrations -seq "$(name)"
+
+migrate-force:
+	@echo "Forcing migration version (Usage: make migrate-force version=0)..."
+	@migrate -path internal/migrations -database "$(DB_URL)" force $(version)
 
 # Code quality
 fmt:
@@ -114,5 +122,5 @@ watch:
 	}"
 
 .PHONY: all build build-worker run run-worker run-frontend docker-run docker-down test itest \
-	migrate-up migrate-down migrate-create fmt vet lint tidy deps psql redis-cli \
+	migrate-up migrate-down migrate-create migrate-force fmt vet lint tidy deps psql redis-cli \
 	asynq-scheduled asynq-archived asynq-pending clean watch

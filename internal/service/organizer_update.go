@@ -156,11 +156,11 @@ func (s *OrganizerUpdateService) Validate(req *dto.ValidateUpdateReq) error {
 		}
 
 		// 6. Send email to user
-		// EmailPayload := &model.EmailPayload{
-		// 	To:   profile.User.Email,
-		// 	Name: profile.Name,
-		// }
-		// s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileVerified, EmailPayload)
+		EmailPayload := &model.EmailPayload{
+			To:   profile.User.Email,
+			Name: profile.Name,
+		}
+		s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileVerified, EmailPayload)
 	case "rejected":
 		if req.Reason == "" {
 			return errors.New("reason required")

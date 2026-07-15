@@ -177,6 +177,7 @@ export default function CompleteOrganizerProfileForm({ onSubmit, loading, errors
                 className="p-2 sm:p-3 text-sm sm:text-base"
                 label="NPWP number"
                 type="text"
+                onlyNumber
                 name="npwp"
                 placeholder="00-000-000-00"
                 onChange={(e) => setNpwpNumber(e.target.value)}
@@ -187,6 +188,7 @@ export default function CompleteOrganizerProfileForm({ onSubmit, loading, errors
                 className="p-2 sm:p-3 text-sm sm:text-base"
                 label="NIB number"
                 type="text"
+                onlyNumber
                 name="nib"
                 placeholder="00-000-000-00"
                 onChange={(e) => setNibNumber(e.target.value)}

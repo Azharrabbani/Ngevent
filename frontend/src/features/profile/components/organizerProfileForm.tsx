@@ -371,6 +371,7 @@ export default function OrganizerProfileForm({ profile }: Props) {
                         className="p-2 sm:p-3 text-sm sm:text-base"
                         label="NPWP number"
                         type="text"
+                        onlyNumber
                         {...register("npwp", { required: "NPWP number is required" })}
                         placeholder="00-000-000-00"
                         error={errors.npwp?.message}
@@ -379,6 +380,7 @@ export default function OrganizerProfileForm({ profile }: Props) {
                         className="p-2 sm:p-3 text-sm sm:text-base"
                         label="NIB number"
                         type="text"
+                        onlyNumber
                         {...register("nib", { required: "NIB number is required" })}
                         placeholder="00-000-000-00"
                         error={errors.nib?.message}

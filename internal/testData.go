@@ -4,7 +4,7 @@ import "ngevent/internal/model"
 
 func GenerateJabodetabekDataset() (users []model.Location, events []model.Location) {
 	users = []model.Location{
-		{Name: "User-Condet", Lat: -6.3397286, Lon: 106.8331984},
+		{Name: "User-Condet", Lat: -6.2666011, Lon: 106.8624308},
 		{Name: "User-PasarMinggu", Lat: -6.3144585, Lon: 106.8268601},
 		{Name: "User-PondokLabu", Lat: -6.305911, Lon: 106.7994565},
 		{Name: "User-TanjungPriok", Lat: -6.1330885, Lon: 106.8695885},

@@ -394,11 +394,11 @@ func (s *OrganizerProfileService) VerifiedProfile(id string, req *dto.ApprovedRe
 	}
 
 	// Send email
-	// payload := &model.EmailPayload{
-	// 	To:   profile.User.Email,
-	// 	Name: profile.Name,
-	// }
-	// s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileVerified, payload)
+	payload := &model.EmailPayload{
+		To:   profile.User.Email,
+		Name: profile.Name,
+	}
+	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfileVerified, payload)
 
 	// Invalidate cache after update
 	utils.InvalidateCache(s.rdb, organizerCache)
@@ -494,10 +494,10 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 		return fiber.StatusBadRequest, false, errors.New("Profile still under review. Please wait for the review process to complete before updating.")
 	}
 
-	// admins, err := s.UserRepo.FindByRole("admin")
-	// if err != nil {
-	// 	return fiber.StatusBadRequest, false, err
-	// }
+	admins, err := s.UserRepo.FindByRole("admin")
+	if err != nil {
+		return fiber.StatusBadRequest, false, err
+	}
 
 	// Validate phone
 	phonenumber, country, err := utils.ValidatePhoneCode(req.PhoneNumber, req.ISO)
@@ -600,25 +600,25 @@ func (s *OrganizerProfileService) UpdateProfile(userID string, req *dto.UpdateOr
 		}
 
 		// Send email async
-		// go func() {
-		// 	// Organizer email
-		// 	organizerPayload := &model.EmailPayload{
-		// 		To:   profile.User.Email,
-		// 		Name: profile.Name,
-		// 	}
-		// 	s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerPayload)
+		go func() {
+			// Organizer email
+			organizerPayload := &model.EmailPayload{
+				To:   profile.User.Email,
+				Name: profile.Name,
+			}
+			s.EmailTaskPublisher.Enqueue(model.TypeEmailOrganizerProfile, organizerPayload)
 
-		// 	// Admin email
-		// 	for _, admin := range admins {
-		// 		adminPayload := &model.EmailPayload{
-		// 			To:        admin.Email,
-		// 			Name:      profile.Name,
-		// 			UserEmail: profile.User.Email,
-		// 			Action:    "updated",
-		// 		}
-		// 		s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
-		// 	}
-		// }()
+			// Admin email
+			for _, admin := range admins {
+				adminPayload := &model.EmailPayload{
+					To:        admin.Email,
+					Name:      profile.Name,
+					UserEmail: profile.User.Email,
+					Action:    "updated",
+				}
+				s.EmailTaskPublisher.Enqueue(model.TypeEmailAdminVerification, adminPayload)
+			}
+		}()
 
 	} else {
 		// =============================

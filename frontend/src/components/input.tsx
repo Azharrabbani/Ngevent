@@ -7,6 +7,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
+  onlyNumber?: boolean;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(({
@@ -19,8 +20,35 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
   error,
   leftIcon,
   rightIcon,
+  onlyNumber = false,
+  onChange,
+  onKeyDown,
   ...rest
 }, ref) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onlyNumber) {
+      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+    }
+    onChange?.(e);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (onlyNumber) {
+      const allowedKeys = [
+        "Backspace", "Delete", "Tab", "Escape", "Enter",
+        "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+        "Home", "End",
+      ];
+      const isCtrlCombo = e.ctrlKey || e.metaKey;
+      const isDigit = /^[0-9]$/.test(e.key);
+
+      if (!isDigit && !allowedKeys.includes(e.key) && !isCtrlCombo) {
+        e.preventDefault();
+      }
+    }
+    onKeyDown?.(e);
+  };
+
   return (
     <div className="w-full">
       {label && (
@@ -38,9 +66,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
 
         <input
           ref={ref}
-          type={type}
+          type={onlyNumber ? "text" : type}
+          inputMode={onlyNumber ? "numeric" : rest.inputMode}
+          pattern={onlyNumber ? "[0-9]*" : rest.pattern}
           name={name}
           placeholder={placeholder}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
           {...rest}
           className={cn(
             "w-full p-2 rounded-xl bg-gray-200 outline-none",
