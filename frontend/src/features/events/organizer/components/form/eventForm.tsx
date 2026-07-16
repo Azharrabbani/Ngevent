@@ -150,7 +150,6 @@ export default function EventForm({
         if (lat && lon) {
             setPosition([lat, lon]);
             setSearchQuery(eventData.event_address.address);
-            // FIX BUG 2: Tandai lokasi sebagai confirmed saat populate dari data lama
             setIsLocationConfirmed(true);
         }
 

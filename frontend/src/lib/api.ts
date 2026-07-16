@@ -50,14 +50,14 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                // Call the refresh endpoint using the full base URL with credentials
+                // Call the refresh endpoint
                 await axios.post(
                     `${BASE_URL}/refresh`,
                     {},
                     { withCredentials: true }
                 );
 
-                // Refresh succeeded — process queued requests
+                // Refresh succeeded
                 processQueue(null);
 
                 // Retry the original request

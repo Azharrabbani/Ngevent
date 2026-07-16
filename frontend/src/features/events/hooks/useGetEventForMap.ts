@@ -1,4 +1,3 @@
-// useGetEventsForMap.ts
 import { useQuery } from "@tanstack/react-query";
 import type { FilterEventsRequest } from "../types/eventRequest";
 import { getEventsActiveApi } from "../api/eventsApi";

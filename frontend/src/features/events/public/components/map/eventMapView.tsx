@@ -121,7 +121,7 @@ export default function EventsMapView({ events, userLat, userLon }: EventsMapVie
                             <a href={`/events/${event.slug}`}
                                 className="inline-block mt-2 text-xs font-medium text-blue-600 hover:underline"
                             >
-                                Lihat Detail →
+                                View Detail →
                             </a>
                         </div>
                     </Popup>
@@ -132,7 +132,7 @@ export default function EventsMapView({ events, userLat, userLon }: EventsMapVie
             {
                 userLat && userLon && (
                     <Marker position={[userLat, userLon]} icon={userIcon}>
-                        <Popup>Lokasi kamu</Popup>
+                        <Popup>Your location</Popup>
                     </Marker>
                 )
             }

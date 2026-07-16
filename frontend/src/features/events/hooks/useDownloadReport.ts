@@ -1,5 +1,3 @@
-// report/hooks/useDownloadReport.ts
-
 import { useState } from "react";
 import { DownloadReportApi } from "../api/eventsApi";
 import type { ReportRequest } from "../types/reportRequesr";

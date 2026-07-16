@@ -88,6 +88,8 @@ func FetchRoadGraph(minLat, minLon, maxLat, maxLon float64) (map[int64]*model.OS
 			if len(el.Nodes) < 2 {
 				continue
 			}
+
+			// Determining the direction of the road
 			onewayTag := el.Tags["oneway"]
 			isOneway := onewayTag == "yes" || onewayTag == "1" || onewayTag == "true"
 			isReverse := onewayTag == "-1" || onewayTag == "reverse"
@@ -109,7 +111,7 @@ func FetchRoadGraph(minLat, minLon, maxLat, maxLon float64) (map[int64]*model.OS
 		}
 	}
 
-	// Assign street name ke nodes
+	// Assign street name to nodes
 	for _, way := range ways {
 		if way.Name == "" {
 			continue
@@ -213,6 +215,7 @@ func BuildGraphFromOSM(
 	snapCoords := make(map[string][2]float64)
 	nodesWithEdges := make(map[string]bool)
 
+	// Fallback to haversine if OSM data is empty
 	if len(osmNodes) == 0 || len(ways) == 0 {
 		graph[user.Name] = []model.Edge{}
 		for _, event := range events {
@@ -247,7 +250,7 @@ func BuildGraphFromOSM(
 			toKey := fmt.Sprintf("osm:%d", toID)
 
 			physDist := Haversine(fromNode.Lat, fromNode.Lon, toNode.Lat, toNode.Lon)
-			// weightedDist := physDist * highwayWeight(way.Highway) 
+			// weightedDist := physDist * highwayWeight(way.Highway)
 
 			if _, exists := graph[fromKey]; !exists {
 				graph[fromKey] = []model.Edge{}
@@ -361,7 +364,6 @@ func snapToSegment(lat, lon float64, osmNodes map[int64]*model.OSMNode, ways []m
 			projLat, projLon := projectPointToSegment(lat, lon, aNode.Lat, aNode.Lon, bNode.Lat, bNode.Lon)
 			realDist := Haversine(lat, lon, projLat, projLon)
 
-			
 			if realDist < bestDist {
 				bestDist = realDist
 				best = SnapResult{

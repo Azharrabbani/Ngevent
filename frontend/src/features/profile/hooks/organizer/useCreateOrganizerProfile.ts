@@ -19,7 +19,6 @@ export const useCreateOrganizerProfile = () => {
         },
         onError: (err: any) => {
             const msg = err?.response?.data?.error
-            console.log("msg: ", msg)
             if (!Array.isArray(msg)) {
                 toast.error(msg || "Failed to create profile");
             }
