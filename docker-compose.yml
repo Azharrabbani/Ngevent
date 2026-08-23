@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgis/postgis:15-3.4-alpine
     container_name: postgres-ngevent
     restart: unless-stopped
     environment:
@@ -8,9 +8,10 @@ services:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - psql_volume_bp:/var/lib/postgresql/data
+      - ./internal/migrations/0001_init.up.sql:/docker-entrypoint-initdb.d/001_init.sql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}" ]
       interval: 30s

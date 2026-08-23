@@ -43,7 +43,7 @@ func GenerateRefreshToken(userID string, expire time.Time) (string, string, erro
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET_REFRESH_KEY")))
+	tokenString, err := token.SignedString([]byte(os.Getenv("REFRESH_SECRET_KEY")))
 	if err != nil {
 		return "", "", err
 	}
@@ -58,7 +58,7 @@ func ValidateRefreshToken(refreshToken string) (string, string, error) {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
 
-		return []byte(os.Getenv("SECRET_REFRESH_KEY")), nil
+		return []byte(os.Getenv("REFRESH_SECRET_KEY")), nil
 	})
 
 	if err != nil || !token.Valid {
