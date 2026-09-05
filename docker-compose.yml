@@ -30,6 +30,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: prod
+    image: azhar1203/ngevent-app:v1.0.0
     container_name: ngevent-app
     restart: unless-stopped
     ports:
@@ -59,6 +60,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: prod
+    image: azhar1203/ngevent-worker:v1.0.0
     container_name: ngevent-worker
     depends_on:
       postgres:
@@ -81,6 +83,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: frontend
+    image: azhar1203/ngevent-frontend:v1.0.0
     container_name: ngevent-frontend
     restart: unless-stopped
     depends_on:
